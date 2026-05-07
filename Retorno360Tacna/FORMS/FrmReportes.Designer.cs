@@ -241,7 +241,7 @@ namespace Retorno360Tacna.FORMS
             dgvReporte.ReadOnly = true;
             dgvReporte.RowHeadersWidth = 51;
             dgvReporte.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvReporte.Size = new Size(750, 380);
+            dgvReporte.Size = new Size(750, 339);
             dgvReporte.TabIndex = 0;
             // 
             // panelGrafica
@@ -252,7 +252,7 @@ namespace Retorno360Tacna.FORMS
             panelGrafica.Location = new Point(780, 20);
             panelGrafica.Name = "panelGrafica";
             panelGrafica.Padding = new Padding(10);
-            panelGrafica.Size = new Size(400, 380);
+            panelGrafica.Size = new Size(400, 339);
             panelGrafica.TabIndex = 2;
             // 
             // lblTituloGrafica
@@ -269,14 +269,14 @@ namespace Retorno360Tacna.FORMS
             // 
             // panelResumen
             // 
-            panelResumen.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             panelResumen.BackColor = Color.FromArgb(236, 240, 241);
             panelResumen.Controls.Add(lblResumenInfo);
             panelResumen.Controls.Add(lblProgreso);
-            panelResumen.Location = new Point(20, 410);
+            panelResumen.Dock = DockStyle.Bottom;
+            panelResumen.Location = new Point(0, 439);
             panelResumen.Name = "panelResumen";
             panelResumen.Padding = new Padding(10);
-            panelResumen.Size = new Size(1160, 80);
+            panelResumen.Size = new Size(1200, 80);
             panelResumen.TabIndex = 1;
             // 
             // lblResumenInfo

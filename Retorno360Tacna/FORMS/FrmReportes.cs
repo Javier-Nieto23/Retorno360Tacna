@@ -51,37 +51,14 @@ namespace Retorno360Tacna.FORMS
             {
                 this.SuspendLayout();
 
-                // Calcular altura disponible para resultados
-                int alturaDisponible = this.ClientSize.Height - panelFiltros.Height - panelResumen.Height - 40;
+                // El panelResumen ahora usa Dock = DockStyle.Bottom
+                // por lo que no necesitamos ajustar su posición manualmente
 
-                // Asegurar un mínimo
-                alturaDisponible = Math.Max(300, alturaDisponible);
-
-                // Ajustar posición del panel de resumen
-                panelResumen.Top = panelFiltros.Height + alturaDisponible + 10;
-                panelResumen.Width = this.ClientSize.Width - 40;
-
-                // Ajustar DataGridView
-                if (dgvReporte != null)
+                // Ajustar la gráfica interna si existe
+                if (chartIGI != null && panelGrafica != null)
                 {
-                    // Calcular el ancho disponible menos el panel de gráfica y espacios
-                    int anchoDisponible = this.ClientSize.Width - 440; // 400 del panel + 40 de padding
-                    dgvReporte.Width = Math.Max(400, anchoDisponible);
-                    dgvReporte.Height = Math.Max(250, alturaDisponible);
-                }
-
-                // Ajustar panel de gráfica
-                if (panelGrafica != null)
-                {
-                    panelGrafica.Left = this.ClientSize.Width - 420;
-                    panelGrafica.Height = Math.Max(250, alturaDisponible);
-
-                    // Ajustar la gráfica interna
-                    if (chartIGI != null)
-                    {
-                        chartIGI.Width = panelGrafica.Width - 20;
-                        chartIGI.Height = panelGrafica.Height - lblTituloGrafica.Height - 30;
-                    }
+                    chartIGI.Width = panelGrafica.Width - 20;
+                    chartIGI.Height = panelGrafica.Height - lblTituloGrafica.Height - 30;
                 }
 
                 this.ResumeLayout(true);

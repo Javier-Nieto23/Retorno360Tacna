@@ -17,6 +17,7 @@ namespace Retorno360Tacna.FORMS
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmConfiguracion));
             groupBoxInterfaz = new GroupBox();
             btnVistaPrevia = new Button();
             lblVistaPrevia = new Label();
@@ -57,7 +58,7 @@ namespace Retorno360Tacna.FORMS
             btnVistaPrevia.FlatStyle = FlatStyle.Flat;
             btnVistaPrevia.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             btnVistaPrevia.ForeColor = Color.White;
-            btnVistaPrevia.Location = new Point(400, 145);
+            btnVistaPrevia.Location = new Point(400, 156);
             btnVistaPrevia.Name = "btnVistaPrevia";
             btnVistaPrevia.Size = new Size(130, 35);
             btnVistaPrevia.TabIndex = 5;
@@ -72,7 +73,7 @@ namespace Retorno360Tacna.FORMS
             lblVistaPrevia.ForeColor = Color.FromArgb(127, 140, 141);
             lblVistaPrevia.Location = new Point(30, 205);
             lblVistaPrevia.Name = "lblVistaPrevia";
-            lblVistaPrevia.Size = new Size(96, 15);
+            lblVistaPrevia.Size = new Size(104, 15);
             lblVistaPrevia.TabIndex = 4;
             lblVistaPrevia.Text = "Vista previa: 100%";
             // 
@@ -83,7 +84,7 @@ namespace Retorno360Tacna.FORMS
             lblEscalaActual.ForeColor = Color.FromArgb(39, 174, 96);
             lblEscalaActual.Location = new Point(30, 175);
             lblEscalaActual.Name = "lblEscalaActual";
-            lblEscalaActual.Size = new Size(103, 15);
+            lblEscalaActual.Size = new Size(112, 15);
             lblEscalaActual.TabIndex = 3;
             lblEscalaActual.Text = "Escala actual: 100%";
             // 
@@ -105,7 +106,7 @@ namespace Retorno360Tacna.FORMS
             lblEscalaUI.Font = new Font("Segoe UI", 10F);
             lblEscalaUI.Location = new Point(30, 128);
             lblEscalaUI.Name = "lblEscalaUI";
-            lblEscalaUI.Size = new Size(135, 19);
+            lblEscalaUI.Size = new Size(119, 19);
             lblEscalaUI.TabIndex = 1;
             lblEscalaUI.Text = "Escala de Pantalla:";
             // 
@@ -117,7 +118,7 @@ namespace Retorno360Tacna.FORMS
             lblDescripcion.Name = "lblDescripcion";
             lblDescripcion.Size = new Size(500, 70);
             lblDescripcion.TabIndex = 0;
-            lblDescripcion.Text = "Ajuste el tamaño de los controles, fuentes e imágenes de la aplicación.\r\n\r\nNota: Este ajuste es independiente de la configuración de zoom de Windows.\r\nSe recomienda 125% si tiene Windows al 125% para compensar el escalado.";
+            lblDescripcion.Text = resources.GetString("lblDescripcion.Text");
             // 
             // btnGuardar
             // 
@@ -168,7 +169,7 @@ namespace Retorno360Tacna.FORMS
             lblTitulo.ForeColor = Color.FromArgb(52, 73, 94);
             lblTitulo.Location = new Point(20, 20);
             lblTitulo.Name = "lblTitulo";
-            lblTitulo.Size = new Size(157, 30);
+            lblTitulo.Size = new Size(158, 30);
             lblTitulo.TabIndex = 3;
             lblTitulo.Text = "Configuración";
             // 
