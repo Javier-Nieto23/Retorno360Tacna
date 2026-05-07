@@ -50,18 +50,21 @@ namespace Retorno360Tacna.FORMS
             lblCantPedimentosImp = new Label();
             lblCantPedimentosExp = new Label();
             lblTotalPedimentos = new Label();
-            button1 = new Button();
-            label1 = new Label();
-            btnPDF = new Button();
             chkCalRazon = new CheckBox();
+            chkForzarCalculo = new CheckBox();
+            panelCargando = new Panel();
+            lblCargando = new Label();
+            progressBarCargando = new ProgressBar();
+            btnPDF = new Button();
             groupBoxResultados.SuspendLayout();
+            panelCargando.SuspendLayout();
             SuspendLayout();
             // 
             // lblBaseDatos
             // 
             lblBaseDatos.AutoSize = true;
             lblBaseDatos.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblBaseDatos.Location = new Point(390, 15);
+            lblBaseDatos.Location = new Point(466, 15);
             lblBaseDatos.Name = "lblBaseDatos";
             lblBaseDatos.Size = new Size(107, 19);
             lblBaseDatos.TabIndex = 2;
@@ -73,7 +76,7 @@ namespace Retorno360Tacna.FORMS
             cmbBaseDatos.Enabled = false;
             cmbBaseDatos.Font = new Font("Segoe UI", 10F);
             cmbBaseDatos.FormattingEnabled = true;
-            cmbBaseDatos.Location = new Point(390, 34);
+            cmbBaseDatos.Location = new Point(466, 34);
             cmbBaseDatos.Margin = new Padding(3, 2, 3, 2);
             cmbBaseDatos.Name = "cmbBaseDatos";
             cmbBaseDatos.Size = new Size(263, 25);
@@ -146,7 +149,7 @@ namespace Retorno360Tacna.FORMS
             // 
             chkMateriaPrima.AutoSize = true;
             chkMateriaPrima.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            chkMateriaPrima.Location = new Point(427, 75);
+            chkMateriaPrima.Location = new Point(466, 94);
             chkMateriaPrima.Margin = new Padding(3, 2, 3, 2);
             chkMateriaPrima.Name = "chkMateriaPrima";
             chkMateriaPrima.Size = new Size(201, 23);
@@ -156,18 +159,21 @@ namespace Retorno360Tacna.FORMS
             // 
             // btnCalcular
             // 
-            btnCalcular.BackColor = Color.FromArgb(41, 128, 185);
+            btnCalcular.BackColor = Color.FromArgb(39, 174, 96);
             btnCalcular.Cursor = Cursors.Hand;
             btnCalcular.FlatAppearance.BorderSize = 0;
             btnCalcular.FlatStyle = FlatStyle.Flat;
             btnCalcular.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnCalcular.ForeColor = Color.White;
-            btnCalcular.Location = new Point(26, 135);
+            btnCalcular.Image = Properties.Resources.Magnifying_glass_404531;
+            btnCalcular.ImageAlign = ContentAlignment.MiddleRight;
+            btnCalcular.Location = new Point(811, 23);
             btnCalcular.Margin = new Padding(3, 2, 3, 2);
             btnCalcular.Name = "btnCalcular";
-            btnCalcular.Size = new Size(175, 34);
+            btnCalcular.Size = new Size(175, 56);
             btnCalcular.TabIndex = 9;
             btnCalcular.Text = "Calcular Retorno";
+            btnCalcular.TextAlign = ContentAlignment.MiddleLeft;
             btnCalcular.UseVisualStyleBackColor = false;
             btnCalcular.Click += btnCalcular_Click;
             // 
@@ -180,7 +186,7 @@ namespace Retorno360Tacna.FORMS
             groupBoxResultados.Controls.Add(lblImportadoValor);
             groupBoxResultados.Controls.Add(lblImportadoTitulo);
             groupBoxResultados.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            groupBoxResultados.Location = new Point(26, 300);
+            groupBoxResultados.Location = new Point(26, 244);
             groupBoxResultados.Margin = new Padding(3, 2, 3, 2);
             groupBoxResultados.Name = "groupBoxResultados";
             groupBoxResultados.Padding = new Padding(3, 2, 3, 2);
@@ -276,7 +282,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblCantPedimentosImp.AutoSize = true;
             lblCantPedimentosImp.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblCantPedimentosImp.Location = new Point(26, 222);
+            lblCantPedimentosImp.Location = new Point(26, 166);
             lblCantPedimentosImp.Name = "lblCantPedimentosImp";
             lblCantPedimentosImp.Size = new Size(157, 15);
             lblCantPedimentosImp.TabIndex = 16;
@@ -286,7 +292,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblCantPedimentosExp.AutoSize = true;
             lblCantPedimentosExp.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblCantPedimentosExp.Location = new Point(26, 249);
+            lblCantPedimentosExp.Location = new Point(26, 193);
             lblCantPedimentosExp.Name = "lblCantPedimentosExp";
             lblCantPedimentosExp.Size = new Size(155, 15);
             lblCantPedimentosExp.TabIndex = 17;
@@ -297,52 +303,17 @@ namespace Retorno360Tacna.FORMS
             lblTotalPedimentos.AutoSize = true;
             lblTotalPedimentos.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblTotalPedimentos.ForeColor = Color.FromArgb(41, 128, 185);
-            lblTotalPedimentos.Location = new Point(26, 274);
+            lblTotalPedimentos.Location = new Point(26, 218);
             lblTotalPedimentos.Name = "lblTotalPedimentos";
             lblTotalPedimentos.Size = new Size(116, 15);
             lblTotalPedimentos.TabIndex = 18;
             lblTotalPedimentos.Text = "Total Pedimentos: 0";
             // 
-            // button1
-            // 
-            button1.FlatAppearance.BorderSize = 0;
-            button1.FlatStyle = FlatStyle.Flat;
-            button1.Image = Properties.Resources.xls_filetype_icon_177510;
-            button1.Location = new Point(777, 70);
-            button1.Name = "button1";
-            button1.Size = new Size(54, 55);
-            button1.TabIndex = 12;
-            button1.TextAlign = ContentAlignment.MiddleLeft;
-            button1.UseVisualStyleBackColor = true;
-            // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            label1.Location = new Point(714, 40);
-            label1.Name = "label1";
-            label1.Size = new Size(166, 19);
-            label1.TabIndex = 13;
-            label1.Text = "Extraer informacion en:";
-            // 
-            // btnPDF
-            // 
-            btnPDF.FlatAppearance.BorderSize = 0;
-            btnPDF.FlatStyle = FlatStyle.Flat;
-            btnPDF.Image = Properties.Resources.pdf_filetype_icon_177525;
-            btnPDF.Location = new Point(837, 70);
-            btnPDF.Name = "btnPDF";
-            btnPDF.Size = new Size(56, 55);
-            btnPDF.TabIndex = 14;
-            btnPDF.TextAlign = ContentAlignment.MiddleLeft;
-            btnPDF.UseVisualStyleBackColor = true;
-            btnPDF.Click += btnGenerarPDF_Click;
-            // 
             // chkCalRazon
-            //
+            // 
             chkCalRazon.AutoSize = true;
             chkCalRazon.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            chkCalRazon.Location = new Point(427, 102);
+            chkCalRazon.Location = new Point(466, 121);
             chkCalRazon.Margin = new Padding(3, 2, 3, 2);
             chkCalRazon.Name = "chkCalRazon";
             chkCalRazon.Size = new Size(199, 23);
@@ -351,20 +322,85 @@ namespace Retorno360Tacna.FORMS
             chkCalRazon.UseVisualStyleBackColor = true;
             chkCalRazon.CheckedChanged += chkCalRazon_CheckedChanged;
             // 
+            // chkForzarCalculo
+            // 
+            chkForzarCalculo.AutoSize = true;
+            chkForzarCalculo.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            chkForzarCalculo.Location = new Point(466, 146);
+            chkForzarCalculo.Margin = new Padding(3, 2, 3, 2);
+            chkForzarCalculo.Name = "chkForzarCalculo";
+            chkForzarCalculo.Size = new Size(264, 23);
+            chkForzarCalculo.TabIndex = 21;
+            chkForzarCalculo.Text = "Forzar cálculo (omitir validaciones)";
+            chkForzarCalculo.UseVisualStyleBackColor = true;
+            // 
+            // panelCargando
+            // 
+            panelCargando.BackColor = Color.White;
+            panelCargando.BorderStyle = BorderStyle.FixedSingle;
+            panelCargando.Controls.Add(lblCargando);
+            panelCargando.Controls.Add(progressBarCargando);
+            panelCargando.Location = new Point(415, 234);
+            panelCargando.Name = "panelCargando";
+            panelCargando.Size = new Size(400, 150);
+            panelCargando.TabIndex = 20;
+            panelCargando.Visible = false;
+            // 
+            // lblCargando
+            // 
+            lblCargando.Dock = DockStyle.Bottom;
+            lblCargando.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            lblCargando.ForeColor = Color.FromArgb(52, 73, 94);
+            lblCargando.Location = new Point(0, 80);
+            lblCargando.Name = "lblCargando";
+            lblCargando.Size = new Size(398, 68);
+            lblCargando.TabIndex = 1;
+            lblCargando.Text = "Calculando retorno...\r\nPor favor espere";
+            lblCargando.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // progressBarCargando
+            // 
+            progressBarCargando.Location = new Point(50, 30);
+            progressBarCargando.MarqueeAnimationSpeed = 30;
+            progressBarCargando.Name = "progressBarCargando";
+            progressBarCargando.Size = new Size(300, 30);
+            progressBarCargando.Style = ProgressBarStyle.Marquee;
+            progressBarCargando.TabIndex = 0;
+            // 
+            // btnPDF
+            // 
+            btnPDF.BackColor = Color.FromArgb(231, 76, 60);
+            btnPDF.Cursor = Cursors.Hand;
+            btnPDF.Enabled = false;
+            btnPDF.FlatAppearance.BorderSize = 0;
+            btnPDF.FlatStyle = FlatStyle.Flat;
+            btnPDF.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnPDF.ForeColor = Color.White;
+            btnPDF.Image = Properties.Resources.PDF_icon_icons_com_52413;
+            btnPDF.ImageAlign = ContentAlignment.MiddleRight;
+            btnPDF.Location = new Point(1022, 23);
+            btnPDF.Name = "btnPDF";
+            btnPDF.Size = new Size(177, 56);
+            btnPDF.TabIndex = 22;
+            btnPDF.Text = "Generar PDF";
+            btnPDF.TextAlign = ContentAlignment.MiddleLeft;
+            btnPDF.UseVisualStyleBackColor = false;
+            btnPDF.Click += btnGenerarPDF_Click;
+            // 
             // FrmRetorno
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.White;
             ClientSize = new Size(1230, 618);
+            Controls.Add(btnPDF);
+            Controls.Add(chkForzarCalculo);
+            Controls.Add(panelCargando);
             Controls.Add(chkCalRazon);
             Controls.Add(lblTotalPedimentos);
             Controls.Add(lblCantPedimentosExp);
             Controls.Add(lblCantPedimentosImp);
             Controls.Add(cartesianChartView);
-            Controls.Add(btnPDF);
-            Controls.Add(label1);
-            Controls.Add(button1);
             Controls.Add(pieChartView);
             Controls.Add(groupBoxResultados);
             Controls.Add(btnCalcular);
@@ -384,6 +420,7 @@ namespace Retorno360Tacna.FORMS
             Load += FrmRetorno_Load;
             groupBoxResultados.ResumeLayout(false);
             groupBoxResultados.PerformLayout();
+            panelCargando.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -412,9 +449,11 @@ namespace Retorno360Tacna.FORMS
         private Label lblCantPedimentosImp;
         private Label lblCantPedimentosExp;
         private Label lblTotalPedimentos;
-        private Button button1;
-        private Label label1;
         private Button btnPDF;
         private CheckBox chkCalRazon;
+        private CheckBox chkForzarCalculo;
+        private Panel panelCargando;
+        private Label lblCargando;
+        private ProgressBar progressBarCargando;
     }
 }

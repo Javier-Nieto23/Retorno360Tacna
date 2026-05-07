@@ -118,28 +118,61 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="xls_filetype_icon_177510" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\xls_filetype_icon_177510.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="ChatGPT Image Apr 21, 2026, 12_48_04 PM" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\ChatGPT Image Apr 21, 2026, 12_48_04 PM.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="Order-history_25404" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\Order-history_25404.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="US-dollar_25324" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\US-dollar_25324.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="Logout_371271" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\Logout_371271.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="Logout_37127" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\Logout_37127.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="pdf_filetype_icon_177525" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\pdf_filetype_icon_177525.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="connection_40540" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\connection_40540.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="Order-history_25404" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Order-history_25404.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="monitor_40526" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\monitor_40526.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Upline_25412" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Upline_25412.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Logout_37127" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Logout_37127.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Sales-report_25411" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Sales-report_25411.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Logout_371271" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Logout_371271.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Analysis_36777" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Analysis_36777.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Gemini_Generated_Image_k5c47uk5c47uk5c4" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Gemini_Generated_Image_k5c47uk5c47uk5c4.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="ChatGPT Image Apr 21, 2026, 12_48_04 PM" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\ChatGPT Image Apr 21, 2026, 12_48_04 PM.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="PDF_icon-icons.com_52413" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\PDF_icon-icons.com_52413.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="pdf_filetype_icon_177525" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\pdf_filetype_icon_177525.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="configure_icon-icons.com_52404" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\configure_icon-icons.com_52404.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="increase_25373" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\increase_25373.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Magnifying-glass_40453" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Magnifying-glass_40453.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Magnifying-glass_404531" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Magnifying-glass_404531.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="xls_filetype_icon_177510" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\xls_filetype_icon_177510.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="home256_24783" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\home256_24783.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

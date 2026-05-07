@@ -7,8 +7,6 @@ namespace Retorno360Tacna.FORMS
 {
     public partial class Login : Form
     {
-        private List<ConexionInfo> conexiones;
-
         [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
         private static extern IntPtr CreateRoundRectRgn
         (
@@ -44,12 +42,38 @@ namespace Retorno360Tacna.FORMS
         {
             try
             {
+                // SIMPLIFICADO: Solo cargar la conexión principal
+                // Los servidores secundarios se configuran automáticamente en RetornoService
                 LoginService loginService = new LoginService();
-                conexiones = loginService.ObtenerConexiones();
+                List<ConexionInfo> conexiones = loginService.ObtenerConexiones();
 
-                comboBox1.DataSource = conexiones;
-                comboBox1.DisplayMember = "NombreConexion";
-                comboBox1.ValueMember = "IdConexion";
+                // Filtrar solo la conexión principal (172.20.20.26)
+                var conexionPrincipal = conexiones.FirstOrDefault(c => 
+                    c.Servidor != null && c.Servidor.Equals("172.20.20.26", StringComparison.OrdinalIgnoreCase));
+
+                if (conexionPrincipal == null && conexiones.Count > 0)
+                {
+                    // Si no encuentra 172.20.20.26, usar la primera
+                    conexionPrincipal = conexiones[0];
+                }
+
+                if (conexionPrincipal != null)
+                {
+                    comboBox1.DataSource = new List<ConexionInfo> { conexionPrincipal };
+                    comboBox1.DisplayMember = "NombreConexion";
+                    comboBox1.ValueMember = "IdConexion";
+                    comboBox1.SelectedIndex = 0;
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "No se encontró la conexión al servidor principal.\n" +
+                        "Por favor, verifica la tabla Conexiones en RetornoMaster.",
+                        "Error de Configuración",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+                }
             }
             catch (Exception ex)
             {
@@ -63,7 +87,7 @@ namespace Retorno360Tacna.FORMS
             {
                 if (comboBox1.SelectedItem == null)
                 {
-                    MessageBox.Show("Por favor, seleccione un servidor.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Error: No hay conexión disponible.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
@@ -73,41 +97,55 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
-                ConexionInfo conexionSeleccionada = (ConexionInfo)comboBox1.SelectedItem;
+                ConexionInfo conexionPrincipal = (ConexionInfo)comboBox1.SelectedItem;
 
-                // Validar usuario SIEMPRE en el servidor base (172.20.20.26 -> RetornoMaster)
+                // ✅ Validar usuario contra RetornoMaster (servidor principal)
                 LoginService loginService = new LoginService();
                 Usuario? usuario = loginService.ValidarUsuario(textBox1.Text, textBox2.Text);
 
                 if (usuario != null)
                 {
-                    // Probar conexión al servidor seleccionado para trabajar con datos
-                    Conexion conexionTrabajo = new Conexion(
-                        conexionSeleccionada.Servidor!,
-                        conexionSeleccionada.UsuarioSQL!,
-                        conexionSeleccionada.PasswordSQL!
+                    // ✅ Probar conexión al servidor principal
+                    Conexion conexionPrueba = new Conexion(
+                        conexionPrincipal.Servidor!,
+                        conexionPrincipal.UsuarioSQL!,
+                        conexionPrincipal.PasswordSQL!,
+                        "RetornoMaster"
                     );
 
-                    if (!conexionTrabajo.ProbarConexion())
+                    if (!conexionPrueba.ProbarConexion())
                     {
-                        MessageBox.Show("Usuario válido, pero no se pudo conectar al servidor seleccionado para trabajar.", "Advertencia de Conexión", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(
+                            "Usuario válido, pero no se pudo conectar al servidor principal.\n\n" +
+                            $"Servidor: {conexionPrincipal.Servidor}\n" +
+                            "Por favor, verifica la conexión de red.",
+                            "Error de Conexión",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error
+                        );
                         return;
                     }
 
+                    // ℹ️ NOTA: Los servidores externos se configuran automáticamente
+                    //    en RetornoService leyendo RAZONXTABLA.ConnExterna
+
                     // Mostrar pantalla de carga antes de abrir MainMenu
                     this.Hide();
-                    CargaDePantalla cargaDePantalla = new CargaDePantalla(usuario, conexionSeleccionada);
+                    CargaDePantalla cargaDePantalla = new CargaDePantalla(usuario, conexionPrincipal);
 
                     if (cargaDePantalla.ShowDialog() == DialogResult.OK)
                     {
                         // Obtener los datos del formulario de carga
                         Usuario? usuarioRecuperado = cargaDePantalla.ObtenerUsuario();
                         ConexionInfo? conexionRecuperada = cargaDePantalla.ObtenerConexion();
+                        MainMenu? mainMenuPrecargado = cargaDePantalla.ObtenerMainMenuPrecargado();
 
                         if (usuarioRecuperado != null && conexionRecuperada != null)
                         {
-                            // Abrir MainMenu
-                            Retorno360Tacna.FORMS.MainMenu mainMenu = new Retorno360Tacna.FORMS.MainMenu(usuarioRecuperado, conexionRecuperada);
+                            // Si el MainMenu fue pre-cargado, usarlo; si no, crear uno nuevo
+                            Retorno360Tacna.FORMS.MainMenu mainMenu = mainMenuPrecargado 
+                                ?? new Retorno360Tacna.FORMS.MainMenu(usuarioRecuperado, conexionRecuperada);
+
                             mainMenu.FormClosed += (s, args) => this.Close();
                             mainMenu.Show();
                         }
@@ -131,6 +169,15 @@ namespace Retorno360Tacna.FORMS
         private void button2_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void textBox2_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter)
+            {
+                e.Handled = true;
+                button1_Click(sender, e);
+            }
         }
     }
 }

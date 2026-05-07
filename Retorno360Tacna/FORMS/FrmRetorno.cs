@@ -26,6 +26,87 @@ namespace Retorno360Tacna.FORMS
             InitializeComponent();
             conexionActual = conexion;
             retornoService = new RetornoService(conexion);
+
+            // Configurar eventos de redimensionamiento
+            this.Resize += FrmRetorno_Resize;
+        }
+
+        private void FrmRetorno_Resize(object sender, EventArgs e)
+        {
+            AjustarControles();
+        }
+
+        private void AjustarControles()
+        {
+            if (this.WindowState == FormWindowState.Minimized)
+                return;
+
+            try
+            {
+                // Solo ajustar si el formulario está cargado
+                if (!this.IsHandleCreated)
+                    return;
+
+                this.SuspendLayout();
+
+                int anchoDisponible = this.ClientSize.Width;
+                int altoDisponible = this.ClientSize.Height;
+
+                // Posiciones y tamaños base del diseño original
+                const int BASE_WIDTH = 1230;
+                const int BASE_HEIGHT = 618;
+                const int CHART_LEFT = 350;
+                const int PIE_LEFT = 799;
+                const int CHART_TOP = 188;
+                const int CHART_BASE_WIDTH = 428;
+                const int PIE_BASE_WIDTH = 400;
+                const int CHART_BASE_HEIGHT = 396;
+
+                // Calcular factores de escala
+                float factorAncho = (float)anchoDisponible / BASE_WIDTH;
+                float factorAlto = (float)altoDisponible / BASE_HEIGHT;
+
+                // Usar el factor menor para mantener proporciones
+                float factorEscala = Math.Min(factorAncho, factorAlto);
+
+                // No reducir más allá del tamaño original
+                if (factorEscala > 1.0f)
+                {
+                    factorEscala = 1.0f + ((factorEscala - 1.0f) * 0.7f); // Crecer solo 70% del exceso
+                }
+
+                // Ajustar gráfica de barras (cartesiana)
+                if (cartesianChartView != null)
+                {
+                    int nuevoAncho = (int)(CHART_BASE_WIDTH * factorEscala);
+                    int nuevoAlto = (int)(CHART_BASE_HEIGHT * factorEscala);
+
+                    cartesianChartView.Location = new Point(CHART_LEFT, CHART_TOP);
+                    cartesianChartView.Width = Math.Max(350, nuevoAncho);
+                    cartesianChartView.Height = Math.Max(300, nuevoAlto);
+                }
+
+                // Ajustar gráfica de pie
+                if (pieChartView != null)
+                {
+                    int nuevoAncho = (int)(PIE_BASE_WIDTH * factorEscala);
+                    int nuevoAlto = (int)(CHART_BASE_HEIGHT * factorEscala);
+
+                    // Calcular nueva posición X manteniendo proporción con el ancho total
+                    int nuevaPosX = (int)(PIE_LEFT * factorAncho);
+
+                    pieChartView.Location = new Point(nuevaPosX, CHART_TOP);
+                    pieChartView.Width = Math.Max(350, nuevoAncho);
+                    pieChartView.Height = Math.Max(300, nuevoAlto);
+                }
+
+                this.ResumeLayout(false);
+                this.PerformLayout();
+            }
+            catch
+            {
+                // Evitar errores durante el redimensionamiento
+            }
         }
 
         private void FrmRetorno_Load(object sender, EventArgs e)
@@ -81,12 +162,17 @@ namespace Retorno360Tacna.FORMS
             {
                 cmbBaseDatos.DataSource = null;
                 cmbBaseDatos.Enabled = false;
+                btnPDF.Enabled = false;
                 return;
             }
 
             if (cmbRazonSocial.SelectedItem is RazonSocial razonSeleccionada)
             {
                 idRazonSeleccionada = razonSeleccionada.IdRazon;
+
+                // Deshabilitar el botón PDF al cambiar la selección
+                btnPDF.Enabled = false;
+                ultimoResultado = null;
 
                 // Si el checkbox está activado, no cargar bases de datos
                 if (!chkCalRazon.Checked)
@@ -98,6 +184,10 @@ namespace Retorno360Tacna.FORMS
 
         private void chkCalRazon_CheckedChanged(object sender, EventArgs e)
         {
+            // Deshabilitar el botón PDF al cambiar la selección
+            btnPDF.Enabled = false;
+            ultimoResultado = null;
+
             if (chkCalRazon.Checked)
             {
                 // Deshabilitar combo de bases de datos
@@ -121,36 +211,13 @@ namespace Retorno360Tacna.FORMS
                 if (retornoService == null)
                     return;
 
-                List<BaseDatosRazon> bases = retornoService.ObtenerBasesDatosRazon(idRazon);
+                List<string> basesDatos = retornoService.ObtenerBasesDatosRazon(idRazon);
 
-                if (bases.Count > 0)
+                if (basesDatos.Count > 0)
                 {
-                    // Filtrar por servidor si es necesario
-                    string servidor = conexionActual?.NombreConexion ?? string.Empty;
-                    
-                    // Extraer solo los nombres de las bases de datos
-                    List<string> nombresBases = bases.Select(b => b.NombreTabla).ToList();
-                    
-                    // Aplicar filtro de ValidadorBasesDatos si el servidor tiene restricciones
-                    List<string> basesFiltradas = ValidadorBasesDatos.FiltrarBasesDatos(servidor, nombresBases);
-
-                    if (basesFiltradas.Count > 0)
-                    {
-                        cmbBaseDatos.DataSource = basesFiltradas;
-                        cmbBaseDatos.Enabled = true;
-                        cmbBaseDatos.SelectedIndex = -1;
-                    }
-                    else
-                    {
-                        cmbBaseDatos.DataSource = null;
-                        cmbBaseDatos.Enabled = false;
-                        
-                        if (ValidadorBasesDatos.ServidorTieneRestricciones(servidor))
-                        {
-                            MessageBox.Show($"No se encontraron bases de datos permitidas para el servidor '{servidor}'.",
-                                "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-                    }
+                    cmbBaseDatos.DataSource = basesDatos;
+                    cmbBaseDatos.Enabled = true;
+                    cmbBaseDatos.SelectedIndex = -1;
                 }
                 else
                 {
@@ -174,12 +241,12 @@ namespace Retorno360Tacna.FORMS
             // Este evento se mantiene por si se necesita lógica adicional
         }
 
-        private void btnCalcular_Click(object sender, EventArgs e)
+        private async void btnCalcular_Click(object sender, EventArgs e)
         {
             if (!ValidarDatos())
                 return;
 
-            CalcularPorcentajeRetorno();
+            await CalcularPorcentajeRetornoAsync();
         }
 
         private bool ValidarDatos()
@@ -209,7 +276,7 @@ namespace Retorno360Tacna.FORMS
             return true;
         }
 
-        private void CalcularPorcentajeRetorno()
+        private async Task CalcularPorcentajeRetornoAsync()
         {
             try
             {
@@ -220,21 +287,23 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
+                // Mostrar panel de carga
+                MostrarPanelCargando(true);
+
                 btnCalcular.Enabled = false;
                 btnCalcular.Text = "Calculando...";
-                Cursor = Cursors.WaitCursor;
 
-                ResultadoRetorno resultado;
+                ResultadoRetorno resultado = null;
 
                 if (chkCalRazon.Checked)
                 {
                     // Cálculo por razón social general (sin validación de pedimentos)
-                    resultado = retornoService.CalcularRetornoPorRazonSocial(
+                    resultado = await Task.Run(() => retornoService.CalcularRetornoPorRazonSocial(
                         idRazonSeleccionada,
                         dtpFechaInicio.Value,
                         dtpFechaFin.Value,
                         chkMateriaPrima.Checked
-                    );
+                    ));
 
                     MessageBox.Show("Cálculo por razón social completado exitosamente.\n\n" +
                         "Nota: Este cálculo utiliza todos los pedimentos de TR_Glosa sin validación cruzada.",
@@ -245,16 +314,24 @@ namespace Retorno360Tacna.FORMS
                     // Cálculo con validación de pedimentos (modo normal)
                     string baseDatosSeleccionada = cmbBaseDatos.SelectedItem?.ToString() ?? string.Empty;
 
-                    resultado = retornoService.CalcularRetorno(
+                    resultado = await Task.Run(() => retornoService.CalcularRetorno(
                         idRazonSeleccionada,
                         baseDatosSeleccionada,
                         dtpFechaInicio.Value,
                         dtpFechaFin.Value,
-                        chkMateriaPrima.Checked
-                    );
+                        chkMateriaPrima.Checked,
+                        chkForzarCalculo.Checked
+                    ));
 
-                    MessageBox.Show("Cálculo completado exitosamente.",
-                        "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    if (chkForzarCalculo.Checked)
+                    {
+                        MessageBox.Show("Cálculo completado exitosamente.\n\n" +
+                            "NOTA: Se omitieron las validaciones de pedimentos. El cálculo se realizó con los datos disponibles.",
+                            "Éxito - Cálculo Forzado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                    }
                 }
 
                 MostrarResultados(resultado);
@@ -270,9 +347,23 @@ namespace Retorno360Tacna.FORMS
             }
             finally
             {
+                // Ocultar panel de carga
+                MostrarPanelCargando(false);
+
                 btnCalcular.Enabled = true;
                 btnCalcular.Text = "Calcular Retorno";
-                Cursor = Cursors.Default;
+            }
+        }
+
+        private void MostrarPanelCargando(bool mostrar)
+        {
+            panelCargando.Visible = mostrar;
+            if (mostrar)
+            {
+                // Centrar el panel en el formulario
+                panelCargando.Left = (this.ClientSize.Width - panelCargando.Width) / 2;
+                panelCargando.Top = (this.ClientSize.Height - panelCargando.Height) / 2;
+                panelCargando.BringToFront();
             }
         }
 
@@ -286,6 +377,9 @@ namespace Retorno360Tacna.FORMS
             lblCantPedimentosImp.Text = $"Pedimentos Importación: {resultado.CantidadPedimentosImportacion}";
             lblCantPedimentosExp.Text = $"Pedimentos Exportación: {resultado.CantidadPedimentosExportacion}";
             lblTotalPedimentos.Text = $"Total Pedimentos: {resultado.TotalPedimentosValidados}";
+
+            // Habilitar el botón de generar PDF
+            btnPDF.Enabled = true;
         }
 
         private void ActualizarGrafica(ResultadoRetorno resultado)
@@ -383,49 +477,31 @@ namespace Retorno360Tacna.FORMS
                 {
                     saveDialog.Filter = "Archivos PDF (*.pdf)|*.pdf";
                     saveDialog.Title = "Guardar Reporte PDF";
-                    saveDialog.FileName = ReporteRetornoPDF.GenerarNombreArchivo(ultimoResultado);
+                    saveDialog.FileName = $"Reporte_Retorno_{ultimoResultado.RazonSocial.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
 
                     if (saveDialog.ShowDialog() == DialogResult.OK)
                     {
                         Cursor = Cursors.WaitCursor;
 
-                        try
+                        // Generar PDF
+                        PdfGeneradorService pdfService = new PdfGeneradorService();
+                        pdfService.GenerarReportePDF(ultimoResultado, saveDialog.FileName);
+
+                        Cursor = Cursors.Default;
+
+                        DialogResult resultado = MessageBox.Show(
+                            $"PDF generado exitosamente.\n\n¿Desea abrir el archivo?",
+                            "Éxito",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Information);
+
+                        if (resultado == DialogResult.Yes)
                         {
-                            // Capturar las gráficas
-                            SKBitmap? graficaLineal = ChartHelper.CapturarControl(cartesianChartView);
-                            SKBitmap? graficaCircular = ChartHelper.CapturarControl(pieChartView);
-
-                            // Generar PDF con gráficas
-                            ReporteRetornoPDF reporte = new ReporteRetornoPDF(
-                                ultimoResultado, 
-                                graficaLineal, 
-                                graficaCircular
-                            );
-
-                            reporte.GenerarPDF(saveDialog.FileName);
-
-                            Cursor = Cursors.Default;
-
-                            DialogResult resultado = MessageBox.Show(
-                                $"PDF generado exitosamente.\n\n¿Desea abrir el archivo?",
-                                "Éxito",
-                                MessageBoxButtons.YesNo,
-                                MessageBoxIcon.Information);
-
-                            if (resultado == DialogResult.Yes)
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                             {
-                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                                {
-                                    FileName = saveDialog.FileName,
-                                    UseShellExecute = true
-                                });
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Cursor = Cursors.Default;
-                            MessageBox.Show($"Error al generar el PDF: {ex.Message}\n\n{ex.StackTrace}",
-                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                FileName = saveDialog.FileName,
+                                UseShellExecute = true
+                            });
                         }
                     }
                 }
@@ -433,7 +509,7 @@ namespace Retorno360Tacna.FORMS
             catch (Exception ex)
             {
                 Cursor = Cursors.Default;
-                MessageBox.Show($"Error al preparar el PDF: {ex.Message}",
+                MessageBox.Show($"Error al generar el PDF: {ex.Message}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

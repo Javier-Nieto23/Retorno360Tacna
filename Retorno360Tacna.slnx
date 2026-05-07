@@ -1,3 +1,14 @@
 <Solution>
-  <Project Path="Retorno360Tacna/Retorno360Tacna.csproj" />
+  <Configurations>
+    <BuildType Name="All" />
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+  </Configurations>
+  <Project Path="InstallerRetorno360Tacna/InstallerRetorno360Tacna.aiproj" Type="840c416c-b8f3-42bc-b0dd-f6bb14c9f8cb" Id="6bcecdae-071d-4ac2-bb36-fb3221dab7a7">
+    <BuildType Project="All" />
+    <Platform Project="?" />
+  </Project>
+  <Project Path="Retorno360Tacna/Retorno360Tacna.csproj">
+    <BuildType Solution="All|*" Project="Debug" />
+  </Project>
 </Solution>

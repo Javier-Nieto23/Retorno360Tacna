@@ -30,10 +30,12 @@ namespace Retorno360Tacna.FORMS
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainMenu));
             panelSidebar = new Panel();
+            btnConfiguracion = new Button();
             btnCerrarSesion = new Button();
             btnReportes = new Button();
-            btnRetorno = new Button();
             btnSeleccionRazon = new Button();
+            btnRetorno = new Button();
+            btnDiagramas = new Button();
             pictureBoxLogo = new PictureBox();
             panelContenido = new Panel();
             panelTop = new Panel();
@@ -47,16 +49,40 @@ namespace Retorno360Tacna.FORMS
             // panelSidebar
             // 
             panelSidebar.BackColor = Color.FromArgb(44, 62, 80);
+            panelSidebar.Controls.Add(btnConfiguracion);
             panelSidebar.Controls.Add(btnCerrarSesion);
             panelSidebar.Controls.Add(btnReportes);
-            panelSidebar.Controls.Add(btnRetorno);
             panelSidebar.Controls.Add(btnSeleccionRazon);
+            panelSidebar.Controls.Add(btnRetorno);
+            panelSidebar.Controls.Add(btnDiagramas);
             panelSidebar.Controls.Add(pictureBoxLogo);
             panelSidebar.Dock = DockStyle.Left;
             panelSidebar.Location = new Point(0, 0);
             panelSidebar.Name = "panelSidebar";
             panelSidebar.Size = new Size(250, 800);
             panelSidebar.TabIndex = 0;
+            // 
+            // btnConfiguracion
+            // 
+            btnConfiguracion.Cursor = Cursors.Hand;
+            btnConfiguracion.Dock = DockStyle.Bottom;
+            btnConfiguracion.FlatAppearance.BorderSize = 0;
+            btnConfiguracion.FlatStyle = FlatStyle.Flat;
+            btnConfiguracion.Font = new Font("Segoe UI", 11F);
+            btnConfiguracion.ForeColor = Color.White;
+            btnConfiguracion.Image = Properties.Resources.configure_icon_icons_com_52404;
+            btnConfiguracion.ImageAlign = ContentAlignment.MiddleRight;
+            btnConfiguracion.Location = new Point(0, 680);
+            btnConfiguracion.Name = "btnConfiguracion";
+            btnConfiguracion.Padding = new Padding(20, 0, 0, 0);
+            btnConfiguracion.Size = new Size(250, 60);
+            btnConfiguracion.TabIndex = 5;
+            btnConfiguracion.Text = "Configuración";
+            btnConfiguracion.TextAlign = ContentAlignment.MiddleLeft;
+            btnConfiguracion.UseVisualStyleBackColor = true;
+            btnConfiguracion.Click += btnConfiguracion_Click;
+            btnConfiguracion.MouseEnter += MenuButton_MouseEnter;
+            btnConfiguracion.MouseLeave += MenuButton_MouseLeave;
             // 
             // btnCerrarSesion
             // 
@@ -73,7 +99,7 @@ namespace Retorno360Tacna.FORMS
             btnCerrarSesion.Padding = new Padding(20, 0, 0, 0);
             btnCerrarSesion.Size = new Size(250, 60);
             btnCerrarSesion.TabIndex = 4;
-            btnCerrarSesion.Text = "  Cerrar Sesión";
+            btnCerrarSesion.Text = "Cerrar Sesión";
             btnCerrarSesion.TextAlign = ContentAlignment.MiddleLeft;
             btnCerrarSesion.UseVisualStyleBackColor = true;
             btnCerrarSesion.Click += btnCerrarSesion_Click;
@@ -89,39 +115,17 @@ namespace Retorno360Tacna.FORMS
             btnReportes.Font = new Font("Segoe UI", 11F);
             btnReportes.ForeColor = Color.White;
             btnReportes.ImageAlign = ContentAlignment.MiddleLeft;
-            btnReportes.Location = new Point(0, 330);
+            btnReportes.Location = new Point(0, 394);
             btnReportes.Name = "btnReportes";
             btnReportes.Padding = new Padding(20, 0, 0, 0);
             btnReportes.Size = new Size(250, 60);
             btnReportes.TabIndex = 3;
-            btnReportes.Text = "Buttom3";
+            btnReportes.Text = "Otros Reportes";
             btnReportes.TextAlign = ContentAlignment.MiddleLeft;
             btnReportes.UseVisualStyleBackColor = true;
             btnReportes.Click += btnReportes_Click;
             btnReportes.MouseEnter += MenuButton_MouseEnter;
             btnReportes.MouseLeave += MenuButton_MouseLeave;
-            // 
-            // btnRetorno
-            // 
-            btnRetorno.Cursor = Cursors.Hand;
-            btnRetorno.Dock = DockStyle.Top;
-            btnRetorno.FlatAppearance.BorderSize = 0;
-            btnRetorno.FlatStyle = FlatStyle.Flat;
-            btnRetorno.Font = new Font("Segoe UI", 11F);
-            btnRetorno.ForeColor = Color.White;
-            btnRetorno.Image = Properties.Resources.Order_history_25404;
-            btnRetorno.ImageAlign = ContentAlignment.MiddleRight;
-            btnRetorno.Location = new Point(0, 270);
-            btnRetorno.Name = "btnRetorno";
-            btnRetorno.Padding = new Padding(20, 0, 0, 0);
-            btnRetorno.Size = new Size(250, 60);
-            btnRetorno.TabIndex = 2;
-            btnRetorno.Text = "Reportes de Retorno";
-            btnRetorno.TextAlign = ContentAlignment.MiddleLeft;
-            btnRetorno.UseVisualStyleBackColor = true;
-            btnRetorno.Click += btnRetorno_Click;
-            btnRetorno.MouseEnter += MenuButton_MouseEnter;
-            btnRetorno.MouseLeave += MenuButton_MouseLeave;
             // 
             // btnSeleccionRazon
             // 
@@ -131,18 +135,63 @@ namespace Retorno360Tacna.FORMS
             btnSeleccionRazon.FlatStyle = FlatStyle.Flat;
             btnSeleccionRazon.Font = new Font("Segoe UI", 11F);
             btnSeleccionRazon.ForeColor = Color.White;
-            btnSeleccionRazon.ImageAlign = ContentAlignment.MiddleLeft;
-            btnSeleccionRazon.Location = new Point(0, 210);
+            btnSeleccionRazon.Image = Properties.Resources.US_dollar_25324;
+            btnSeleccionRazon.ImageAlign = ContentAlignment.MiddleRight;
+            btnSeleccionRazon.Location = new Point(0, 334);
             btnSeleccionRazon.Name = "btnSeleccionRazon";
             btnSeleccionRazon.Padding = new Padding(20, 0, 0, 0);
             btnSeleccionRazon.Size = new Size(250, 60);
             btnSeleccionRazon.TabIndex = 1;
-            btnSeleccionRazon.Text = "  Selección Razón";
+            btnSeleccionRazon.Text = "Reporte de IGI";
             btnSeleccionRazon.TextAlign = ContentAlignment.MiddleLeft;
             btnSeleccionRazon.UseVisualStyleBackColor = true;
             btnSeleccionRazon.Click += btnSeleccionRazon_Click;
             btnSeleccionRazon.MouseEnter += MenuButton_MouseEnter;
             btnSeleccionRazon.MouseLeave += MenuButton_MouseLeave;
+            // 
+            // btnRetorno
+            // 
+            btnRetorno.Cursor = Cursors.Hand;
+            btnRetorno.Dock = DockStyle.Top;
+            btnRetorno.FlatAppearance.BorderSize = 0;
+            btnRetorno.FlatStyle = FlatStyle.Flat;
+            btnRetorno.Font = new Font("Segoe UI", 11F);
+            btnRetorno.ForeColor = Color.White;
+            btnRetorno.Image = Properties.Resources.increase_25373;
+            btnRetorno.ImageAlign = ContentAlignment.MiddleRight;
+            btnRetorno.Location = new Point(0, 274);
+            btnRetorno.Name = "btnRetorno";
+            btnRetorno.Padding = new Padding(20, 0, 0, 0);
+            btnRetorno.Size = new Size(250, 60);
+            btnRetorno.TabIndex = 2;
+            btnRetorno.Text = "Porcentaje de Retorno";
+            btnRetorno.TextAlign = ContentAlignment.MiddleLeft;
+            btnRetorno.UseVisualStyleBackColor = true;
+            btnRetorno.Click += btnRetorno_Click;
+            btnRetorno.MouseEnter += MenuButton_MouseEnter;
+            btnRetorno.MouseLeave += MenuButton_MouseLeave;
+            // 
+            // btnDiagramas
+            // 
+            btnDiagramas.Cursor = Cursors.Hand;
+            btnDiagramas.Dock = DockStyle.Top;
+            btnDiagramas.FlatAppearance.BorderSize = 0;
+            btnDiagramas.FlatStyle = FlatStyle.Flat;
+            btnDiagramas.Font = new Font("Segoe UI", 11F);
+            btnDiagramas.ForeColor = Color.White;
+            btnDiagramas.Image = Properties.Resources.home256_24783;
+            btnDiagramas.ImageAlign = ContentAlignment.MiddleRight;
+            btnDiagramas.Location = new Point(0, 204);
+            btnDiagramas.Name = "btnDiagramas";
+            btnDiagramas.Padding = new Padding(20, 0, 0, 0);
+            btnDiagramas.Size = new Size(250, 70);
+            btnDiagramas.TabIndex = 5;
+            btnDiagramas.Text = "Inicio";
+            btnDiagramas.TextAlign = ContentAlignment.MiddleLeft;
+            btnDiagramas.UseVisualStyleBackColor = true;
+            btnDiagramas.Click += btnDiagramas_Click;
+            btnDiagramas.MouseEnter += MenuButton_MouseEnter;
+            btnDiagramas.MouseLeave += MenuButton_MouseLeave;
             // 
             // pictureBoxLogo
             // 
@@ -150,7 +199,7 @@ namespace Retorno360Tacna.FORMS
             pictureBoxLogo.Image = Properties.Resources.ChatGPT_Image_Apr_21__2026__12_48_04_PM;
             pictureBoxLogo.Location = new Point(0, 0);
             pictureBoxLogo.Name = "pictureBoxLogo";
-            pictureBoxLogo.Size = new Size(250, 210);
+            pictureBoxLogo.Size = new Size(250, 204);
             pictureBoxLogo.SizeMode = PictureBoxSizeMode.StretchImage;
             pictureBoxLogo.TabIndex = 0;
             pictureBoxLogo.TabStop = false;
@@ -200,8 +249,8 @@ namespace Retorno360Tacna.FORMS
             // 
             // MainMenu
             // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(1457, 800);
             Controls.Add(panelContenido);
             Controls.Add(panelTop);
@@ -210,7 +259,7 @@ namespace Retorno360Tacna.FORMS
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainMenu";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Retorno 360 Tacna - Sistema de Gestión";
+            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto";
             WindowState = FormWindowState.Maximized;
             Load += MainMenu_Load;
             panelSidebar.ResumeLayout(false);
@@ -226,8 +275,10 @@ namespace Retorno360Tacna.FORMS
         private PictureBox pictureBoxLogo;
         private Button btnSeleccionRazon;
         private Button btnRetorno;
+        private Button btnDiagramas;
         private Button btnReportes;
         private Button btnCerrarSesion;
+        private Button btnConfiguracion;
         private Panel panelContenido;
         private Panel panelTop;
         private Label lblTitulo;

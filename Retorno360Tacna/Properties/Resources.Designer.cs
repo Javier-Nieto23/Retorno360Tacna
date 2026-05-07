@@ -63,9 +63,29 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Analysis_36777 {
+            get {
+                object obj = ResourceManager.GetObject("Analysis_36777", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap ChatGPT_Image_Apr_21__2026__12_48_04_PM {
             get {
                 object obj = ResourceManager.GetObject("ChatGPT Image Apr 21, 2026, 12_48_04 PM", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap configure_icon_icons_com_52404 {
+            get {
+                object obj = ResourceManager.GetObject("configure_icon-icons.com_52404", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -93,6 +113,26 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap home256_24783 {
+            get {
+                object obj = ResourceManager.GetObject("home256_24783", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap increase_25373 {
+            get {
+                object obj = ResourceManager.GetObject("increase_25373", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Logout_37127 {
             get {
                 object obj = ResourceManager.GetObject("Logout_37127", resourceCulture);
@@ -113,6 +153,36 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Magnifying_glass_40453 {
+            get {
+                object obj = ResourceManager.GetObject("Magnifying-glass_40453", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Magnifying_glass_404531 {
+            get {
+                object obj = ResourceManager.GetObject("Magnifying-glass_404531", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap monitor_40526 {
+            get {
+                object obj = ResourceManager.GetObject("monitor_40526", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Order_history_25404 {
             get {
                 object obj = ResourceManager.GetObject("Order-history_25404", resourceCulture);
@@ -126,6 +196,46 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap pdf_filetype_icon_177525 {
             get {
                 object obj = ResourceManager.GetObject("pdf_filetype_icon_177525", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap PDF_icon_icons_com_52413 {
+            get {
+                object obj = ResourceManager.GetObject("PDF_icon-icons.com_52413", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Sales_report_25411 {
+            get {
+                object obj = ResourceManager.GetObject("Sales-report_25411", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Upline_25412 {
+            get {
+                object obj = ResourceManager.GetObject("Upline_25412", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap US_dollar_25324 {
+            get {
+                object obj = ResourceManager.GetObject("US-dollar_25324", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

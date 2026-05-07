@@ -8,6 +8,7 @@ namespace Retorno360Tacna
         private CargadorInicial? cargador;
         private Usuario? usuario;
         private ConexionInfo? conexion;
+        private FORMS.MainMenu? mainMenuPrecargado;
 
         public CargaDePantalla()
         {
@@ -19,7 +20,7 @@ namespace Retorno360Tacna
             InitializeComponent();
             usuario = usuarioActual;
             conexion = conexionActual;
-            cargador = new CargadorInicial(700);
+            cargador = new CargadorInicial(500); // Reducido a 500ms por mensaje
 
             cargador.MensajeCambio += Cargador_MensajeCambio;
             cargador.CargaCompleta += Cargador_CargaCompleta;
@@ -27,7 +28,27 @@ namespace Retorno360Tacna
 
         private async void CargaDePantalla_Load(object sender, EventArgs e)
         {
-            if (cargador != null)
+            if (cargador != null && usuario != null && conexion != null)
+            {
+                // Definir tareas de pre-carga
+                var tareasPreCarga = new List<Action>
+                {
+                    // Pre-crear el MainMenu (sin mostrarlo aún)
+                    () => {
+                        if (usuario != null && conexion != null)
+                        {
+                            mainMenuPrecargado = new FORMS.MainMenu(usuario, conexion);
+
+                            // Forzar la creación del handle (inicialización de controles)
+                            // Esto carga los botones, paneles, etc. en segundo plano
+                            var handle = mainMenuPrecargado.Handle;
+                        }
+                    }
+                };
+
+                await cargador.IniciarCargaAsync(tareasPreCarga);
+            }
+            else if (cargador != null)
             {
                 await cargador.IniciarCargaAsync();
             }
@@ -57,16 +78,12 @@ namespace Retorno360Tacna
             }
         }
 
-        private void AbrirMainMenu()
-        {
-            if (usuario != null && conexion != null)
-            {
-                Retorno360Tacna.FORMS.MainMenu mainMenu = new Retorno360Tacna.FORMS.MainMenu(usuario, conexion);
-                mainMenu.Show();
-            }
-        }
-
         public Usuario? ObtenerUsuario() => usuario;
         public ConexionInfo? ObtenerConexion() => conexion;
+
+        /// <summary>
+        /// Obtiene el MainMenu pre-cargado (si existe)
+        /// </summary>
+        public Retorno360Tacna.FORMS.MainMenu? ObtenerMainMenuPrecargado() => mainMenuPrecargado;
     }
 }

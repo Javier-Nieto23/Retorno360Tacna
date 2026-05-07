@@ -12,18 +12,6 @@ namespace Retorno360Tacna.MODELS
         }
     }
 
-    public class BaseDatosRazon
-    {
-        public int IdTabla { get; set; }
-        public string NombreTabla { get; set; } = string.Empty;
-        public int IdRazon { get; set; }
-
-        public override string ToString()
-        {
-            return NombreTabla;
-        }
-    }
-
     public class PedimentoComparacion
     {
         public string Tipo { get; set; } = string.Empty;
