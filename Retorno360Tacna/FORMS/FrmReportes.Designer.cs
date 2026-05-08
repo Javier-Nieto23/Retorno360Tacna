@@ -103,7 +103,7 @@ namespace Retorno360Tacna.FORMS
             btnGenerarPDF.ForeColor = Color.White;
             btnGenerarPDF.Image = Properties.Resources.PDF_icon_icons_com_52413;
             btnGenerarPDF.ImageAlign = ContentAlignment.MiddleRight;
-            btnGenerarPDF.Location = new Point(1140, 2);
+            btnGenerarPDF.Location = new Point(1164, 2);
             btnGenerarPDF.Name = "btnGenerarPDF";
             btnGenerarPDF.Size = new Size(177, 56);
             btnGenerarPDF.TabIndex = 10;
@@ -273,10 +273,10 @@ namespace Retorno360Tacna.FORMS
             panelResumen.Controls.Add(lblResumenInfo);
             panelResumen.Controls.Add(lblProgreso);
             panelResumen.Dock = DockStyle.Bottom;
-            panelResumen.Location = new Point(0, 439);
+            panelResumen.Location = new Point(20, 419);
             panelResumen.Name = "panelResumen";
             panelResumen.Padding = new Padding(10);
-            panelResumen.Size = new Size(1200, 80);
+            panelResumen.Size = new Size(1160, 80);
             panelResumen.TabIndex = 1;
             // 
             // lblResumenInfo
