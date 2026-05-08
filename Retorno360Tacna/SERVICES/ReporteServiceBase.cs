@@ -108,6 +108,44 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
+        /// Obtiene el ID de la razón social desde una base de datos específica
+        /// </summary>
+        public int ObtenerIdRazonDesdeBaseDatos(string baseDatos)
+        {
+            try
+            {
+                var conexion = new Conexion(
+                    conexionPrincipal.Servidor ?? string.Empty,
+                    conexionPrincipal.UsuarioSQL ?? string.Empty,
+                    conexionPrincipal.PasswordSQL ?? string.Empty,
+                    "RetornoMaster"
+                );
+
+                string sql = @"
+                    SELECT TOP 1 IdRazon 
+                    FROM NOM_TABLARAZON 
+                    WHERE NOMBRE_TABLA = @BaseDatos";
+
+                using var cn = conexion.ObtenerConexion();
+                using var cmd = new Microsoft.Data.SqlClient.SqlCommand(sql, cn);
+                cmd.Parameters.AddWithValue("@BaseDatos", baseDatos);
+                cn.Open();
+
+                using var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    return reader.GetInt32(0);
+                }
+
+                throw new Exception($"No se encontró la razón social para la base de datos '{baseDatos}'");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al obtener IdRazon desde base de datos: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
         /// Obtiene una razón social específica por ID, incluyendo su base de datos de TR_GLOSA
         /// </summary>
         public RazonSocial ObtenerRazonSocial(int idRazon)
