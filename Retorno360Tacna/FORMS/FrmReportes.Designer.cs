@@ -84,7 +84,7 @@ namespace Retorno360Tacna.FORMS
             chkSinGlosa.AutoSize = true;
             chkSinGlosa.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             chkSinGlosa.ForeColor = Color.FromArgb(52, 73, 94);
-            chkSinGlosa.Location = new Point(390, 95);
+            chkSinGlosa.Location = new Point(267, 95);
             chkSinGlosa.Name = "chkSinGlosa";
             chkSinGlosa.Size = new Size(425, 21);
             chkSinGlosa.TabIndex = 9;
@@ -103,7 +103,7 @@ namespace Retorno360Tacna.FORMS
             btnGenerarPDF.ForeColor = Color.White;
             btnGenerarPDF.Image = Properties.Resources.PDF_icon_icons_com_52413;
             btnGenerarPDF.ImageAlign = ContentAlignment.MiddleRight;
-            btnGenerarPDF.Location = new Point(1164, 2);
+            btnGenerarPDF.Location = new Point(903, 52);
             btnGenerarPDF.Name = "btnGenerarPDF";
             btnGenerarPDF.Size = new Size(177, 56);
             btnGenerarPDF.TabIndex = 10;
@@ -122,7 +122,7 @@ namespace Retorno360Tacna.FORMS
             btnConsultar.ForeColor = Color.White;
             btnConsultar.Image = Properties.Resources.Analysis_36777;
             btnConsultar.ImageAlign = ContentAlignment.MiddleRight;
-            btnConsultar.Location = new Point(957, 2);
+            btnConsultar.Location = new Point(698, 52);
             btnConsultar.Name = "btnConsultar";
             btnConsultar.Size = new Size(177, 56);
             btnConsultar.TabIndex = 8;
@@ -135,7 +135,7 @@ namespace Retorno360Tacna.FORMS
             // 
             dtpFechaFin.Font = new Font("Segoe UI", 10F);
             dtpFechaFin.Format = DateTimePickerFormat.Short;
-            dtpFechaFin.Location = new Point(756, 60);
+            dtpFechaFin.Location = new Point(463, 60);
             dtpFechaFin.Name = "dtpFechaFin";
             dtpFechaFin.Size = new Size(180, 25);
             dtpFechaFin.TabIndex = 7;
@@ -145,7 +145,7 @@ namespace Retorno360Tacna.FORMS
             lblFechaFin.AutoSize = true;
             lblFechaFin.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblFechaFin.ForeColor = Color.FromArgb(52, 73, 94);
-            lblFechaFin.Location = new Point(756, 35);
+            lblFechaFin.Location = new Point(463, 35);
             lblFechaFin.Name = "lblFechaFin";
             lblFechaFin.Size = new Size(74, 19);
             lblFechaFin.TabIndex = 6;
@@ -155,7 +155,7 @@ namespace Retorno360Tacna.FORMS
             // 
             dtpFechaInicio.Font = new Font("Segoe UI", 10F);
             dtpFechaInicio.Format = DateTimePickerFormat.Short;
-            dtpFechaInicio.Location = new Point(560, 60);
+            dtpFechaInicio.Location = new Point(267, 60);
             dtpFechaInicio.Name = "dtpFechaInicio";
             dtpFechaInicio.Size = new Size(180, 25);
             dtpFechaInicio.TabIndex = 5;
@@ -165,7 +165,7 @@ namespace Retorno360Tacna.FORMS
             lblFechaInicio.AutoSize = true;
             lblFechaInicio.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblFechaInicio.ForeColor = Color.FromArgb(52, 73, 94);
-            lblFechaInicio.Location = new Point(560, 35);
+            lblFechaInicio.Location = new Point(267, 35);
             lblFechaInicio.Name = "lblFechaInicio";
             lblFechaInicio.Size = new Size(91, 19);
             lblFechaInicio.TabIndex = 4;
@@ -177,7 +177,7 @@ namespace Retorno360Tacna.FORMS
             cmbCliente.Enabled = false;
             cmbCliente.Font = new Font("Segoe UI", 10F);
             cmbCliente.FormattingEnabled = true;
-            cmbCliente.Location = new Point(290, 60);
+            cmbCliente.Location = new Point(20, 91);
             cmbCliente.Name = "cmbCliente";
             cmbCliente.Size = new Size(230, 25);
             cmbCliente.TabIndex = 3;
@@ -187,7 +187,7 @@ namespace Retorno360Tacna.FORMS
             lblCliente.AutoSize = true;
             lblCliente.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblCliente.ForeColor = Color.FromArgb(52, 73, 94);
-            lblCliente.Location = new Point(290, 35);
+            lblCliente.Location = new Point(20, 66);
             lblCliente.Name = "lblCliente";
             lblCliente.Size = new Size(140, 19);
             lblCliente.TabIndex = 2;
@@ -198,7 +198,7 @@ namespace Retorno360Tacna.FORMS
             cmbRazonSocial.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbRazonSocial.Font = new Font("Segoe UI", 10F);
             cmbRazonSocial.FormattingEnabled = true;
-            cmbRazonSocial.Location = new Point(20, 60);
+            cmbRazonSocial.Location = new Point(20, 33);
             cmbRazonSocial.Name = "cmbRazonSocial";
             cmbRazonSocial.Size = new Size(230, 25);
             cmbRazonSocial.TabIndex = 1;
@@ -209,7 +209,7 @@ namespace Retorno360Tacna.FORMS
             lblRazonSocial.AutoSize = true;
             lblRazonSocial.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblRazonSocial.ForeColor = Color.FromArgb(52, 73, 94);
-            lblRazonSocial.Location = new Point(20, 35);
+            lblRazonSocial.Location = new Point(20, 8);
             lblRazonSocial.Name = "lblRazonSocial";
             lblRazonSocial.Size = new Size(98, 19);
             lblRazonSocial.TabIndex = 0;
@@ -276,27 +276,27 @@ namespace Retorno360Tacna.FORMS
             panelResumen.Location = new Point(20, 419);
             panelResumen.Name = "panelResumen";
             panelResumen.Padding = new Padding(10);
-            panelResumen.Size = new Size(1160, 80);
+            panelResumen.Size = new Size(1160, 120);
             panelResumen.TabIndex = 1;
             // 
             // lblResumenInfo
             // 
             lblResumenInfo.Dock = DockStyle.Fill;
-            lblResumenInfo.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblResumenInfo.Font = new Font("Consolas", 9F, FontStyle.Bold);
             lblResumenInfo.ForeColor = Color.FromArgb(52, 73, 94);
             lblResumenInfo.Location = new Point(10, 10);
             lblResumenInfo.Name = "lblResumenInfo";
-            lblResumenInfo.Size = new Size(1140, 40);
+            lblResumenInfo.Size = new Size(1140, 80);
             lblResumenInfo.TabIndex = 0;
             lblResumenInfo.Text = "Seleccione los filtros y presione Consultar";
-            lblResumenInfo.TextAlign = ContentAlignment.MiddleLeft;
+            lblResumenInfo.TextAlign = ContentAlignment.TopLeft;
             // 
             // lblProgreso
             // 
             lblProgreso.Dock = DockStyle.Bottom;
             lblProgreso.Font = new Font("Segoe UI", 9F);
             lblProgreso.ForeColor = Color.FromArgb(127, 140, 141);
-            lblProgreso.Location = new Point(10, 50);
+            lblProgreso.Location = new Point(10, 90);
             lblProgreso.Name = "lblProgreso";
             lblProgreso.Size = new Size(1140, 20);
             lblProgreso.TabIndex = 1;

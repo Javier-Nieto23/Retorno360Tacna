@@ -64,7 +64,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblBaseDatos.AutoSize = true;
             lblBaseDatos.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblBaseDatos.Location = new Point(466, 15);
+            lblBaseDatos.Location = new Point(26, 73);
             lblBaseDatos.Name = "lblBaseDatos";
             lblBaseDatos.Size = new Size(107, 19);
             lblBaseDatos.TabIndex = 2;
@@ -76,7 +76,7 @@ namespace Retorno360Tacna.FORMS
             cmbBaseDatos.Enabled = false;
             cmbBaseDatos.Font = new Font("Segoe UI", 10F);
             cmbBaseDatos.FormattingEnabled = true;
-            cmbBaseDatos.Location = new Point(466, 34);
+            cmbBaseDatos.Location = new Point(26, 92);
             cmbBaseDatos.Margin = new Padding(3, 2, 3, 2);
             cmbBaseDatos.Name = "cmbBaseDatos";
             cmbBaseDatos.Size = new Size(263, 25);
@@ -109,7 +109,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblFechaInicio.AutoSize = true;
             lblFechaInicio.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblFechaInicio.Location = new Point(26, 75);
+            lblFechaInicio.Location = new Point(400, 18);
             lblFechaInicio.Name = "lblFechaInicio";
             lblFechaInicio.Size = new Size(91, 19);
             lblFechaInicio.TabIndex = 4;
@@ -119,7 +119,7 @@ namespace Retorno360Tacna.FORMS
             // 
             dtpFechaInicio.Font = new Font("Segoe UI", 10F);
             dtpFechaInicio.Format = DateTimePickerFormat.Short;
-            dtpFechaInicio.Location = new Point(26, 94);
+            dtpFechaInicio.Location = new Point(400, 37);
             dtpFechaInicio.Margin = new Padding(3, 2, 3, 2);
             dtpFechaInicio.Name = "dtpFechaInicio";
             dtpFechaInicio.Size = new Size(176, 25);
@@ -129,7 +129,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblFechaFin.AutoSize = true;
             lblFechaFin.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblFechaFin.Location = new Point(228, 75);
+            lblFechaFin.Location = new Point(602, 18);
             lblFechaFin.Name = "lblFechaFin";
             lblFechaFin.Size = new Size(74, 19);
             lblFechaFin.TabIndex = 6;
@@ -139,7 +139,7 @@ namespace Retorno360Tacna.FORMS
             // 
             dtpFechaFin.Font = new Font("Segoe UI", 10F);
             dtpFechaFin.Format = DateTimePickerFormat.Short;
-            dtpFechaFin.Location = new Point(228, 94);
+            dtpFechaFin.Location = new Point(602, 37);
             dtpFechaFin.Margin = new Padding(3, 2, 3, 2);
             dtpFechaFin.Name = "dtpFechaFin";
             dtpFechaFin.Size = new Size(176, 25);
@@ -149,7 +149,7 @@ namespace Retorno360Tacna.FORMS
             // 
             chkMateriaPrima.AutoSize = true;
             chkMateriaPrima.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            chkMateriaPrima.Location = new Point(466, 94);
+            chkMateriaPrima.Location = new Point(400, 76);
             chkMateriaPrima.Margin = new Padding(3, 2, 3, 2);
             chkMateriaPrima.Name = "chkMateriaPrima";
             chkMateriaPrima.Size = new Size(201, 23);
@@ -313,7 +313,7 @@ namespace Retorno360Tacna.FORMS
             // 
             chkCalRazon.AutoSize = true;
             chkCalRazon.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            chkCalRazon.Location = new Point(466, 121);
+            chkCalRazon.Location = new Point(400, 103);
             chkCalRazon.Margin = new Padding(3, 2, 3, 2);
             chkCalRazon.Name = "chkCalRazon";
             chkCalRazon.Size = new Size(199, 23);
@@ -326,7 +326,7 @@ namespace Retorno360Tacna.FORMS
             // 
             chkForzarCalculo.AutoSize = true;
             chkForzarCalculo.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            chkForzarCalculo.Location = new Point(466, 146);
+            chkForzarCalculo.Location = new Point(400, 128);
             chkForzarCalculo.Margin = new Padding(3, 2, 3, 2);
             chkForzarCalculo.Name = "chkForzarCalculo";
             chkForzarCalculo.Size = new Size(264, 23);
@@ -378,7 +378,7 @@ namespace Retorno360Tacna.FORMS
             btnPDF.ForeColor = Color.White;
             btnPDF.Image = Properties.Resources.PDF_icon_icons_com_52413;
             btnPDF.ImageAlign = ContentAlignment.MiddleRight;
-            btnPDF.Location = new Point(1022, 23);
+            btnPDF.Location = new Point(1001, 23);
             btnPDF.Name = "btnPDF";
             btnPDF.Size = new Size(177, 56);
             btnPDF.TabIndex = 22;

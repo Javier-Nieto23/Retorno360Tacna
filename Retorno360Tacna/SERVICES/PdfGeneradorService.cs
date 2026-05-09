@@ -678,6 +678,302 @@ namespace Retorno360Tacna.SERVICES
             .GeneratePdf(rutaArchivo);
         }
 
+        /// <summary>
+        /// Genera el reporte de IGI en PDF organizado por forma de pago (5 y 0)
+        /// </summary>
+        public void GenerarReporteIGIPDFPorFormaPago(List<ReporteIGIPagado> reporteIGI, ResumenIGI resumen, string razonSocial, string baseDatos, DateTime fechaInicio, DateTime fechaFin, string rutaArchivo)
+        {
+            // Separar reportes por forma de pago
+            var reportesFormaPago5 = reporteIGI.Where(r => r.FormaPago_IGI == "5").OrderBy(r => r.FechaPago).ToList();
+            var reportesFormaPago0 = reporteIGI.Where(r => r.FormaPago_IGI == "0" || (r.FormaPago_IGI != "5" && r.FormaPago_IGI != "21")).OrderBy(r => r.FechaPago).ToList();
+
+            // Calcular totales por forma de pago
+            var totalIGI_Pagado5 = reportesFormaPago5.Sum(r => r.IGI_Pagado);
+            var totalIGI_Calculado5 = reportesFormaPago5.Sum(r => r.IGI_Calculado);
+            var totalIVA_Pagado5 = reportesFormaPago5.Sum(r => r.IVA_Pagado);
+            var totalIGI_Pagado0 = reportesFormaPago0.Sum(r => r.IGI_Pagado);
+            var totalIGI_Calculado0 = reportesFormaPago0.Sum(r => r.IGI_Calculado);
+            var totalIVA_Pagado0 = reportesFormaPago0.Sum(r => r.IVA_Pagado);
+
+            byte[] imagenBarras = GenerarGraficoBarrasPorFormaPago(totalIGI_Pagado5, totalIGI_Calculado5, totalIVA_Pagado5, totalIGI_Pagado0, totalIGI_Calculado0, totalIVA_Pagado0);
+
+            Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1.5f, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Segoe UI"));
+
+                    page.Header()
+                        .Column(column =>
+                        {
+                            column.Item().Text("Reporte de IGI por Forma de Pago")
+                                .FontSize(20)
+                                .Bold()
+                                .FontColor(Colors.Blue.Darken2);
+
+                            column.Item().PaddingTop(5).Row(row =>
+                            {
+                                row.RelativeItem().Text(txt =>
+                                {
+                                    txt.Span("Razón Social: ").Bold();
+                                    txt.Span(razonSocial);
+                                });
+                            });
+
+                            if (!string.IsNullOrEmpty(baseDatos))
+                            {
+                                column.Item().Row(row =>
+                                {
+                                    row.RelativeItem().Text(txt =>
+                                    {
+                                        txt.Span("Base(s) de Datos: ").Bold();
+                                        txt.Span(baseDatos);
+                                    });
+                                });
+                            }
+
+                            column.Item().Row(row =>
+                            {
+                                row.RelativeItem().Text(txt =>
+                                {
+                                    txt.Span("Fecha de generación: ").FontSize(9);
+                                    txt.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")).FontSize(9);
+                                });
+                            });
+
+                            column.Item().PaddingTop(5).LineHorizontal(2).LineColor(Colors.Blue.Darken2);
+                        });
+
+                    page.Content()
+                        .PaddingVertical(10)
+                        .Column(column =>
+                        {
+                            column.Item().PaddingBottom(10).Background(Colors.Blue.Lighten4).Padding(10).Column(col =>
+                            {
+                                col.Item().Text("Información General")
+                                    .FontSize(14)
+                                    .Bold()
+                                    .FontColor(Colors.Blue.Darken2);
+
+                                col.Item().Text(txt =>
+                                {
+                                    txt.Span("Período: ").Bold();
+                                    txt.Span($"{fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}");
+                                });
+
+                                col.Item().Text(txt =>
+                                {
+                                    txt.Span("Total Registros: ").Bold();
+                                    txt.Span(resumen.TotalPedimentos.ToString());
+                                });
+                            });
+
+                            // ===== RESUMEN POR FORMA DE PAGO =====
+                            column.Item().PaddingTop(15).PaddingBottom(10).Text("Resumen por Forma de Pago")
+                                .FontSize(14)
+                                .Bold()
+                                .FontColor(Colors.Blue.Darken2);
+
+                            // Tabla comparativa de formas de pago
+                            column.Item().Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(2);
+                                    columns.RelativeColumn(1.2f);
+                                    columns.RelativeColumn(1.2f);
+                                    columns.RelativeColumn(1.2f);
+                                });
+
+                                table.Header(header =>
+                                {
+                                    header.Cell().Background(Colors.Blue.Darken1).Padding(8)
+                                        .Text("Forma de Pago").FontColor(Colors.White).Bold();
+                                    header.Cell().Background(Colors.Blue.Darken1).Padding(8).AlignRight()
+                                        .Text("IGI Pagado").FontColor(Colors.White).Bold();
+                                    header.Cell().Background(Colors.Blue.Darken1).Padding(8).AlignRight()
+                                        .Text("IGI Calculado").FontColor(Colors.White).Bold();
+                                    header.Cell().Background(Colors.Blue.Darken1).Padding(8).AlignRight()
+                                        .Text("IVA Pagado").FontColor(Colors.White).Bold();
+                                });
+
+                                // Forma de Pago 5
+                                table.Cell().Background(Colors.Grey.Lighten3).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8)
+                                    .Text($"Forma de Pago 5 ({reportesFormaPago5.Count} registros)").Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).AlignRight()
+                                    .Text($"${totalIGI_Pagado5:N2}")
+                                    .FontColor(new SKColor(52, 152, 219).ToQuestColor()).Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).AlignRight()
+                                    .Text($"${totalIGI_Calculado5:N2}")
+                                    .FontColor(new SKColor(46, 204, 113).ToQuestColor()).Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).AlignRight()
+                                    .Text($"${totalIVA_Pagado5:N2}")
+                                    .FontColor(new SKColor(241, 196, 15).ToQuestColor()).Bold();
+
+                                // Forma de Pago 0
+                                table.Cell().Background(Colors.Grey.Lighten3).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8)
+                                    .Text($"Forma de Pago 0 ({reportesFormaPago0.Count} registros)").Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).AlignRight()
+                                    .Text($"${totalIGI_Pagado0:N2}")
+                                    .FontColor(new SKColor(52, 152, 219).ToQuestColor()).Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).AlignRight()
+                                    .Text($"${totalIGI_Calculado0:N2}")
+                                    .FontColor(new SKColor(46, 204, 113).ToQuestColor()).Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).AlignRight()
+                                    .Text($"${totalIVA_Pagado0:N2}")
+                                    .FontColor(new SKColor(241, 196, 15).ToQuestColor()).Bold();
+
+                                // Total General
+                                table.Cell().Background(Colors.Orange.Lighten3).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8)
+                                    .Text($"TOTAL GENERAL ({resumen.TotalPedimentos} registros)").Bold().FontSize(11);
+                                table.Cell().Background(Colors.Orange.Lighten3).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).AlignRight()
+                                    .Text($"${resumen.TotalIGI_Pagado:N2}")
+                                    .FontSize(11).FontColor(Colors.Blue.Darken2).Bold();
+                                table.Cell().Background(Colors.Orange.Lighten3).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).AlignRight()
+                                    .Text($"${resumen.TotalIGI_Calculado:N2}")
+                                    .FontSize(11).FontColor(Colors.Green.Darken2).Bold();
+                                table.Cell().Background(Colors.Orange.Lighten3).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).AlignRight()
+                                    .Text($"${resumen.TotalIVA_Pagado:N2}")
+                                    .FontSize(11).FontColor(Colors.Orange.Darken2).Bold();
+                            });
+
+                            // Gráfica comparativa
+                            column.Item().PaddingTop(20).PaddingBottom(10).Text("Representación Gráfica")
+                                .FontSize(14)
+                                .Bold()
+                                .FontColor(Colors.Blue.Darken2);
+
+                            column.Item().Row(row =>
+                            {
+                                row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10).Column(col =>
+                                {
+                                    col.Item().AlignCenter().Text("Comparativa por Forma de Pago")
+                                        .FontSize(11)
+                                        .Bold();
+                                    col.Item().PaddingTop(5).Image(imagenBarras).FitArea();
+                                });
+                            });
+
+                            // Detalle de pedimentos por forma de pago
+                            if (reporteIGI.Any())
+                            {
+                                column.Item().PageBreak();
+
+                                // FORMA DE PAGO 5
+                                if (reportesFormaPago5.Any())
+                                {
+                                    column.Item().PaddingBottom(10).Background(Colors.Blue.Lighten4).Padding(8).Text("Detalle - Forma de Pago 5")
+                                        .FontSize(13)
+                                        .Bold()
+                                        .FontColor(Colors.Blue.Darken2);
+
+                                    GenerarTablaDetalle(column, reportesFormaPago5, 30);
+                                }
+
+                                // FORMA DE PAGO 0
+                                if (reportesFormaPago0.Any())
+                                {
+                                    column.Item().PaddingTop(15).PaddingBottom(10).Background(Colors.Red.Lighten4).Padding(8).Text("Detalle - Forma de Pago 0")
+                                        .FontSize(13)
+                                        .Bold()
+                                        .FontColor(Colors.Red.Darken2);
+
+                                    GenerarTablaDetalle(column, reportesFormaPago0, 30);
+                                }
+                            }
+
+                            column.Item().PaddingTop(20).Background(Colors.Blue.Lighten4).Padding(15).Column(col =>
+                            {
+                                col.Item().Text("Nota Importante")
+                                    .FontSize(12)
+                                    .Bold()
+                                    .FontColor(Colors.Blue.Darken2);
+
+                                col.Item().PaddingTop(5).Text("Este reporte muestra el desglose de IGI e IVA pagado por forma de pago. Forma de Pago 5 corresponde a pagos efectuados, mientras que Forma de Pago 0 corresponde a otros métodos de pago.")
+                                    .FontSize(9)
+                                    .Italic();
+                            });
+                        });
+
+                    page.Footer()
+                        .AlignCenter()
+                        .DefaultTextStyle(x => x.FontSize(9))
+                        .Text(txt =>
+                        {
+                            txt.Span("Página ");
+                            txt.CurrentPageNumber();
+                            txt.Span(" de ");
+                            txt.TotalPages();
+                        });
+                });
+            })
+            .GeneratePdf(rutaArchivo);
+        }
+
+        /// <summary>
+        /// Método auxiliar para generar tablas de detalle
+        /// </summary>
+        private void GenerarTablaDetalle(ColumnDescriptor column, List<ReporteIGIPagado> reportes, int maxRegistros)
+        {
+            column.Item().Table(table =>
+            {
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.RelativeColumn(1.5f);
+                    columns.RelativeColumn(1.2f);
+                    columns.RelativeColumn(1.2f);
+                    columns.RelativeColumn(1.2f);
+                    columns.RelativeColumn(1.2f);
+                });
+
+                table.Header(header =>
+                {
+                    header.Cell().Background(Colors.Grey.Darken2).Padding(5)
+                        .Text("Fecha Pago").FontColor(Colors.White).Bold().FontSize(9);
+                    header.Cell().Background(Colors.Grey.Darken2).Padding(5).AlignRight()
+                        .Text("IGI Pagado").FontColor(Colors.White).Bold().FontSize(9);
+                    header.Cell().Background(Colors.Grey.Darken2).Padding(5).AlignRight()
+                        .Text("IGI Calc.").FontColor(Colors.White).Bold().FontSize(9);
+                    header.Cell().Background(Colors.Grey.Darken2).Padding(5).AlignRight()
+                        .Text("Diferencia").FontColor(Colors.White).Bold().FontSize(9);
+                    header.Cell().Background(Colors.Grey.Darken2).Padding(5).AlignRight()
+                        .Text("IVA Pagado").FontColor(Colors.White).Bold().FontSize(9);
+                });
+
+                int contador = 0;
+                foreach (var item in reportes.Take(maxRegistros))
+                {
+                    var bgColor = contador % 2 == 0 ? Colors.White : Colors.Grey.Lighten4;
+                    string fechaTexto = item.FechaPago.HasValue ? string.Format("{0:dd/MM/yyyy}", item.FechaPago.Value) : "N/A";
+
+                    table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                        .Text(fechaTexto).FontSize(8);
+                    table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
+                        .Text($"${item.IGI_Pagado:N2}").FontSize(8);
+                    table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
+                        .Text($"${item.IGI_Calculado:N2}").FontSize(8);
+                    table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
+                        .Text($"${item.DiferenciaIGI:N2}")
+                        .FontSize(8)
+                        .FontColor(item.DiferenciaIGI != 0 ? Colors.Red.Darken1 : Colors.Green.Darken1);
+                    table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
+                        .Text($"${item.IVA_Pagado:N2}").FontSize(8);
+
+                    contador++;
+                }
+
+                if (reportes.Count > maxRegistros)
+                {
+                    table.Cell().ColumnSpan(5).Background(Colors.Yellow.Lighten3).Padding(8).AlignCenter()
+                        .Text($"Nota: Se muestran los primeros {maxRegistros} registros de {reportes.Count} totales")
+                        .FontSize(9).Italic();
+                }
+            });
+        }
+
         private byte[] GenerarGraficoBarrasIGI(ResumenIGI resumen)
         {
             int width = 400;
@@ -760,6 +1056,149 @@ namespace Retorno360Tacna.SERVICES
                     canvas.DrawRect(legendX + 120, legendY, 15, 15, rectPaint);
                 }
                 canvas.DrawText("IGI Calculado", legendX + 140, legendY + 12, legendPaint);
+            }
+
+            var image = surface.Snapshot();
+            var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            return data.ToArray();
+        }
+
+        /// <summary>
+        /// Genera un gráfico de barras agrupadas comparando formas de pago 5 y 0
+        /// </summary>
+        private byte[] GenerarGraficoBarrasPorFormaPago(decimal igiPagado5, decimal igiCalculado5, decimal ivaPagado5, 
+                                                         decimal igiPagado0, decimal igiCalculado0, decimal ivaPagado0)
+        {
+            int width = 500;
+            int height = 350;
+
+            var surface = SKSurface.Create(new SKImageInfo(width, height));
+            var canvas = surface.Canvas;
+
+            canvas.Clear(SKColors.White);
+
+            // Colores
+            var colorIGIPagado = new SKColor(52, 152, 219);      // Azul
+            var colorIGICalculado = new SKColor(46, 204, 113);   // Verde
+            var colorIVAPagado = new SKColor(241, 196, 15);      // Amarillo
+
+            // Configuración del gráfico
+            float barWidth = 50;
+            float groupSpacing = 80;
+            float barSpacing = 8;
+            float maxBarHeight = 220;
+
+            // Encontrar el valor máximo para escalar
+            decimal maxValor = Math.Max(
+                Math.Max(Math.Max(igiPagado5, igiCalculado5), ivaPagado5),
+                Math.Max(Math.Max(igiPagado0, igiCalculado0), ivaPagado0)
+            );
+
+            if (maxValor == 0) maxValor = 1;
+
+            float baseY = height - 70;
+
+            // Posiciones de los grupos
+            float group1X = 100;  // Grupo Forma de Pago 5
+            float group2X = group1X + groupSpacing + (barWidth + barSpacing) * 3;  // Grupo Forma de Pago 0
+
+            // Calcular alturas
+            float altura_IGIPagado5 = (float)(igiPagado5 / maxValor) * maxBarHeight;
+            float altura_IGICalculado5 = (float)(igiCalculado5 / maxValor) * maxBarHeight;
+            float altura_IVAPagado5 = (float)(ivaPagado5 / maxValor) * maxBarHeight;
+
+            float altura_IGIPagado0 = (float)(igiPagado0 / maxValor) * maxBarHeight;
+            float altura_IGICalculado0 = (float)(igiCalculado0 / maxValor) * maxBarHeight;
+            float altura_IVAPagado0 = (float)(ivaPagado0 / maxValor) * maxBarHeight;
+
+            // Dibujar líneas de cuadrícula y etiquetas del eje Y
+            using (var gridPaint = new SKPaint { Color = new SKColor(230, 230, 230), StrokeWidth = 1 })
+            using (var textPaint = new SKPaint { Color = SKColors.Gray, TextSize = 9, IsAntialias = true })
+            {
+                for (int i = 0; i <= 5; i++)
+                {
+                    float y = baseY - (maxBarHeight * i / 5);
+                    canvas.DrawLine(80, y, width - 10, y, gridPaint);
+
+                    decimal valorEje = maxValor * i / 5;
+                    string label = valorEje >= 1000000 ? $"${valorEje / 1000000:N1}M" 
+                                 : valorEje >= 1000 ? $"${valorEje / 1000:N0}K" 
+                                 : $"${valorEje:N0}";
+                    canvas.DrawText(label, 5, y + 3, textPaint);
+                }
+            }
+
+            // GRUPO 1: Forma de Pago 5
+            using (var paint = new SKPaint { Color = colorIGIPagado, Style = SKPaintStyle.Fill, IsAntialias = true })
+            {
+                canvas.DrawRect(group1X, baseY - altura_IGIPagado5, barWidth, altura_IGIPagado5, paint);
+            }
+            using (var paint = new SKPaint { Color = colorIGICalculado, Style = SKPaintStyle.Fill, IsAntialias = true })
+            {
+                canvas.DrawRect(group1X + barWidth + barSpacing, baseY - altura_IGICalculado5, barWidth, altura_IGICalculado5, paint);
+            }
+            using (var paint = new SKPaint { Color = colorIVAPagado, Style = SKPaintStyle.Fill, IsAntialias = true })
+            {
+                canvas.DrawRect(group1X + (barWidth + barSpacing) * 2, baseY - altura_IVAPagado5, barWidth, altura_IVAPagado5, paint);
+            }
+
+            // GRUPO 2: Forma de Pago 0
+            using (var paint = new SKPaint { Color = colorIGIPagado, Style = SKPaintStyle.Fill, IsAntialias = true })
+            {
+                canvas.DrawRect(group2X, baseY - altura_IGIPagado0, barWidth, altura_IGIPagado0, paint);
+            }
+            using (var paint = new SKPaint { Color = colorIGICalculado, Style = SKPaintStyle.Fill, IsAntialias = true })
+            {
+                canvas.DrawRect(group2X + barWidth + barSpacing, baseY - altura_IGICalculado0, barWidth, altura_IGICalculado0, paint);
+            }
+            using (var paint = new SKPaint { Color = colorIVAPagado, Style = SKPaintStyle.Fill, IsAntialias = true })
+            {
+                canvas.DrawRect(group2X + (barWidth + barSpacing) * 2, baseY - altura_IVAPagado0, barWidth, altura_IVAPagado0, paint);
+            }
+
+            // Título
+            using (var textPaint = new SKPaint { Color = SKColors.Black, TextSize = 14, TextAlign = SKTextAlign.Center, IsAntialias = true, FakeBoldText = true })
+            {
+                canvas.DrawText("Comparativa IGI e IVA por Forma de Pago", width / 2, 20, textPaint);
+            }
+
+            // Etiquetas de grupos
+            using (var labelPaint = new SKPaint { Color = SKColors.Black, TextSize = 11, TextAlign = SKTextAlign.Center, IsAntialias = true, FakeBoldText = true })
+            {
+                float group1Center = group1X + (barWidth * 3 + barSpacing * 2) / 2;
+                float group2Center = group2X + (barWidth * 3 + barSpacing * 2) / 2;
+
+                canvas.DrawText("Forma Pago 5", group1Center, baseY + 20, labelPaint);
+                canvas.DrawText("Forma Pago 0", group2Center, baseY + 20, labelPaint);
+            }
+
+            // Leyenda
+            using (var legendPaint = new SKPaint { TextSize = 10, IsAntialias = true })
+            {
+                float legendX = width / 2 - 150;
+                float legendY = baseY + 40;
+
+                // IGI Pagado
+                using (var rectPaint = new SKPaint { Color = colorIGIPagado, Style = SKPaintStyle.Fill })
+                {
+                    canvas.DrawRect(legendX, legendY, 12, 12, rectPaint);
+                }
+                legendPaint.Color = SKColors.Black;
+                canvas.DrawText("IGI Pagado", legendX + 17, legendY + 10, legendPaint);
+
+                // IGI Calculado
+                using (var rectPaint = new SKPaint { Color = colorIGICalculado, Style = SKPaintStyle.Fill })
+                {
+                    canvas.DrawRect(legendX + 100, legendY, 12, 12, rectPaint);
+                }
+                canvas.DrawText("IGI Calculado", legendX + 117, legendY + 10, legendPaint);
+
+                // IVA Pagado
+                using (var rectPaint = new SKPaint { Color = colorIVAPagado, Style = SKPaintStyle.Fill })
+                {
+                    canvas.DrawRect(legendX + 210, legendY, 12, 12, rectPaint);
+                }
+                canvas.DrawText("IVA Pagado", legendX + 227, legendY + 10, legendPaint);
             }
 
             var image = surface.Snapshot();

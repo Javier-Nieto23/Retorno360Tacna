@@ -304,16 +304,16 @@ namespace Retorno360Tacna.FORMS
                 return;
             }
 
-            // Convertir a DataTable y mostrar
-            var dataTable = reporteService.ConvertirADataTable(reporteActual);
+            // Convertir a DataTable organizado por forma de pago
+            var dataTable = reporteService.ConvertirADataTablePorFormaPago(reporteActual);
             dgvReporte.DataSource = dataTable;
 
-            // Formatear columnas
-            FormatearColumnas();
+            // Formatear columnas y filas
+            FormatearColumnasPorFormaPago();
 
             // Generar resumen
             var resumen = reporteService.GenerarResumen(reporteActual);
-            MostrarResumen(resumen);
+            MostrarResumenPorFormaPago(resumen);
 
             lblProgreso.Text = $"Consulta completada: {reporteActual.Count} registros encontrados";
             btnGenerarPDF.Enabled = true;
@@ -386,6 +386,64 @@ namespace Retorno360Tacna.FORMS
                 dgvReporte.Columns["Pedimento"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
         }
 
+        private void FormatearColumnasPorFormaPago()
+        {
+            if (dgvReporte.Columns.Count == 0)
+                return;
+
+            // Formatear columnas de moneda
+            if (dgvReporte.Columns["IGI Pagado"] != null)
+                dgvReporte.Columns["IGI Pagado"].DefaultCellStyle.Format = "C2";
+
+            if (dgvReporte.Columns["IGI Calculado"] != null)
+                dgvReporte.Columns["IGI Calculado"].DefaultCellStyle.Format = "C2";
+
+            if (dgvReporte.Columns["Diferencia IGI"] != null)
+            {
+                dgvReporte.Columns["Diferencia IGI"].DefaultCellStyle.Format = "C2";
+                dgvReporte.Columns["Diferencia IGI"].DefaultCellStyle.ForeColor = Color.FromArgb(192, 57, 43);
+            }
+
+            if (dgvReporte.Columns["IVA Pagado"] != null)
+                dgvReporte.Columns["IVA Pagado"].DefaultCellStyle.Format = "C2";
+
+            // Formatear fecha
+            if (dgvReporte.Columns["Fecha Pago"] != null)
+                dgvReporte.Columns["Fecha Pago"].DefaultCellStyle.Format = "dd/MM/yyyy";
+
+            // Hacer la columna "Sección" más ancha para los encabezados
+            if (dgvReporte.Columns["Sección"] != null)
+            {
+                dgvReporte.Columns["Sección"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                dgvReporte.Columns["Sección"].MinimumWidth = 200;
+            }
+
+            // Formatear filas especiales (encabezados y totales)
+            foreach (DataGridViewRow row in dgvReporte.Rows)
+            {
+                if (row.Cells["Sección"].Value != null && row.Cells["Sección"].Value != DBNull.Value)
+                {
+                    string seccion = row.Cells["Sección"].Value.ToString();
+
+                    // Encabezados de sección (═══)
+                    if (seccion.Contains("═══"))
+                    {
+                        row.DefaultCellStyle.BackColor = Color.FromArgb(52, 73, 94);
+                        row.DefaultCellStyle.ForeColor = Color.White;
+                        row.DefaultCellStyle.Font = new Font(dgvReporte.Font.FontFamily, 10, FontStyle.Bold);
+                        row.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                    }
+                    // Filas de totales
+                    else if (seccion.Contains("TOTAL"))
+                    {
+                        row.DefaultCellStyle.BackColor = Color.FromArgb(149, 165, 166);
+                        row.DefaultCellStyle.ForeColor = Color.White;
+                        row.DefaultCellStyle.Font = new Font(dgvReporte.Font.FontFamily, 9, FontStyle.Bold);
+                    }
+                }
+            }
+        }
+
         private void MostrarResumen(ResumenIGI resumen)
         {
             lblResumenInfo.Text = $"📊 Total Pedimentos: {resumen.TotalPedimentos} | " +
@@ -396,6 +454,32 @@ namespace Retorno360Tacna.FORMS
 
             // Actualizar gráfica
             ActualizarGrafica(resumen);
+        }
+
+        private void MostrarResumenPorFormaPago(ResumenIGI resumen)
+        {
+            // Calcular totales separados por forma de pago
+            var reportesFormaPago5 = reporteActual.Where(r => r.FormaPago_IGI == "5").ToList();
+            var reportesFormaPago0 = reporteActual.Where(r => r.FormaPago_IGI == "0" || (r.FormaPago_IGI != "5" && r.FormaPago_IGI != "21")).ToList();
+
+            var totalIGI_Pagado5 = reportesFormaPago5.Sum(r => r.IGI_Pagado);
+            var totalIGI_Calculado5 = reportesFormaPago5.Sum(r => r.IGI_Calculado);
+            var totalIVA_Pagado5 = reportesFormaPago5.Sum(r => r.IVA_Pagado);
+            var totalIGI_Pagado0 = reportesFormaPago0.Sum(r => r.IGI_Pagado);
+            var totalIGI_Calculado0 = reportesFormaPago0.Sum(r => r.IGI_Calculado);
+            var totalIVA_Pagado0 = reportesFormaPago0.Sum(r => r.IVA_Pagado);
+
+            // Formato estructurado con alineación
+            string linea1 = $"📊 Total: {resumen.TotalPedimentos} registros";
+            string linea2 = $"💳 FP-5:  IGI Pagado: {totalIGI_Pagado5,20:C2}    IVA Pagado: {totalIVA_Pagado5,20:C2}";
+            string linea3 = $"            IGI Calculado: {totalIGI_Calculado5,17:C2}";
+            string linea4 = $"💰 FP-0:  IGI Pagado: {totalIGI_Pagado0,20:C2}    IVA Pagado: {totalIVA_Pagado0,20:C2}    Total: IGI Pag {resumen.TotalIGI_Pagado,15:C2} / Calc {resumen.TotalIGI_Calculado,15:C2}";
+            string linea5 = $"            IGI Calculado: {totalIGI_Calculado0,17:C2}";
+
+            lblResumenInfo.Text = $"{linea1}\n{linea2}\n{linea3}\n{linea4}\n{linea5}";
+
+            // Actualizar gráfica con datos por forma de pago
+            ActualizarGraficaPorFormaPago(reportesFormaPago5, reportesFormaPago0, resumen);
         }
 
         private void InicializarGrafica()
@@ -468,6 +552,67 @@ namespace Retorno360Tacna.FORMS
             chartIGI.Series = series;
         }
 
+        private void ActualizarGraficaPorFormaPago(List<ReporteIGIPagado> reportesFormaPago5, List<ReporteIGIPagado> reportesFormaPago0, ResumenIGI resumen)
+        {
+            if (chartIGI == null) return;
+
+            var totalIGI_Pagado5 = reportesFormaPago5.Sum(r => r.IGI_Pagado);
+            var totalIGI_Calculado5 = reportesFormaPago5.Sum(r => r.IGI_Calculado);
+            var totalIVA_Pagado5 = reportesFormaPago5.Sum(r => r.IVA_Pagado);
+            var totalIGI_Pagado0 = reportesFormaPago0.Sum(r => r.IGI_Pagado);
+            var totalIGI_Calculado0 = reportesFormaPago0.Sum(r => r.IGI_Calculado);
+            var totalIVA_Pagado0 = reportesFormaPago0.Sum(r => r.IVA_Pagado);
+
+            // Crear series de barras agrupadas: IGI Pagado, IGI Calculado e IVA Pagado
+            var series = new ISeries[]
+            {
+                new ColumnSeries<decimal>
+                {
+                    Name = "IGI Pagado",
+                    Values = new[] { totalIGI_Pagado5, totalIGI_Pagado0 },
+                    Fill = new SolidColorPaint(new SKColor(52, 152, 219)),
+                    Stroke = null,
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
+                    DataLabelsSize = 11,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle
+                },
+                new ColumnSeries<decimal>
+                {
+                    Name = "IGI Calculado",
+                    Values = new[] { totalIGI_Calculado5, totalIGI_Calculado0 },
+                    Fill = new SolidColorPaint(new SKColor(46, 204, 113)),
+                    Stroke = null,
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
+                    DataLabelsSize = 11,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle
+                },
+                new ColumnSeries<decimal>
+                {
+                    Name = "IVA Pagado",
+                    Values = new[] { totalIVA_Pagado5, totalIVA_Pagado0 },
+                    Fill = new SolidColorPaint(new SKColor(241, 196, 15)),
+                    Stroke = null,
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
+                    DataLabelsSize = 11,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle
+                }
+            };
+
+            chartIGI.Series = series;
+
+            // Actualizar eje X para mostrar los grupos de forma de pago
+            chartIGI.XAxes = new[]
+            {
+                new Axis
+                {
+                    Labels = new[] { "Forma de Pago 5", "Forma de Pago 0" },
+                    LabelsRotation = 0,
+                    TextSize = 14,
+                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200))
+                }
+            };
+        }
+
         private void btnGenerarPDF_Click(object sender, EventArgs e)
         {
             if (!reporteActual.Any())
@@ -516,7 +661,7 @@ namespace Retorno360Tacna.FORMS
                         var resumen = reporteService.GenerarResumen(reporteActual);
 
                         var pdfService = new PdfGeneradorService();
-                        pdfService.GenerarReporteIGIPDF(
+                        pdfService.GenerarReporteIGIPDFPorFormaPago(
                             reporteActual,
                             resumen,
                             nombreRazon,

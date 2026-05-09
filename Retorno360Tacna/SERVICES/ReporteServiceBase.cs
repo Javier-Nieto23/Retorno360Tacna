@@ -83,10 +83,12 @@ namespace Retorno360Tacna.SERVICES
                 );
 
                 string sql = @"
-                    SELECT NOMBRE_TABLA 
-                    FROM NOM_TABLARAZON 
-                    WHERE IdRazon = @IdRazon 
-                    ORDER BY NOMBRE_TABLA";
+                    SELECT DISTINCT NT.NOMBRE_TABLA 
+                    FROM NOM_TABLARAZON NT
+                    INNER JOIN RAZONXTABLA R ON R.IdRazon = NT.IdRazon
+                    WHERE NT.IdRazon = @IdRazon 
+                      AND NT.NOMBRE_TABLA IS NOT NULL
+                    ORDER BY NT.NOMBRE_TABLA";
 
                 using var cn = conexion.ObtenerConexion();
                 using var cmd = new Microsoft.Data.SqlClient.SqlCommand(sql, cn);

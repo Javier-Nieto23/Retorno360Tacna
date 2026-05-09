@@ -1,4 +1,4 @@
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using Retorno360Tacna.CNX;
 using Retorno360Tacna.MODELS;
 
@@ -71,49 +71,11 @@ namespace Retorno360Tacna.SERVICES
 #endif
 
                         // Obtener la conexión apropiada para la base de pedimentos
-                        Conexion conexionPedimentos;
-
-                        if (conexionInfo.UsarConexionPrincipal)
-                        {
-                            conexionPedimentos = new Conexion(
-                                conexionPrincipal.Servidor ?? string.Empty,
-                                conexionPrincipal.UsuarioSQL ?? string.Empty,
-                                conexionPrincipal.PasswordSQL ?? string.Empty,
-                                conexionInfo.BaseDatos
-                            );
-                        }
-                        else
-                        {
-                            conexionPedimentos = new Conexion(
-                                conexionInfo.Servidor ?? string.Empty,
-                                conexionInfo.UsuarioSQL ?? string.Empty,
-                                conexionInfo.PasswordSQL ?? string.Empty,
-                                conexionInfo.BaseDatos
-                            );
-                        }
+                        // Usando el método correcto que resuelve conexiones externas
+                        var conexionPedimentos = ObtenerConexionParaBaseDatos(conexionInfo.BaseDatos);
 
                         // Obtener conexión para la base de TR_GLOSA
-                        var conexionInfoGlosa = ObtenerConexionExterna(baseDatosGlosa);
-                        Conexion conexionGlosa;
-
-                        if (conexionInfoGlosa.UsarConexionPrincipal)
-                        {
-                            conexionGlosa = new Conexion(
-                                conexionPrincipal.Servidor ?? string.Empty,
-                                conexionPrincipal.UsuarioSQL ?? string.Empty,
-                                conexionPrincipal.PasswordSQL ?? string.Empty,
-                                baseDatosGlosa
-                            );
-                        }
-                        else
-                        {
-                            conexionGlosa = new Conexion(
-                                conexionInfoGlosa.Servidor ?? string.Empty,
-                                conexionInfoGlosa.UsuarioSQL ?? string.Empty,
-                                conexionInfoGlosa.PasswordSQL ?? string.Empty,
-                                baseDatosGlosa
-                            );
-                        }
+                        var conexionGlosa = ObtenerConexionParaBaseDatos(baseDatosGlosa);
 
                         // ✨ NUEVA LÓGICA: Ejecutar GROUP BY directamente en cada base
                         var resultadosBase = ObtenerDatosAgrupadosConJoinCruzado(
@@ -377,13 +339,21 @@ namespace Retorno360Tacna.SERVICES
         {
             var datosDetalle = new List<DatoDetalleIGI>();
 
+            // ? VARIABLES PARA ALMACENAR INFORMACI�N DE SERVIDORES PARA EL JOIN
+            string servidorBasePedimentos = string.Empty;
+            string servidorBaseTRGlosa = string.Empty;
+            string usuarioBasePedimentos = string.Empty;
+            string usuarioBaseTRGlosa = string.Empty;
+            string nombreBasePedimentos = baseDatosPedimentos;
+            string nombreBaseTRGlosa = baseDatosGlosa;
+
             try
             {
-                // Obtener información de conexión para validar servidores
+                // PASO 1: Obtener información de conexión para ambas bases
                 var conexionInfoPedimentos = ObtenerConexionExterna(baseDatosPedimentos);
                 var conexionInfoGlosa = ObtenerConexionExterna(baseDatosGlosa);
 
-                // Determinar servidor de cada base
+                // PASO 2: Determinar de qué servidor viene cada base de datos
                 string servidorPedimentos = conexionInfoPedimentos.TieneConexionExterna && !string.IsNullOrEmpty(conexionInfoPedimentos.Servidor)
                     ? conexionInfoPedimentos.Servidor
                     : conexionPrincipal.Servidor ?? string.Empty;
@@ -392,7 +362,22 @@ namespace Retorno360Tacna.SERVICES
                     ? conexionInfoGlosa.Servidor
                     : conexionPrincipal.Servidor ?? string.Empty;
 
-                // Validar si están en el mismo servidor
+                // PASO 3: Determinar las credenciales para cada base
+                string usuarioPedimentos = conexionInfoPedimentos.TieneConexionExterna && !string.IsNullOrEmpty(conexionInfoPedimentos.UsuarioSQL)
+                    ? conexionInfoPedimentos.UsuarioSQL
+                    : conexionPrincipal.UsuarioSQL ?? string.Empty;
+
+                string usuarioGlosa = conexionInfoGlosa.TieneConexionExterna && !string.IsNullOrEmpty(conexionInfoGlosa.UsuarioSQL)
+                    ? conexionInfoGlosa.UsuarioSQL
+                    : conexionPrincipal.UsuarioSQL ?? string.Empty;
+
+                // ✨ GUARDAR EN VARIABLES PARA USO POSTERIOR EN EL JOIN
+                servidorBasePedimentos = servidorPedimentos;
+                servidorBaseTRGlosa = servidorGlosa;
+                usuarioBasePedimentos = usuarioPedimentos;
+                usuarioBaseTRGlosa = usuarioGlosa;
+
+                // PASO 4: Validar si están en el mismo servidor
                 bool mismoServidor = ValidarSiMismaConexion(
                     servidorPedimentos,
                     servidorGlosa,
@@ -401,24 +386,57 @@ namespace Retorno360Tacna.SERVICES
                 );
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"\n🔍 VALIDACIÓN IGI - CONEXIONES:");
-                System.Diagnostics.Debug.WriteLine($"   Base Pedimentos: {baseDatosPedimentos}");
-                System.Diagnostics.Debug.WriteLine($"   Servidor Pedimentos: {servidorPedimentos} (IdConexion: {conexionInfoPedimentos.IdConexion})");
-                System.Diagnostics.Debug.WriteLine($"   Base Glosa: {baseDatosGlosa}");
-                System.Diagnostics.Debug.WriteLine($"   Servidor Glosa: {servidorGlosa} (IdConexion: {conexionInfoGlosa.IdConexion})");
-                System.Diagnostics.Debug.WriteLine($"   ¿Mismo servidor?: {(mismoServidor ? "SÍ" : "NO")}");
+                System.Diagnostics.Debug.WriteLine($"\n🔍 VALIDACIÓN IGI - ANÁLISIS DE CONEXIONES:");
+                System.Diagnostics.Debug.WriteLine($"\n   📊 BASE DE PEDIMENTOS SELECCIONADA: {nombreBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ Servidor: {servidorBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ Usuario SQL: {usuarioBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ IdConexion: {(conexionInfoPedimentos.IdConexion?.ToString() ?? "NULL (usa conexión principal)")}");
+                System.Diagnostics.Debug.WriteLine($"      └─ ConnectionString: {conexionPedimentos.GetConnectionString()}");
+
+                System.Diagnostics.Debug.WriteLine($"\n   📊 BASE DE TR_GLOSA DE LA RAZÓN: {nombreBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ Servidor: {servidorBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ Usuario SQL: {usuarioBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ IdConexion: {(conexionInfoGlosa.IdConexion?.ToString() ?? "NULL (usa conexión principal)")}");
+                System.Diagnostics.Debug.WriteLine($"      └─ ConnectionString: {conexionGlosa.GetConnectionString()}");
+
+                System.Diagnostics.Debug.WriteLine($"\n   🔍 ANÁLISIS DE SERVIDORES:");
+                System.Diagnostics.Debug.WriteLine($"      ├─ ¿Mismo servidor?: {(mismoServidor ? "✅ SÍ" : "❌ NO")}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ ¿Mismo usuario?: {(usuarioBasePedimentos == usuarioBaseTRGlosa ? "✅ SÍ" : "❌ NO")}");
+                                System.Diagnostics.Debug.WriteLine($"      └─ Estrategia: {(mismoServidor ? "JOIN DIRECTO" : "CONSULTAS SEPARADAS")}");
+
+                System.Diagnostics.Debug.WriteLine($"\n   💾 VARIABLES GUARDADAS PARA JOIN:");
+                System.Diagnostics.Debug.WriteLine($"      ├─ Servidor Pedimentos: {servidorBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ Servidor TR_Glosa: {servidorBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ Usuario Pedimentos: {usuarioBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      └─ Usuario TR_Glosa: {usuarioBaseTRGlosa}");
 #endif
 
                 if (mismoServidor)
                 {
                     // JOIN directo entre bases en el mismo servidor
-                    datosDetalle = ObtenerDatosConJoinDirecto(baseDatosPedimentos, baseDatosGlosa, fechaInicio, fechaFin, conexionPedimentos);
+                    datosDetalle = ObtenerDatosConJoinDirecto(
+                        baseDatosPedimentos, 
+                        baseDatosGlosa, 
+                        fechaInicio, 
+                        fechaFin, 
+                        conexionPedimentos,
+                        servidorPedimentos,
+                        usuarioPedimentos
+                    );
                 }
-                else
+                                else
                 {
                     // Estrategia de consultas separadas para servidores diferentes
+                    // Usando las variables guardadas de ambos servidores (conexionPedimentos y conexionGlosa)
                     datosDetalle = ObtenerDatosConConsultasSeparadas(baseDatosPedimentos, baseDatosGlosa, fechaInicio, fechaFin, conexionPedimentos, conexionGlosa);
                 }
+
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"\n   ✅ RESUMEN DEL JOIN:");
+                System.Diagnostics.Debug.WriteLine($"      ├─ Registros obtenidos: {datosDetalle.Count}");
+                System.Diagnostics.Debug.WriteLine($"      ├─ Base Pedimentos: [{nombreBasePedimentos}] en servidor [{servidorBasePedimentos}]");
+                System.Diagnostics.Debug.WriteLine($"      └─ Base TR_Glosa: [{nombreBaseTRGlosa}] en servidor [{servidorBaseTRGlosa}]");
+#endif
             }
             catch (Exception ex)
             {
@@ -436,9 +454,19 @@ namespace Retorno360Tacna.SERVICES
             string baseDatosGlosa,
             DateTime fechaInicio,
             DateTime fechaFin,
-            Conexion conexionPedimentos)
+            Conexion conexionPedimentos,
+            string servidorPedimentos,
+            string usuarioPedimentos)
         {
             var datosDetalle = new List<DatoDetalleIGI>();
+
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine($"\n🔗 EJECUTANDO JOIN DIRECTO:");
+            System.Diagnostics.Debug.WriteLine($"   Servidor: {servidorPedimentos}");
+            System.Diagnostics.Debug.WriteLine($"   Usuario: {usuarioPedimentos}");
+            System.Diagnostics.Debug.WriteLine($"   Base Pedimentos: [{baseDatosPedimentos}]");
+            System.Diagnostics.Debug.WriteLine($"   Base Glosa: [{baseDatosGlosa}]");
+#endif
 
             string sql = $@"
                 SELECT 
@@ -478,6 +506,12 @@ namespace Retorno360Tacna.SERVICES
 
             cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
             cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
+
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine($"\n   📝 SQL JOIN DIRECTO:");
+            System.Diagnostics.Debug.WriteLine($"   {sql.Substring(0, Math.Min(500, sql.Length))}...");
+            System.Diagnostics.Debug.WriteLine($"\n   ⏳ Abriendo conexión y ejecutando query...");
+#endif
 
             cn.Open();
 
@@ -1263,5 +1297,152 @@ namespace Retorno360Tacna.SERVICES
 
             return dt;
         }
+
+        /// <summary>
+        /// Exporta el reporte a DataTable organizado por formas de pago (5 y 0)
+        /// Sin las columnas IdPedimento y Pedimento
+        /// Con filas de totales separadas por forma de pago
+        /// </summary>
+        public System.Data.DataTable ConvertirADataTablePorFormaPago(List<ReporteIGIPagado> reportes)
+        {
+            var dt = new System.Data.DataTable();
+
+            // Columnas (sin ID Pedimento ni Pedimento)
+            dt.Columns.Add("Sección", typeof(string));           // Para identificar forma de pago 5 o 0
+            dt.Columns.Add("Fecha Pago", typeof(DateTime));
+            dt.Columns.Add("IGI Pagado", typeof(decimal));
+            dt.Columns.Add("IGI Calculado", typeof(decimal));
+            dt.Columns.Add("Diferencia IGI", typeof(decimal));
+            dt.Columns.Add("IVA Pagado", typeof(decimal));
+            dt.Columns.Add("Forma Pago IGI", typeof(string));
+            dt.Columns.Add("Forma Pago IVA", typeof(string));
+
+            // Separar reportes por forma de pago IGI
+            var reportesFormaPago5 = reportes.Where(r => r.FormaPago_IGI == "5").OrderBy(r => r.FechaPago).ToList();
+            var reportesFormaPago0 = reportes.Where(r => r.FormaPago_IGI == "0" || (r.FormaPago_IGI != "5" && r.FormaPago_IGI != "21")).OrderBy(r => r.FechaPago).ToList();
+
+            // ========== SECCIÓN: FORMA DE PAGO 5 ==========
+            if (reportesFormaPago5.Any())
+            {
+                // Encabezado de sección
+                dt.Rows.Add("═══ FORMA DE PAGO 5 ═══", DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
+
+                foreach (var reporte in reportesFormaPago5)
+                {
+                    dt.Rows.Add(
+                        string.Empty, // Sección vacía para datos regulares
+                        reporte.FechaPago ?? (object)DBNull.Value,
+                        reporte.IGI_Pagado,
+                        reporte.IGI_Calculado,
+                        reporte.DiferenciaIGI,
+                        reporte.IVA_Pagado,
+                        reporte.FormaPago_IGI,
+                        reporte.FormaPago_IVA
+                    );
+                }
+
+                // Totales de forma de pago 5
+                var totalIGI_Pagado5 = reportesFormaPago5.Sum(r => r.IGI_Pagado);
+                var totalIGI_Calculado5 = reportesFormaPago5.Sum(r => r.IGI_Calculado);
+                var totalDiferencia5 = reportesFormaPago5.Sum(r => r.DiferenciaIGI);
+                var totalIVA5 = reportesFormaPago5.Sum(r => r.IVA_Pagado);
+
+                dt.Rows.Add(
+                    "TOTAL FORMA DE PAGO 5",
+                    DBNull.Value,
+                    totalIGI_Pagado5,
+                    totalIGI_Calculado5,
+                    totalDiferencia5,
+                    totalIVA5,
+                    string.Empty,
+                    string.Empty
+                );
+
+                // Fila vacía de separación
+                dt.Rows.Add(string.Empty, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
+            }
+
+            // ========== SECCIÓN: FORMA DE PAGO 0 (u otras) ==========
+            if (reportesFormaPago0.Any())
+            {
+                // Encabezado de sección
+                dt.Rows.Add("═══ FORMA DE PAGO 0 ═══", DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
+
+                foreach (var reporte in reportesFormaPago0)
+                {
+                    dt.Rows.Add(
+                        string.Empty,
+                        reporte.FechaPago ?? (object)DBNull.Value,
+                        reporte.IGI_Pagado,
+                        reporte.IGI_Calculado,
+                        reporte.DiferenciaIGI,
+                        reporte.IVA_Pagado,
+                        reporte.FormaPago_IGI,
+                        reporte.FormaPago_IVA
+                    );
+                }
+
+                // Totales de forma de pago 0
+                var totalIGI_Pagado0 = reportesFormaPago0.Sum(r => r.IGI_Pagado);
+                var totalIGI_Calculado0 = reportesFormaPago0.Sum(r => r.IGI_Calculado);
+                var totalDiferencia0 = reportesFormaPago0.Sum(r => r.DiferenciaIGI);
+                var totalIVA0 = reportesFormaPago0.Sum(r => r.IVA_Pagado);
+
+                dt.Rows.Add(
+                    "TOTAL FORMA DE PAGO 0",
+                    DBNull.Value,
+                    totalIGI_Pagado0,
+                    totalIGI_Calculado0,
+                    totalDiferencia0,
+                    totalIVA0,
+                    string.Empty,
+                    string.Empty
+                );
+
+                // Fila vacía de separación
+                dt.Rows.Add(string.Empty, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
+            }
+
+            // ========== TOTAL GENERAL ==========
+            var totalIGI_PagadoGeneral = reportes.Sum(r => r.IGI_Pagado);
+            var totalIGI_CalculadoGeneral = reportes.Sum(r => r.IGI_Calculado);
+            var totalDiferenciaGeneral = reportes.Sum(r => r.DiferenciaIGI);
+            var totalIVAGeneral = reportes.Sum(r => r.IVA_Pagado);
+
+            dt.Rows.Add(
+                "═══ TOTAL GENERAL ═══",
+                DBNull.Value,
+                totalIGI_PagadoGeneral,
+                totalIGI_CalculadoGeneral,
+                totalDiferenciaGeneral,
+                totalIVAGeneral,
+                string.Empty,
+                string.Empty
+            );
+
+            return dt;
+        }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
