@@ -70,9 +70,9 @@
             label1.AutoSize = true;
             label1.Location = new Point(702, 429);
             label1.Name = "label1";
-            label1.Size = new Size(81, 15);
+            label1.Size = new Size(72, 15);
             label1.TabIndex = 3;
-            label1.Text = "Version 0.0.0.2";
+            label1.Text = "Version 1.5.0";
             // 
             // CargaDePantalla
             // 

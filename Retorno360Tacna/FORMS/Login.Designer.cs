@@ -140,9 +140,9 @@ namespace Retorno360Tacna.FORMS
             label5.AutoSize = true;
             label5.Location = new Point(487, 403);
             label5.Name = "label5";
-            label5.Size = new Size(81, 15);
+            label5.Size = new Size(72, 15);
             label5.TabIndex = 10;
-            label5.Text = "Version 0.0.0.2";
+            label5.Text = "Version 1.5.0";
             // 
             // Login
             // 

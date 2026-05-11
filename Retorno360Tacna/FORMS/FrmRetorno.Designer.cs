@@ -378,7 +378,7 @@ namespace Retorno360Tacna.FORMS
             btnPDF.ForeColor = Color.White;
             btnPDF.Image = Properties.Resources.PDF_icon_icons_com_52413;
             btnPDF.ImageAlign = ContentAlignment.MiddleRight;
-            btnPDF.Location = new Point(1001, 23);
+            btnPDF.Location = new Point(811, 92);
             btnPDF.Name = "btnPDF";
             btnPDF.Size = new Size(177, 56);
             btnPDF.TabIndex = 22;

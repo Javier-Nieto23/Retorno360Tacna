@@ -221,7 +221,8 @@ namespace Retorno360Tacna.FORMS
                 chkSinGlosa.Enabled = false;
 
                 // Limpiar resultados anteriores
-                dgvReporte.DataSource = null;
+                dgvReporteIGI.DataSource = null;
+                dgvReporteIVA.DataSource = null;
                 reporteActual.Clear();
 
                 DateTime fechaInicio = dtpFechaInicio.Value.Date;
@@ -304,12 +305,16 @@ namespace Retorno360Tacna.FORMS
                 return;
             }
 
-            // Convertir a DataTable organizado por forma de pago
-            var dataTable = reporteService.ConvertirADataTablePorFormaPago(reporteActual);
-            dgvReporte.DataSource = dataTable;
+            // Convertir a DataTable separados: uno para IGI y otro para IVA
+            var dataTableIGI = reporteService.ConvertirADataTableIGI(reporteActual);
+            var dataTableIVA = reporteService.ConvertirADataTableIVA(reporteActual);
 
-            // Formatear columnas y filas
-            FormatearColumnasPorFormaPago();
+            dgvReporteIGI.DataSource = dataTableIGI;
+            dgvReporteIVA.DataSource = dataTableIVA;
+
+            // Formatear columnas para cada grid
+            FormatearGridIGI();
+            FormatearGridIVA();
 
             // Generar resumen
             var resumen = reporteService.GenerarResumen(reporteActual);
@@ -339,108 +344,94 @@ namespace Retorno360Tacna.FORMS
 
         private void ConfigurarDataGridView()
         {
-            dgvReporte.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-            dgvReporte.AllowUserToAddRows = false;
-            dgvReporte.AllowUserToDeleteRows = false;
-            dgvReporte.ReadOnly = true;
-            dgvReporte.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvReporte.MultiSelect = false;
-            dgvReporte.RowHeadersVisible = false;
-            dgvReporte.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
+            // Configurar grid IGI
+            dgvReporteIGI.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            dgvReporteIGI.AllowUserToAddRows = false;
+            dgvReporteIGI.AllowUserToDeleteRows = false;
+            dgvReporteIGI.ReadOnly = true;
+            dgvReporteIGI.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvReporteIGI.MultiSelect = false;
+            dgvReporteIGI.RowHeadersVisible = false;
+            dgvReporteIGI.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
+
+            // Configurar grid IVA
+            dgvReporteIVA.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            dgvReporteIVA.AllowUserToAddRows = false;
+            dgvReporteIVA.AllowUserToDeleteRows = false;
+            dgvReporteIVA.ReadOnly = true;
+            dgvReporteIVA.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvReporteIVA.MultiSelect = false;
+            dgvReporteIVA.RowHeadersVisible = false;
+            dgvReporteIVA.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
         }
 
-        private void FormatearColumnas()
+        private void FormatearGridIGI()
         {
-            if (dgvReporte.Columns.Count == 0)
+            if (dgvReporteIGI.Columns.Count == 0)
                 return;
 
-            // Ocultar columnas no deseadas
-            if (dgvReporte.Columns["Base Datos"] != null)
-                dgvReporte.Columns["Base Datos"].Visible = false;
-
-            if (dgvReporte.Columns["Estatus Glosa"] != null)
-                dgvReporte.Columns["Estatus Glosa"].Visible = false;
+            // Título del header
+            dgvReporteIGI.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(41, 128, 185);
+            dgvReporteIGI.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            dgvReporteIGI.ColumnHeadersDefaultCellStyle.Font = new Font(dgvReporteIGI.Font.FontFamily, 10, FontStyle.Bold);
+            dgvReporteIGI.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvReporteIGI.EnableHeadersVisualStyles = false;
 
             // Formatear columnas de moneda
-            if (dgvReporte.Columns["IGI Pagado"] != null)
-                dgvReporte.Columns["IGI Pagado"].DefaultCellStyle.Format = "C2";
+            if (dgvReporteIGI.Columns["IGI PAGADO"] != null)
+                dgvReporteIGI.Columns["IGI PAGADO"].DefaultCellStyle.Format = "C2";
 
-            if (dgvReporte.Columns["IGI Calculado"] != null)
-                dgvReporte.Columns["IGI Calculado"].DefaultCellStyle.Format = "C2";
+            if (dgvReporteIGI.Columns["IGI CALCULADO"] != null)
+                dgvReporteIGI.Columns["IGI CALCULADO"].DefaultCellStyle.Format = "C2";
 
-            if (dgvReporte.Columns["Diferencia IGI"] != null)
+            if (dgvReporteIGI.Columns["DIFERENCIA"] != null)
             {
-                dgvReporte.Columns["Diferencia IGI"].DefaultCellStyle.Format = "C2";
-                dgvReporte.Columns["Diferencia IGI"].DefaultCellStyle.ForeColor = Color.FromArgb(192, 57, 43);
+                dgvReporteIGI.Columns["DIFERENCIA"].DefaultCellStyle.Format = "C2";
+                dgvReporteIGI.Columns["DIFERENCIA"].DefaultCellStyle.ForeColor = Color.FromArgb(192, 57, 43);
+                dgvReporteIGI.Columns["DIFERENCIA"].DefaultCellStyle.Font = new Font(dgvReporteIGI.Font.FontFamily, 9, FontStyle.Bold);
             }
 
-            if (dgvReporte.Columns["IVA Pagado"] != null)
-                dgvReporte.Columns["IVA Pagado"].DefaultCellStyle.Format = "C2";
+            // Configurar ancho de columnas
+            if (dgvReporteIGI.Columns["MES"] != null)
+            {
+                dgvReporteIGI.Columns["MES"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                dgvReporteIGI.Columns["MES"].MinimumWidth = 120;
+            }
 
-            // Formatear fecha
-            if (dgvReporte.Columns["Fecha Pago"] != null)
-                dgvReporte.Columns["Fecha Pago"].DefaultCellStyle.Format = "dd/MM/yyyy";
-
-            // Ajustar anchos
-            if (dgvReporte.Columns["Pedimento"] != null)
-                dgvReporte.Columns["Pedimento"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            if (dgvReporteIGI.Columns["FORMA DE PAGO IGI"] != null)
+            {
+                dgvReporteIGI.Columns["FORMA DE PAGO IGI"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                dgvReporteIGI.Columns["FORMA DE PAGO IGI"].MinimumWidth = 100;
+            }
         }
 
-        private void FormatearColumnasPorFormaPago()
+        private void FormatearGridIVA()
         {
-            if (dgvReporte.Columns.Count == 0)
+            if (dgvReporteIVA.Columns.Count == 0)
                 return;
 
+            // Título del header
+            dgvReporteIVA.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(52, 152, 219);
+            dgvReporteIVA.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            dgvReporteIVA.ColumnHeadersDefaultCellStyle.Font = new Font(dgvReporteIVA.Font.FontFamily, 10, FontStyle.Bold);
+            dgvReporteIVA.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvReporteIVA.EnableHeadersVisualStyles = false;
+
             // Formatear columnas de moneda
-            if (dgvReporte.Columns["IGI Pagado"] != null)
-                dgvReporte.Columns["IGI Pagado"].DefaultCellStyle.Format = "C2";
+            if (dgvReporteIVA.Columns["IVA PAGADO"] != null)
+                dgvReporteIVA.Columns["IVA PAGADO"].DefaultCellStyle.Format = "C2";
 
-            if (dgvReporte.Columns["IGI Calculado"] != null)
-                dgvReporte.Columns["IGI Calculado"].DefaultCellStyle.Format = "C2";
-
-            if (dgvReporte.Columns["Diferencia IGI"] != null)
+            // Configurar ancho de columnas
+            if (dgvReporteIVA.Columns["MES"] != null)
             {
-                dgvReporte.Columns["Diferencia IGI"].DefaultCellStyle.Format = "C2";
-                dgvReporte.Columns["Diferencia IGI"].DefaultCellStyle.ForeColor = Color.FromArgb(192, 57, 43);
+                dgvReporteIVA.Columns["MES"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                dgvReporteIVA.Columns["MES"].MinimumWidth = 120;
             }
 
-            if (dgvReporte.Columns["IVA Pagado"] != null)
-                dgvReporte.Columns["IVA Pagado"].DefaultCellStyle.Format = "C2";
-
-            // Formatear fecha
-            if (dgvReporte.Columns["Fecha Pago"] != null)
-                dgvReporte.Columns["Fecha Pago"].DefaultCellStyle.Format = "dd/MM/yyyy";
-
-            // Hacer la columna "Sección" más ancha para los encabezados
-            if (dgvReporte.Columns["Sección"] != null)
+            if (dgvReporteIVA.Columns["FORMA DE PAGO IVA"] != null)
             {
-                dgvReporte.Columns["Sección"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                dgvReporte.Columns["Sección"].MinimumWidth = 200;
-            }
-
-            // Formatear filas especiales (encabezados y totales)
-            foreach (DataGridViewRow row in dgvReporte.Rows)
-            {
-                if (row.Cells["Sección"].Value != null && row.Cells["Sección"].Value != DBNull.Value)
-                {
-                    string seccion = row.Cells["Sección"].Value.ToString();
-
-                    // Encabezados de sección (═══)
-                    if (seccion.Contains("═══"))
-                    {
-                        row.DefaultCellStyle.BackColor = Color.FromArgb(52, 73, 94);
-                        row.DefaultCellStyle.ForeColor = Color.White;
-                        row.DefaultCellStyle.Font = new Font(dgvReporte.Font.FontFamily, 10, FontStyle.Bold);
-                        row.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-                    }
-                    // Filas de totales
-                    else if (seccion.Contains("TOTAL"))
-                    {
-                        row.DefaultCellStyle.BackColor = Color.FromArgb(149, 165, 166);
-                        row.DefaultCellStyle.ForeColor = Color.White;
-                        row.DefaultCellStyle.Font = new Font(dgvReporte.Font.FontFamily, 9, FontStyle.Bold);
-                    }
-                }
+                dgvReporteIVA.Columns["FORMA DE PAGO IVA"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                dgvReporteIVA.Columns["FORMA DE PAGO IVA"].MinimumWidth = 100;
             }
         }
 
@@ -458,28 +449,43 @@ namespace Retorno360Tacna.FORMS
 
         private void MostrarResumenPorFormaPago(ResumenIGI resumen)
         {
-            // Calcular totales separados por forma de pago
-            var reportesFormaPago5 = reporteActual.Where(r => r.FormaPago_IGI == "5").ToList();
-            var reportesFormaPago0 = reporteActual.Where(r => r.FormaPago_IGI == "0" || (r.FormaPago_IGI != "5" && r.FormaPago_IGI != "21")).ToList();
+            // Calcular totales separados por forma de pago IGI (0 y 5)
+            var reportesIGI_FormaPago5 = reporteActual.Where(r => r.FormaPago_IGI == "5").ToList();
+            var reportesIGI_FormaPago0 = reporteActual.Where(r => r.FormaPago_IGI == "0").ToList();
 
-            var totalIGI_Pagado5 = reportesFormaPago5.Sum(r => r.IGI_Pagado);
-            var totalIGI_Calculado5 = reportesFormaPago5.Sum(r => r.IGI_Calculado);
-            var totalIVA_Pagado5 = reportesFormaPago5.Sum(r => r.IVA_Pagado);
-            var totalIGI_Pagado0 = reportesFormaPago0.Sum(r => r.IGI_Pagado);
-            var totalIGI_Calculado0 = reportesFormaPago0.Sum(r => r.IGI_Calculado);
-            var totalIVA_Pagado0 = reportesFormaPago0.Sum(r => r.IVA_Pagado);
+            var totalIGI_Pagado5 = reportesIGI_FormaPago5.Sum(r => r.IGI_Pagado);
+            var totalIGI_Calculado5 = reportesIGI_FormaPago5.Sum(r => r.IGI_Calculado);
+            var diferenciaIGI_5 = totalIGI_Pagado5 - totalIGI_Calculado5;
+
+            var totalIGI_Pagado0 = reportesIGI_FormaPago0.Sum(r => r.IGI_Pagado);
+            var totalIGI_Calculado0 = reportesIGI_FormaPago0.Sum(r => r.IGI_Calculado);
+            var diferenciaIGI_0 = totalIGI_Pagado0 - totalIGI_Calculado0;
+
+            // Calcular totales separados por forma de pago IVA (0 y 21)
+            var reportesIVA_FormaPago21 = reporteActual.Where(r => r.FormaPago_IVA == "21").ToList();
+            var reportesIVA_FormaPago0 = reporteActual.Where(r => r.FormaPago_IVA == "0").ToList();
+
+            var totalIVA_Pagado21 = reportesIVA_FormaPago21.Sum(r => r.IVA_Pagado);
+            var totalIVA_Pagado0 = reportesIVA_FormaPago0.Sum(r => r.IVA_Pagado);
 
             // Formato estructurado con alineación
             string linea1 = $"📊 Total: {resumen.TotalPedimentos} registros";
-            string linea2 = $"💳 FP-5:  IGI Pagado: {totalIGI_Pagado5,20:C2}    IVA Pagado: {totalIVA_Pagado5,20:C2}";
-            string linea3 = $"            IGI Calculado: {totalIGI_Calculado5,17:C2}";
-            string linea4 = $"💰 FP-0:  IGI Pagado: {totalIGI_Pagado0,20:C2}    IVA Pagado: {totalIVA_Pagado0,20:C2}    Total: IGI Pag {resumen.TotalIGI_Pagado,15:C2} / Calc {resumen.TotalIGI_Calculado,15:C2}";
-            string linea5 = $"            IGI Calculado: {totalIGI_Calculado0,17:C2}";
+            string separador = new string('─', 100);
 
-            lblResumenInfo.Text = $"{linea1}\n{linea2}\n{linea3}\n{linea4}\n{linea5}";
+            string lineaIGI_FP5 = $"💳 IGI FP-5:   Pagado: {totalIGI_Pagado5,15:C2}  |  Calculado: {totalIGI_Calculado5,15:C2}  |  Diferencia: {diferenciaIGI_5,15:C2}";
+            string lineaIGI_FP0 = $"💰 IGI FP-0:   Pagado: {totalIGI_Pagado0,15:C2}  |  Calculado: {totalIGI_Calculado0,15:C2}  |  Diferencia: {diferenciaIGI_0,15:C2}";
+
+            string lineaIVA_FP21 = $"💵 IVA FP-21:  Pagado: {totalIVA_Pagado21,15:C2}";
+            string lineaIVA_FP0 = $"💵 IVA FP-0:   Pagado: {totalIVA_Pagado0,15:C2}";
+
+            lblResumenInfo.Text = $"{linea1}\n{separador}\n{lineaIGI_FP5}\n{lineaIGI_FP0}\n{separador}\n{lineaIVA_FP21}\n{lineaIVA_FP0}";
 
             // Actualizar gráfica con datos por forma de pago
-            ActualizarGraficaPorFormaPago(reportesFormaPago5, reportesFormaPago0, resumen);
+            ActualizarGraficaPorFormaPago(
+                totalIGI_Pagado5, totalIGI_Calculado5, diferenciaIGI_5,
+                totalIGI_Pagado0, totalIGI_Calculado0, diferenciaIGI_0,
+                totalIVA_Pagado21, totalIVA_Pagado0
+            );
         }
 
         private void InicializarGrafica()
@@ -552,65 +558,109 @@ namespace Retorno360Tacna.FORMS
             chartIGI.Series = series;
         }
 
-        private void ActualizarGraficaPorFormaPago(List<ReporteIGIPagado> reportesFormaPago5, List<ReporteIGIPagado> reportesFormaPago0, ResumenIGI resumen)
+        private void ActualizarGraficaPorFormaPago(
+            decimal igiPagado5, decimal igiCalculado5, decimal diferenciaIGI5,
+            decimal igiPagado0, decimal igiCalculado0, decimal diferenciaIGI0,
+            decimal ivaPagado21, decimal ivaPagado0)
         {
             if (chartIGI == null) return;
 
-            var totalIGI_Pagado5 = reportesFormaPago5.Sum(r => r.IGI_Pagado);
-            var totalIGI_Calculado5 = reportesFormaPago5.Sum(r => r.IGI_Calculado);
-            var totalIVA_Pagado5 = reportesFormaPago5.Sum(r => r.IVA_Pagado);
-            var totalIGI_Pagado0 = reportesFormaPago0.Sum(r => r.IGI_Pagado);
-            var totalIGI_Calculado0 = reportesFormaPago0.Sum(r => r.IGI_Calculado);
-            var totalIVA_Pagado0 = reportesFormaPago0.Sum(r => r.IVA_Pagado);
-
-            // Crear series de barras agrupadas: IGI Pagado, IGI Calculado e IVA Pagado
-            var series = new ISeries[]
+            try
             {
-                new ColumnSeries<decimal>
+                // Crear series usando el enfoque correcto con valores nulos para posiciones vacías
+                var series = new List<ISeries>();
+
+                // Serie 1: IGI Pagado (Amarillo) - aparece en columnas 0, 1 y 3
+                series.Add(new ColumnSeries<decimal?>
                 {
                     Name = "IGI Pagado",
-                    Values = new[] { totalIGI_Pagado5, totalIGI_Pagado0 },
-                    Fill = new SolidColorPaint(new SKColor(52, 152, 219)),
+                    Values = new decimal?[] { igiPagado0, igiPagado5, null, null },
+                    Fill = new SolidColorPaint(new SKColor(255, 235, 59)),
                     Stroke = null,
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
-                    DataLabelsSize = 11,
-                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle
-                },
-                new ColumnSeries<decimal>
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(52, 73, 94)),
+                    DataLabelsSize = 9,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                    MaxBarWidth = 45,
+                    IgnoresBarPosition = false
+                });
+
+                // Serie 2: IGI Calculado (Azul) - aparece en columnas 0 y 1
+                series.Add(new ColumnSeries<decimal?>
                 {
                     Name = "IGI Calculado",
-                    Values = new[] { totalIGI_Calculado5, totalIGI_Calculado0 },
-                    Fill = new SolidColorPaint(new SKColor(46, 204, 113)),
+                    Values = new decimal?[] { igiCalculado0, igiCalculado5, null, null },
+                    Fill = new SolidColorPaint(new SKColor(33, 150, 243)),
                     Stroke = null,
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
-                    DataLabelsSize = 11,
-                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle
-                },
-                new ColumnSeries<decimal>
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(52, 73, 94)),
+                    DataLabelsSize = 9,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                    MaxBarWidth = 45,
+                    IgnoresBarPosition = false
+                });
+
+                // Serie 3: Diferencia IGI (Rojo) - aparece en columnas 0 y 1
+                series.Add(new ColumnSeries<decimal?>
+                {
+                    Name = "Diferencia IGI",
+                    Values = new decimal?[] { diferenciaIGI0, diferenciaIGI5, null, null },
+                    Fill = new SolidColorPaint(new SKColor(244, 67, 54)),
+                    Stroke = null,
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(192, 57, 43)),
+                    DataLabelsSize = 9,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                    MaxBarWidth = 45,
+                    IgnoresBarPosition = false
+                });
+
+                // Serie 4: IVA Pagado (Amarillo) - aparece en columnas 2 y 3
+                series.Add(new ColumnSeries<decimal?>
                 {
                     Name = "IVA Pagado",
-                    Values = new[] { totalIVA_Pagado5, totalIVA_Pagado0 },
-                    Fill = new SolidColorPaint(new SKColor(241, 196, 15)),
+                    Values = new decimal?[] { null, null, ivaPagado0, ivaPagado21 },
+                    Fill = new SolidColorPaint(new SKColor(255, 235, 59)),
                     Stroke = null,
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
-                    DataLabelsSize = 11,
-                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle
-                }
-            };
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(52, 73, 94)),
+                    DataLabelsSize = 9,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                    MaxBarWidth = 45,
+                    IgnoresBarPosition = false
+                });
 
-            chartIGI.Series = series;
+                chartIGI.Series = series.ToArray();
 
-            // Actualizar eje X para mostrar los grupos de forma de pago
-            chartIGI.XAxes = new[]
-            {
-                new Axis
+                // Configurar eje Y para permitir valores negativos
+                chartIGI.YAxes = new[]
                 {
-                    Labels = new[] { "Forma de Pago 5", "Forma de Pago 0" },
-                    LabelsRotation = 0,
-                    TextSize = 14,
-                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200))
-                }
-            };
+                    new Axis
+                    {
+                        TextSize = 10,
+                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
+                        Labeler = value => value.ToString("C0"),
+                        ShowSeparatorLines = true
+                    }
+                };
+
+                // Configurar eje X con las 4 columnas
+                chartIGI.XAxes = new[]
+                {
+                    new Axis
+                    {
+                        Labels = new[] { "IGI FP-0", "IGI FP-5", "IVA FP-0", "IVA FP-21" },
+                        LabelsRotation = 0,
+                        TextSize = 10,
+                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
+                        ShowSeparatorLines = true
+                    }
+                };
+
+                // Actualizar título de la gráfica
+                lblTituloGrafica.Text = "Comparativa IGI e IVA por Forma de Pago";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error al actualizar gráfica: {ex.Message}");
+                lblTituloGrafica.Text = "Error al cargar gráfica";
+            }
         }
 
         private void btnGenerarPDF_Click(object sender, EventArgs e)
@@ -660,9 +710,15 @@ namespace Retorno360Tacna.FORMS
 
                         var resumen = reporteService.GenerarResumen(reporteActual);
 
+                        // Obtener las tablas de datos para el PDF
+                        var tablaIGI = reporteService.ConvertirADataTableIGI(reporteActual);
+                        var tablaIVA = reporteService.ConvertirADataTableIVA(reporteActual);
+
                         var pdfService = new PdfGeneradorService();
-                        pdfService.GenerarReporteIGIPDFPorFormaPago(
+                        pdfService.GenerarReporteIGIConFormasPagoPDF(
                             reporteActual,
+                            tablaIGI,
+                            tablaIVA,
                             resumen,
                             nombreRazon,
                             baseDatos,

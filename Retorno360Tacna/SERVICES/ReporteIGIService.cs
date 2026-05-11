@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using Retorno360Tacna.CNX;
 using Retorno360Tacna.MODELS;
 
@@ -6,16 +6,16 @@ namespace Retorno360Tacna.SERVICES
 {
     /// <summary>
     /// Servicio especializado para reportes de IGI Pagado
-    /// Hereda de ReporteServiceBase para reutilizar lógica de conexiones
+    /// Hereda de ReporteServiceBase para reutilizar l�gica de conexiones
     /// </summary>
-    public class ReporteIGIService : ReporteServiceBase
+    public partial class ReporteIGIService : ReporteServiceBase
     {
         public ReporteIGIService(ConexionInfo conexion) : base(conexion)
         {
         }
 
         /// <summary>
-        /// Genera el reporte de IGI Pagado para una base de datos específica
+        /// Genera el reporte de IGI Pagado para una base de datos espec�fica
         /// </summary>
         public List<ReporteIGIPagado> GenerarReporteIGI(string baseDatos, DateTime fechaInicio, DateTime fechaFin, bool sinValidacionGlosa = false)
         {
@@ -30,7 +30,7 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
-        /// Genera el reporte de IGI Pagado para todas las bases de datos de una razón social
+        /// Genera el reporte de IGI Pagado para todas las bases de datos de una raz�n social
         /// Obtiene datos de todas las bases y los agrupa al final por pedimento
         /// </summary>
         public List<ReporteIGIPagado> GenerarReporteIGIPorRazonSocial(int idRazon, DateTime fechaInicio, DateTime fechaFin)
@@ -39,22 +39,22 @@ namespace Retorno360Tacna.SERVICES
 
             try
             {
-                // Paso 1: Obtener la razón social y su base de TR_GLOSA
+                // Paso 1: Obtener la raz�n social y su base de TR_GLOSA
                 var razonSocial = ObtenerRazonSocial(idRazon);
                 string baseDatosGlosa = razonSocial.BaseDatosOrigen;
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"\n🔍 GenerarReporteIGIPorRazonSocial - NUEVA LÓGICA CON GROUP BY:");
-                System.Diagnostics.Debug.WriteLine($"   Razón Social: {razonSocial.NombreRazon}");
+                System.Diagnostics.Debug.WriteLine($"\n?? GenerarReporteIGIPorRazonSocial - NUEVA L�GICA CON GROUP BY:");
+                System.Diagnostics.Debug.WriteLine($"   Raz�n Social: {razonSocial.NombreRazon}");
                 System.Diagnostics.Debug.WriteLine($"   Base de datos TR_GLOSA: {baseDatosGlosa}");
 #endif
 
-                // Paso 2: Obtener todas las bases de datos con su información de conexión
+                // Paso 2: Obtener todas las bases de datos con su informaci�n de conexi�n
                 var basesDatosConConexion = ObtenerBasesDatosConConexion(idRazon);
 
                 if (!basesDatosConConexion.Any())
                 {
-                    throw new Exception("No se encontraron bases de datos para la razón social seleccionada.");
+                    throw new Exception("No se encontraron bases de datos para la raz�n social seleccionada.");
                 }
 
 #if DEBUG
@@ -67,17 +67,17 @@ namespace Retorno360Tacna.SERVICES
                     try
                     {
 #if DEBUG
-                        System.Diagnostics.Debug.WriteLine($"\n   📊 Procesando base: {conexionInfo.BaseDatos}");
+                        System.Diagnostics.Debug.WriteLine($"\n   ?? Procesando base: {conexionInfo.BaseDatos}");
 #endif
 
-                        // Obtener la conexión apropiada para la base de pedimentos
-                        // Usando el método correcto que resuelve conexiones externas
+                        // Obtener la conexi�n apropiada para la base de pedimentos
+                        // Usando el m�todo correcto que resuelve conexiones externas
                         var conexionPedimentos = ObtenerConexionParaBaseDatos(conexionInfo.BaseDatos);
 
-                        // Obtener conexión para la base de TR_GLOSA
+                        // Obtener conexi�n para la base de TR_GLOSA
                         var conexionGlosa = ObtenerConexionParaBaseDatos(baseDatosGlosa);
 
-                        // ✨ NUEVA LÓGICA: Ejecutar GROUP BY directamente en cada base
+                        // ? NUEVA L�GICA: Ejecutar GROUP BY directamente en cada base
                         var resultadosBase = ObtenerDatosAgrupadosConJoinCruzado(
                             conexionInfo.BaseDatos,      // Base de Di_Pedimento
                             baseDatosGlosa,              // Base de TR_GLOSA
@@ -88,32 +88,32 @@ namespace Retorno360Tacna.SERVICES
                         );
 
 #if DEBUG
-                        System.Diagnostics.Debug.WriteLine($"      ✅ Pedimentos agrupados: {resultadosBase.Count}");
+                        System.Diagnostics.Debug.WriteLine($"      ? Pedimentos agrupados: {resultadosBase.Count}");
 #endif
 
                         resultados.AddRange(resultadosBase);
                     }
                     catch (Exception ex)
                     {
-                        // Log detallado del error pero continuar con las demás bases
+                        // Log detallado del error pero continuar con las dem�s bases
                         var mensajeError = $"Error consultando {conexionInfo.BaseDatos}: {ex.Message}";
-                        System.Diagnostics.Debug.WriteLine($"      ⚠️ {mensajeError}");
+                        System.Diagnostics.Debug.WriteLine($"      ?? {mensajeError}");
                         System.Diagnostics.Debug.WriteLine($"      StackTrace: {ex.StackTrace}");
                     }
                 }
 
                 if (!resultados.Any())
                 {
-                    throw new Exception("No se encontraron registros en ninguna base de datos de la razón social.");
+                    throw new Exception("No se encontraron registros en ninguna base de datos de la raz�n social.");
                 }
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"\n   ✅ Total de pedimentos consolidados: {resultados.Count}\n");
+                System.Diagnostics.Debug.WriteLine($"\n   ? Total de pedimentos consolidados: {resultados.Count}\n");
 #endif
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error al generar reporte por razón social: {ex.Message}", ex);
+                throw new Exception($"Error al generar reporte por raz�n social: {ex.Message}", ex);
             }
 
             return resultados;
@@ -122,7 +122,7 @@ namespace Retorno360Tacna.SERVICES
 
         /// <summary>
         /// Genera el reporte validando contra TR_GLOSA (solo pedimentos cargados en Glosa)
-        /// Ahora usa la misma lógica de JOIN cruzado que GenerarReporteIGIPorRazonSocial
+        /// Ahora usa la misma l�gica de JOIN cruzado que GenerarReporteIGIPorRazonSocial
         /// </summary>
         private List<ReporteIGIPagado> GenerarReporteIGIConGlosa(string baseDatos, DateTime fechaInicio, DateTime fechaFin)
         {
@@ -133,38 +133,38 @@ namespace Retorno360Tacna.SERVICES
                 // Paso 1: Obtener el IdRazon desde la base de datos seleccionada
                 int idRazon = ObtenerIdRazonDesdeBaseDatos(baseDatos);
 
-                // Paso 2: Obtener la razón social y su base de TR_GLOSA
+                // Paso 2: Obtener la raz�n social y su base de TR_GLOSA
                 var razonSocial = ObtenerRazonSocial(idRazon);
                 string baseDatosGlosa = razonSocial.BaseDatosOrigen;
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"\n🔍 GenerarReporteIGIConGlosa - FLUJO MEJORADO:");
-                System.Diagnostics.Debug.WriteLine($"   📌 Base Pedimentos seleccionada: {baseDatos}");
-                System.Diagnostics.Debug.WriteLine($"   📌 IdRazon obtenido: {idRazon}");
-                System.Diagnostics.Debug.WriteLine($"   📌 Razón Social: {razonSocial.NombreRazon}");
-                System.Diagnostics.Debug.WriteLine($"   📌 Base TR_GLOSA (desde RAZONXTABLA.DB): {baseDatosGlosa}");
+                System.Diagnostics.Debug.WriteLine($"\n?? GenerarReporteIGIConGlosa - FLUJO MEJORADO:");
+                System.Diagnostics.Debug.WriteLine($"   ?? Base Pedimentos seleccionada: {baseDatos}");
+                System.Diagnostics.Debug.WriteLine($"   ?? IdRazon obtenido: {idRazon}");
+                System.Diagnostics.Debug.WriteLine($"   ?? Raz�n Social: {razonSocial.NombreRazon}");
+                System.Diagnostics.Debug.WriteLine($"   ?? Base TR_GLOSA (desde RAZONXTABLA.DB): {baseDatosGlosa}");
 #endif
 
-                // Paso 3: Obtener información de conexión para ambas bases
-                // Esto consulta NOM_TABLARAZON → IdConexion → Conexiones → Servidor
+                // Paso 3: Obtener informaci�n de conexi�n para ambas bases
+                // Esto consulta NOM_TABLARAZON ? IdConexion ? Conexiones ? Servidor
                 var conexionInfoPedimentos = ObtenerConexionExterna(baseDatos);
                 var conexionInfoGlosa = ObtenerConexionExterna(baseDatosGlosa);
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"\n   🔌 CONEXIÓN PEDIMENTOS ({baseDatos}):");
-                System.Diagnostics.Debug.WriteLine($"      IdConexion: {(conexionInfoPedimentos.IdConexion?.ToString() ?? "NULL (conexión principal)")}");
-                System.Diagnostics.Debug.WriteLine($"      Servidor: {(conexionInfoPedimentos.Servidor ?? "(conexión principal)")}");
-                System.Diagnostics.Debug.WriteLine($"\n   🔌 CONEXIÓN TR_GLOSA ({baseDatosGlosa}):");
-                System.Diagnostics.Debug.WriteLine($"      IdConexion: {(conexionInfoGlosa.IdConexion?.ToString() ?? "NULL (conexión principal)")}");
-                System.Diagnostics.Debug.WriteLine($"      Servidor: {(conexionInfoGlosa.Servidor ?? "(conexión principal)")}");
+                System.Diagnostics.Debug.WriteLine($"\n   ?? CONEXI�N PEDIMENTOS ({baseDatos}):");
+                System.Diagnostics.Debug.WriteLine($"      IdConexion: {(conexionInfoPedimentos.IdConexion?.ToString() ?? "NULL (conexi�n principal)")}");
+                System.Diagnostics.Debug.WriteLine($"      Servidor: {(conexionInfoPedimentos.Servidor ?? "(conexi�n principal)")}");
+                System.Diagnostics.Debug.WriteLine($"\n   ?? CONEXI�N TR_GLOSA ({baseDatosGlosa}):");
+                System.Diagnostics.Debug.WriteLine($"      IdConexion: {(conexionInfoGlosa.IdConexion?.ToString() ?? "NULL (conexi�n principal)")}");
+                System.Diagnostics.Debug.WriteLine($"      Servidor: {(conexionInfoGlosa.Servidor ?? "(conexi�n principal)")}");
 #endif
 
                 // Paso 4: Obtener conexiones para ambas bases
                 var conexionPedimentos = ObtenerConexionParaBaseDatos(baseDatos);
                 var conexionGlosa = ObtenerConexionParaBaseDatos(baseDatosGlosa);
 
-                // Paso 5: Usar la lógica de JOIN cruzado (mismo servidor o servidores diferentes)
-                // Este método internamente validará si están en el mismo servidor usando ValidarSiMismaConexion
+                // Paso 5: Usar la l�gica de JOIN cruzado (mismo servidor o servidores diferentes)
+                // Este m�todo internamente validar� si est�n en el mismo servidor usando ValidarSiMismaConexion
                 var datosDetalleCompleto = ObtenerDatosDetalleConJoinCruzado(
                     baseDatos,          // Base de Di_Pedimento
                     baseDatosGlosa,     // Base de TR_GLOSA
@@ -177,30 +177,30 @@ namespace Retorno360Tacna.SERVICES
                 if (!datosDetalleCompleto.Any())
                 {
 #if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"  ⚠ No se encontraron registros para {baseDatos} en el rango de fechas.");
+                    System.Diagnostics.Debug.WriteLine($"  ? No se encontraron registros para {baseDatos} en el rango de fechas.");
 #endif
                     return resultados;
                 }
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"  ✅ Total de registros detalle obtenidos: {datosDetalleCompleto.Count}");
+                System.Diagnostics.Debug.WriteLine($"  ? Total de registros detalle obtenidos: {datosDetalleCompleto.Count}");
 #endif
 
-                // Paso 6: Filtrar solo los registros que tienen validación de glosa (formas de pago 5 o 21)
+                // Paso 6: Filtrar solo los registros que tienen validaci�n de glosa (formas de pago 0, 5 o 21)
                 var datosConGlosa = datosDetalleCompleto.Where(d =>
-                    d.Gl_FPagoIVA == "5" || d.Gl_FPagoIVA == "21" ||
-                    d.Gl_FPagoAdvalorem == "5" || d.Gl_FPagoAdvalorem == "21"
+                    d.Gl_FPagoIVA == "0" || d.Gl_FPagoIVA == "21" ||
+                    d.Gl_FPagoAdvalorem == "0" || d.Gl_FPagoAdvalorem == "5"
                 ).ToList();
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"  ✅ Registros con formas de pago 5 o 21: {datosConGlosa.Count}");
+                System.Diagnostics.Debug.WriteLine($"  ? Registros con formas de pago 0, 5 o 21: {datosConGlosa.Count}");
 #endif
 
                 // Paso 7: Agrupar por pedimento
                 resultados = AgruparDatosPorPedimento(datosConGlosa);
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"  ✅ Total de pedimentos agrupados: {resultados.Count}\n");
+                System.Diagnostics.Debug.WriteLine($"  ? Total de pedimentos agrupados: {resultados.Count}\n");
 #endif
             }
             catch (Exception ex)
@@ -258,8 +258,8 @@ namespace Retorno360Tacna.SERVICES
                     WHERE 
                         CONVERT(DATE,TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
                         AND (
-                            TR.Gl_FPagoIVA IN ('5','21') 
-                            OR TR.Gl_FPagoAdvalorem IN ('5','21')
+                            TR.Gl_FPagoIVA IN ('0','21') 
+                            OR TR.Gl_FPagoAdvalorem IN ('0','5')
                         )
                     GROUP BY  
                         DP.Pim_Consecutivo,
@@ -339,7 +339,7 @@ namespace Retorno360Tacna.SERVICES
         {
             var datosDetalle = new List<DatoDetalleIGI>();
 
-            // ? VARIABLES PARA ALMACENAR INFORMACI�N DE SERVIDORES PARA EL JOIN
+            // ? VARIABLES PARA ALMACENAR INFORMACI?N DE SERVIDORES PARA EL JOIN
             string servidorBasePedimentos = string.Empty;
             string servidorBaseTRGlosa = string.Empty;
             string usuarioBasePedimentos = string.Empty;
@@ -349,11 +349,11 @@ namespace Retorno360Tacna.SERVICES
 
             try
             {
-                // PASO 1: Obtener información de conexión para ambas bases
+                // PASO 1: Obtener informaci�n de conexi�n para ambas bases
                 var conexionInfoPedimentos = ObtenerConexionExterna(baseDatosPedimentos);
                 var conexionInfoGlosa = ObtenerConexionExterna(baseDatosGlosa);
 
-                // PASO 2: Determinar de qué servidor viene cada base de datos
+                // PASO 2: Determinar de qu� servidor viene cada base de datos
                 string servidorPedimentos = conexionInfoPedimentos.TieneConexionExterna && !string.IsNullOrEmpty(conexionInfoPedimentos.Servidor)
                     ? conexionInfoPedimentos.Servidor
                     : conexionPrincipal.Servidor ?? string.Empty;
@@ -371,13 +371,13 @@ namespace Retorno360Tacna.SERVICES
                     ? conexionInfoGlosa.UsuarioSQL
                     : conexionPrincipal.UsuarioSQL ?? string.Empty;
 
-                // ✨ GUARDAR EN VARIABLES PARA USO POSTERIOR EN EL JOIN
+                // ? GUARDAR EN VARIABLES PARA USO POSTERIOR EN EL JOIN
                 servidorBasePedimentos = servidorPedimentos;
                 servidorBaseTRGlosa = servidorGlosa;
                 usuarioBasePedimentos = usuarioPedimentos;
                 usuarioBaseTRGlosa = usuarioGlosa;
 
-                // PASO 4: Validar si están en el mismo servidor
+                // PASO 4: Validar si est�n en el mismo servidor
                 bool mismoServidor = ValidarSiMismaConexion(
                     servidorPedimentos,
                     servidorGlosa,
@@ -386,29 +386,29 @@ namespace Retorno360Tacna.SERVICES
                 );
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"\n🔍 VALIDACIÓN IGI - ANÁLISIS DE CONEXIONES:");
-                System.Diagnostics.Debug.WriteLine($"\n   📊 BASE DE PEDIMENTOS SELECCIONADA: {nombreBasePedimentos}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ Servidor: {servidorBasePedimentos}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ Usuario SQL: {usuarioBasePedimentos}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ IdConexion: {(conexionInfoPedimentos.IdConexion?.ToString() ?? "NULL (usa conexión principal)")}");
-                System.Diagnostics.Debug.WriteLine($"      └─ ConnectionString: {conexionPedimentos.GetConnectionString()}");
+                System.Diagnostics.Debug.WriteLine($"\n?? VALIDACI�N IGI - AN�LISIS DE CONEXIONES:");
+                System.Diagnostics.Debug.WriteLine($"\n   ?? BASE DE PEDIMENTOS SELECCIONADA: {nombreBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      +- Servidor: {servidorBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      +- Usuario SQL: {usuarioBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      +- IdConexion: {(conexionInfoPedimentos.IdConexion?.ToString() ?? "NULL (usa conexi�n principal)")}");
+                System.Diagnostics.Debug.WriteLine($"      +- ConnectionString: {conexionPedimentos.GetConnectionString()}");
 
-                System.Diagnostics.Debug.WriteLine($"\n   📊 BASE DE TR_GLOSA DE LA RAZÓN: {nombreBaseTRGlosa}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ Servidor: {servidorBaseTRGlosa}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ Usuario SQL: {usuarioBaseTRGlosa}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ IdConexion: {(conexionInfoGlosa.IdConexion?.ToString() ?? "NULL (usa conexión principal)")}");
-                System.Diagnostics.Debug.WriteLine($"      └─ ConnectionString: {conexionGlosa.GetConnectionString()}");
+                System.Diagnostics.Debug.WriteLine($"\n   ?? BASE DE TR_GLOSA DE LA RAZ�N: {nombreBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      +- Servidor: {servidorBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      +- Usuario SQL: {usuarioBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      +- IdConexion: {(conexionInfoGlosa.IdConexion?.ToString() ?? "NULL (usa conexi�n principal)")}");
+                System.Diagnostics.Debug.WriteLine($"      +- ConnectionString: {conexionGlosa.GetConnectionString()}");
 
-                System.Diagnostics.Debug.WriteLine($"\n   🔍 ANÁLISIS DE SERVIDORES:");
-                System.Diagnostics.Debug.WriteLine($"      ├─ ¿Mismo servidor?: {(mismoServidor ? "✅ SÍ" : "❌ NO")}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ ¿Mismo usuario?: {(usuarioBasePedimentos == usuarioBaseTRGlosa ? "✅ SÍ" : "❌ NO")}");
-                                System.Diagnostics.Debug.WriteLine($"      └─ Estrategia: {(mismoServidor ? "JOIN DIRECTO" : "CONSULTAS SEPARADAS")}");
+                System.Diagnostics.Debug.WriteLine($"\n   ?? AN�LISIS DE SERVIDORES:");
+                System.Diagnostics.Debug.WriteLine($"      +- �Mismo servidor?: {(mismoServidor ? "? S�" : "? NO")}");
+                System.Diagnostics.Debug.WriteLine($"      +- �Mismo usuario?: {(usuarioBasePedimentos == usuarioBaseTRGlosa ? "? S�" : "? NO")}");
+                                System.Diagnostics.Debug.WriteLine($"      +- Estrategia: {(mismoServidor ? "JOIN DIRECTO" : "CONSULTAS SEPARADAS")}");
 
-                System.Diagnostics.Debug.WriteLine($"\n   💾 VARIABLES GUARDADAS PARA JOIN:");
-                System.Diagnostics.Debug.WriteLine($"      ├─ Servidor Pedimentos: {servidorBasePedimentos}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ Servidor TR_Glosa: {servidorBaseTRGlosa}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ Usuario Pedimentos: {usuarioBasePedimentos}");
-                System.Diagnostics.Debug.WriteLine($"      └─ Usuario TR_Glosa: {usuarioBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"\n   ?? VARIABLES GUARDADAS PARA JOIN:");
+                System.Diagnostics.Debug.WriteLine($"      +- Servidor Pedimentos: {servidorBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      +- Servidor TR_Glosa: {servidorBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      +- Usuario Pedimentos: {usuarioBasePedimentos}");
+                System.Diagnostics.Debug.WriteLine($"      +- Usuario TR_Glosa: {usuarioBaseTRGlosa}");
 #endif
 
                 if (mismoServidor)
@@ -432,10 +432,10 @@ namespace Retorno360Tacna.SERVICES
                 }
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"\n   ✅ RESUMEN DEL JOIN:");
-                System.Diagnostics.Debug.WriteLine($"      ├─ Registros obtenidos: {datosDetalle.Count}");
-                System.Diagnostics.Debug.WriteLine($"      ├─ Base Pedimentos: [{nombreBasePedimentos}] en servidor [{servidorBasePedimentos}]");
-                System.Diagnostics.Debug.WriteLine($"      └─ Base TR_Glosa: [{nombreBaseTRGlosa}] en servidor [{servidorBaseTRGlosa}]");
+                System.Diagnostics.Debug.WriteLine($"\n   ? RESUMEN DEL JOIN:");
+                System.Diagnostics.Debug.WriteLine($"      +- Registros obtenidos: {datosDetalle.Count}");
+                System.Diagnostics.Debug.WriteLine($"      +- Base Pedimentos: [{nombreBasePedimentos}] en servidor [{servidorBasePedimentos}]");
+                System.Diagnostics.Debug.WriteLine($"      +- Base TR_Glosa: [{nombreBaseTRGlosa}] en servidor [{servidorBaseTRGlosa}]");
 #endif
             }
             catch (Exception ex)
@@ -447,7 +447,7 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
-        /// Obtiene datos usando JOIN directo cuando las bases están en el mismo servidor
+        /// Obtiene datos usando JOIN directo cuando las bases est�n en el mismo servidor
         /// </summary>
         private List<DatoDetalleIGI> ObtenerDatosConJoinDirecto(
             string baseDatosPedimentos,
@@ -461,7 +461,7 @@ namespace Retorno360Tacna.SERVICES
             var datosDetalle = new List<DatoDetalleIGI>();
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine($"\n🔗 EJECUTANDO JOIN DIRECTO:");
+            System.Diagnostics.Debug.WriteLine($"\n?? EJECUTANDO JOIN DIRECTO:");
             System.Diagnostics.Debug.WriteLine($"   Servidor: {servidorPedimentos}");
             System.Diagnostics.Debug.WriteLine($"   Usuario: {usuarioPedimentos}");
             System.Diagnostics.Debug.WriteLine($"   Base Pedimentos: [{baseDatosPedimentos}]");
@@ -508,9 +508,9 @@ namespace Retorno360Tacna.SERVICES
             cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine($"\n   📝 SQL JOIN DIRECTO:");
+            System.Diagnostics.Debug.WriteLine($"\n   ?? SQL JOIN DIRECTO:");
             System.Diagnostics.Debug.WriteLine($"   {sql.Substring(0, Math.Min(500, sql.Length))}...");
-            System.Diagnostics.Debug.WriteLine($"\n   ⏳ Abriendo conexión y ejecutando query...");
+            System.Diagnostics.Debug.WriteLine($"\n   ? Abriendo conexi�n y ejecutando query...");
 #endif
 
             cn.Open();
@@ -543,8 +543,8 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
-        /// Obtiene datos usando consultas separadas cuando las bases están en servidores diferentes
-        /// Similar a la estrategia usada en RetornoService para validación multi-servidor
+        /// Obtiene datos usando consultas separadas cuando las bases est�n en servidores diferentes
+        /// Similar a la estrategia usada en RetornoService para validaci�n multi-servidor
         /// </summary>
         private List<DatoDetalleIGI> ObtenerDatosConConsultasSeparadas(
             string baseDatosPedimentos,
@@ -557,8 +557,8 @@ namespace Retorno360Tacna.SERVICES
             var datosDetalle = new List<DatoDetalleIGI>();
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine($"\n🔀 IGI - VALIDACIÓN MULTI-SERVIDOR");
-            System.Diagnostics.Debug.WriteLine($"   📌 Estrategia: Consultas separadas + validación en memoria");
+            System.Diagnostics.Debug.WriteLine($"\n?? IGI - VALIDACI�N MULTI-SERVIDOR");
+            System.Diagnostics.Debug.WriteLine($"   ?? Estrategia: Consultas separadas + validaci�n en memoria");
 #endif
 
             // PASO 1: Obtener pedimentos de la base seleccionada
@@ -596,7 +596,7 @@ namespace Retorno360Tacna.SERVICES
             }
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine($"   📋 Pedimentos encontrados en {baseDatosPedimentos}: {pedimentosBase.Count}");
+            System.Diagnostics.Debug.WriteLine($"   ?? Pedimentos encontrados en {baseDatosPedimentos}: {pedimentosBase.Count}");
 #endif
 
             if (!pedimentosBase.Any())
@@ -604,16 +604,16 @@ namespace Retorno360Tacna.SERVICES
                 return datosDetalle;
             }
 
-            // PASO 2: Procesar en lotes y obtener detalles con validación contra TR_GLOSA
-            const int tamañoLote = 50;
-            int totalLotes = (int)Math.Ceiling(pedimentosBase.Count / (double)tamañoLote);
+            // PASO 2: Procesar en lotes y obtener detalles con validaci�n contra TR_GLOSA
+            const int tama�oLote = 50;
+            int totalLotes = (int)Math.Ceiling(pedimentosBase.Count / (double)tama�oLote);
 
             for (int i = 0; i < totalLotes; i++)
             {
-                var lote = pedimentosBase.Skip(i * tamañoLote).Take(tamañoLote).ToList();
+                var lote = pedimentosBase.Skip(i * tama�oLote).Take(tama�oLote).ToList();
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"   🔍 Procesando lote {i + 1}/{totalLotes} ({lote.Count} pedimentos)");
+                System.Diagnostics.Debug.WriteLine($"   ?? Procesando lote {i + 1}/{totalLotes} ({lote.Count} pedimentos)");
 #endif
 
                 // Por cada pedimento del lote, obtener sus detalles y validar contra TR_GLOSA
@@ -621,7 +621,7 @@ namespace Retorno360Tacna.SERVICES
                 {
                     try
                     {
-                        // Obtener detalles del pedimento con fracción arancelaria
+                        // Obtener detalles del pedimento con fracci�n arancelaria
                         var detallesPedimento = ObtenerDetallesPedimento(
                             baseDatosPedimentos,
                             pedimento.Consecutivo,
@@ -642,7 +642,7 @@ namespace Retorno360Tacna.SERVICES
                         foreach (var detalle in detallesPedimento)
                         {
                             var datoGlosa = datosGlosa.FirstOrDefault(g => g.Secuencia == detalle.Secuencia);
-                            bool tieneGlosa = datoGlosa.Secuencia != 0; // Si Secuencia es 0, no se encontró
+                            bool tieneGlosa = datoGlosa.Secuencia != 0; // Si Secuencia es 0, no se encontr�
 
                             var datoDetalle = new DatoDetalleIGI
                             {
@@ -667,20 +667,20 @@ namespace Retorno360Tacna.SERVICES
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"   ⚠️ Error procesando pedimento {pedimento.Folio}: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"   ?? Error procesando pedimento {pedimento.Folio}: {ex.Message}");
                     }
                 }
             }
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine($"   ✅ Total registros detalle obtenidos: {datosDetalle.Count}\n");
+            System.Diagnostics.Debug.WriteLine($"   ? Total registros detalle obtenidos: {datosDetalle.Count}\n");
 #endif
 
             return datosDetalle;
         }
 
         /// <summary>
-        /// Obtiene los detalles de un pedimento con cálculo de IGI
+        /// Obtiene los detalles de un pedimento con c�lculo de IGI
         /// </summary>
         private List<(int Secuencia, decimal IGI_Calculado)> ObtenerDetallesPedimento(
             string baseDatos,
@@ -720,7 +720,7 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
-        /// Obtiene datos de TR_GLOSA para un pedimento específico
+        /// Obtiene datos de TR_GLOSA para un pedimento espec�fico
         /// </summary>
         private List<(int Secuencia, DateTime? FechaPago, decimal ImporteADvalorem, decimal ImporteIVA, string FormaPagoIGI, string FormaPagoIVA, string Pedimento, string OrigenZip)> ObtenerDatosGlosaParaPedimento(
             string baseDatosGlosa,
@@ -779,9 +779,9 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
-        /// Obtiene datos AGRUPADOS usando JOIN cruzado - Versión optimizada con GROUP BY en SQL
-        /// Ejecuta el GROUP BY directamente en cada base de datos (más eficiente)
-        /// Similar a la lógica del checkbox de consulta por base individual
+        /// Obtiene datos AGRUPADOS usando JOIN cruzado - Versi�n optimizada con GROUP BY en SQL
+        /// Ejecuta el GROUP BY directamente en cada base de datos (m�s eficiente)
+        /// Similar a la l�gica del checkbox de consulta por base individual
         /// </summary>
         private List<ReporteIGIPagado> ObtenerDatosAgrupadosConJoinCruzado(
             string baseDatosPedimentos,
@@ -795,7 +795,7 @@ namespace Retorno360Tacna.SERVICES
 
             try
             {
-                // Obtener información de conexión para validar servidores
+                // Obtener informaci�n de conexi�n para validar servidores
                 var conexionInfoPedimentos = ObtenerConexionExterna(baseDatosPedimentos);
                 var conexionInfoGlosa = ObtenerConexionExterna(baseDatosGlosa);
 
@@ -808,7 +808,7 @@ namespace Retorno360Tacna.SERVICES
                     ? conexionInfoGlosa.Servidor
                     : conexionPrincipal.Servidor ?? string.Empty;
 
-                // Validar si están en el mismo servidor
+                // Validar si est�n en el mismo servidor
                 bool mismoServidor = ValidarSiMismaConexion(
                     servidorPedimentos,
                     servidorGlosa,
@@ -817,10 +817,10 @@ namespace Retorno360Tacna.SERVICES
                 );
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"\n🔍 ObtenerDatosAgrupadosConJoinCruzado:");
+                System.Diagnostics.Debug.WriteLine($"\n?? ObtenerDatosAgrupadosConJoinCruzado:");
                 System.Diagnostics.Debug.WriteLine($"   Base Pedimentos: {baseDatosPedimentos} (Servidor: {servidorPedimentos})");
                 System.Diagnostics.Debug.WriteLine($"   Base Glosa: {baseDatosGlosa} (Servidor: {servidorGlosa})");
-                System.Diagnostics.Debug.WriteLine($"   ¿Mismo servidor?: {(mismoServidor ? "SÍ" : "NO")}");
+                System.Diagnostics.Debug.WriteLine($"   �Mismo servidor?: {(mismoServidor ? "S�" : "NO")}");
 #endif
 
                 if (mismoServidor)
@@ -843,8 +843,8 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
-        /// Obtiene datos agrupados usando JOIN directo cuando las bases están en el mismo servidor
-        /// Ejecuta el GROUP BY directamente en SQL para máxima eficiencia
+        /// Obtiene datos agrupados usando JOIN directo cuando las bases est�n en el mismo servidor
+        /// Ejecuta el GROUP BY directamente en SQL para m�xima eficiencia
         /// </summary>
         private List<ReporteIGIPagado> ObtenerDatosAgrupadosConJoinDirecto(
             string baseDatosPedimentos,
@@ -891,8 +891,8 @@ namespace Retorno360Tacna.SERVICES
                 WHERE 
                     CONVERT(DATE, TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
                     AND (
-                        TR.Gl_FPagoIVA IN ('5', '21') 
-                        OR TR.Gl_FPagoAdvalorem IN ('5', '21')
+                        TR.Gl_FPagoIVA IN ('0', '21') 
+                        OR TR.Gl_FPagoAdvalorem IN ('0', '5')
                     )
                 GROUP BY  
                     DP.Pim_Consecutivo,
@@ -930,7 +930,7 @@ namespace Retorno360Tacna.SERVICES
             }
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine($"   ✅ Pedimentos agrupados obtenidos: {resultados.Count}");
+            System.Diagnostics.Debug.WriteLine($"   ? Pedimentos agrupados obtenidos: {resultados.Count}");
 #endif
 
             return resultados;
@@ -951,7 +951,7 @@ namespace Retorno360Tacna.SERVICES
             var resultados = new List<ReporteIGIPagado>();
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine($"   📡 Ejecutando estrategia multi-servidor con GROUP BY...");
+            System.Diagnostics.Debug.WriteLine($"   ?? Ejecutando estrategia multi-servidor con GROUP BY...");
 #endif
 
             // PASO 1: Obtener pedimentos agrupados desde la base de pedimentos
@@ -1005,7 +1005,7 @@ namespace Retorno360Tacna.SERVICES
             }
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine($"   📊 Pedimentos agrupados: {pedimentosAgrupados.Count}");
+            System.Diagnostics.Debug.WriteLine($"   ?? Pedimentos agrupados: {pedimentosAgrupados.Count}");
 #endif
 
             // PASO 2: Para cada pedimento, buscar datos en TR_GLOSA
@@ -1039,28 +1039,28 @@ namespace Retorno360Tacna.SERVICES
                         EstatusOrigen = datosGlosa.OrigenZip == "S" ? "ZIP" : "NO ZIP"
                     };
 
-                    // Filtrar solo formas de pago 5 o 21
-                    if (reporte.FormaPago_IGI == "5" || reporte.FormaPago_IGI == "21" ||
-                        reporte.FormaPago_IVA == "5" || reporte.FormaPago_IVA == "21")
+                    // Filtrar solo formas de pago 0, 5 o 21
+                    if (reporte.FormaPago_IGI == "0" || reporte.FormaPago_IGI == "5" || reporte.FormaPago_IGI == "21" ||
+                        reporte.FormaPago_IVA == "0" || reporte.FormaPago_IVA == "21")
                     {
                         resultados.Add(reporte);
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"   ⚠️ Error procesando pedimento {pedimento.Folio}: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"   ?? Error procesando pedimento {pedimento.Folio}: {ex.Message}");
                 }
             }
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine($"   ✅ Total pedimentos con glosa válida: {resultados.Count}");
+            System.Diagnostics.Debug.WriteLine($"   ? Total pedimentos con glosa v�lida: {resultados.Count}");
 #endif
 
             return resultados;
         }
 
         /// <summary>
-        /// Obtiene datos de TR_GLOSA AGRUPADOS para un pedimento específico
+        /// Obtiene datos de TR_GLOSA AGRUPADOS para un pedimento espec�fico
         /// </summary>
         private (DateTime? FechaPago, decimal IGI_Pagado, decimal IVA_Pagado, string FormaPago_IGI, string FormaPago_IVA, string Pedimento, string OrigenZip) 
             ObtenerDatosGlosaAgrupadosParaPedimento(
@@ -1112,7 +1112,7 @@ namespace Retorno360Tacna.SERVICES
                 );
             }
 
-            // Si no hay datos de glosa, retornar valores vacíos
+            // Si no hay datos de glosa, retornar valores vac�os
             return (null, 0, 0, string.Empty, string.Empty, string.Empty, string.Empty);
         }
 
@@ -1121,13 +1121,13 @@ namespace Retorno360Tacna.SERVICES
         /// </summary>
         private bool ValidarSiMismaConexion(string servidor1, string servidor2, int? idConexion1, int? idConexion2)
         {
-            // Si tienen el mismo IdConexion (y no es null), son la misma conexión
+            // Si tienen el mismo IdConexion (y no es null), son la misma conexi�n
             if (idConexion1.HasValue && idConexion2.HasValue && idConexion1 == idConexion2)
             {
                 return true;
             }
 
-            // Si ambos tienen IdConexion NULL, usan conexión principal (mismo servidor)
+            // Si ambos tienen IdConexion NULL, usan conexi�n principal (mismo servidor)
             if (!idConexion1.HasValue && !idConexion2.HasValue)
             {
                 return true;
@@ -1141,7 +1141,7 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
-        /// Normaliza el nombre del servidor para comparación
+        /// Normaliza el nombre del servidor para comparaci�n
         /// </summary>
         private string NormalizarNombreServidor(string servidor)
         {
@@ -1204,7 +1204,7 @@ namespace Retorno360Tacna.SERVICES
 
             try
             {
-                // Agrupar por pedimento completo (puede venir de múltiples bases)
+                // Agrupar por pedimento completo (puede venir de m�ltiples bases)
                 var grupos = datosDetalle
                     .GroupBy(d => new 
                     { 
@@ -1308,7 +1308,7 @@ namespace Retorno360Tacna.SERVICES
             var dt = new System.Data.DataTable();
 
             // Columnas (sin ID Pedimento ni Pedimento)
-            dt.Columns.Add("Sección", typeof(string));           // Para identificar forma de pago 5 o 0
+            dt.Columns.Add("Secci�n", typeof(string));           // Para identificar forma de pago 5 o 0
             dt.Columns.Add("Fecha Pago", typeof(DateTime));
             dt.Columns.Add("IGI Pagado", typeof(decimal));
             dt.Columns.Add("IGI Calculado", typeof(decimal));
@@ -1321,16 +1321,16 @@ namespace Retorno360Tacna.SERVICES
             var reportesFormaPago5 = reportes.Where(r => r.FormaPago_IGI == "5").OrderBy(r => r.FechaPago).ToList();
             var reportesFormaPago0 = reportes.Where(r => r.FormaPago_IGI == "0" || (r.FormaPago_IGI != "5" && r.FormaPago_IGI != "21")).OrderBy(r => r.FechaPago).ToList();
 
-            // ========== SECCIÓN: FORMA DE PAGO 5 ==========
+            // ========== SECCI�N: FORMA DE PAGO 5 ==========
             if (reportesFormaPago5.Any())
             {
-                // Encabezado de sección
-                dt.Rows.Add("═══ FORMA DE PAGO 5 ═══", DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
+                // Encabezado de secci�n
+                dt.Rows.Add("--- FORMA DE PAGO 5 ---", DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
 
                 foreach (var reporte in reportesFormaPago5)
                 {
                     dt.Rows.Add(
-                        string.Empty, // Sección vacía para datos regulares
+                        string.Empty, // Secci�n vac�a para datos regulares
                         reporte.FechaPago ?? (object)DBNull.Value,
                         reporte.IGI_Pagado,
                         reporte.IGI_Calculado,
@@ -1358,15 +1358,15 @@ namespace Retorno360Tacna.SERVICES
                     string.Empty
                 );
 
-                // Fila vacía de separación
+                // Fila vac�a de separaci�n
                 dt.Rows.Add(string.Empty, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
             }
 
-            // ========== SECCIÓN: FORMA DE PAGO 0 (u otras) ==========
+            // ========== SECCI�N: FORMA DE PAGO 0 (u otras) ==========
             if (reportesFormaPago0.Any())
             {
-                // Encabezado de sección
-                dt.Rows.Add("═══ FORMA DE PAGO 0 ═══", DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
+                // Encabezado de secci�n
+                dt.Rows.Add("--- FORMA DE PAGO 0 ---", DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
 
                 foreach (var reporte in reportesFormaPago0)
                 {
@@ -1399,7 +1399,7 @@ namespace Retorno360Tacna.SERVICES
                     string.Empty
                 );
 
-                // Fila vacía de separación
+                // Fila vac�a de separaci�n
                 dt.Rows.Add(string.Empty, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, string.Empty, string.Empty);
             }
 
@@ -1410,7 +1410,7 @@ namespace Retorno360Tacna.SERVICES
             var totalIVAGeneral = reportes.Sum(r => r.IVA_Pagado);
 
             dt.Rows.Add(
-                "═══ TOTAL GENERAL ═══",
+                "--- TOTAL GENERAL ---",
                 DBNull.Value,
                 totalIGI_PagadoGeneral,
                 totalIGI_CalculadoGeneral,
@@ -1424,6 +1424,12 @@ namespace Retorno360Tacna.SERVICES
         }
     }
 }
+
+
+
+
+
+
 
 
 

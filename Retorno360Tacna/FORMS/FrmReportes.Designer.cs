@@ -41,7 +41,8 @@ namespace Retorno360Tacna.FORMS
             cmbRazonSocial = new ComboBox();
             lblRazonSocial = new Label();
             panelResultados = new Panel();
-            dgvReporte = new DataGridView();
+            dgvReporteIVA = new DataGridView();
+            dgvReporteIGI = new DataGridView();
             panelGrafica = new Panel();
             lblTituloGrafica = new Label();
             panelResumen = new Panel();
@@ -52,7 +53,8 @@ namespace Retorno360Tacna.FORMS
             progressBarCargando = new ProgressBar();
             panelFiltros.SuspendLayout();
             panelResultados.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvReporte).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dgvReporteIVA).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dgvReporteIGI).BeginInit();
             panelGrafica.SuspendLayout();
             panelResumen.SuspendLayout();
             panelCargando.SuspendLayout();
@@ -217,7 +219,8 @@ namespace Retorno360Tacna.FORMS
             // 
             // panelResultados
             // 
-            panelResultados.Controls.Add(dgvReporte);
+            panelResultados.Controls.Add(dgvReporteIVA);
+            panelResultados.Controls.Add(dgvReporteIGI);
             panelResultados.Controls.Add(panelGrafica);
             panelResultados.Controls.Add(panelResumen);
             panelResultados.Dock = DockStyle.Fill;
@@ -227,32 +230,49 @@ namespace Retorno360Tacna.FORMS
             panelResultados.Size = new Size(1200, 519);
             panelResultados.TabIndex = 2;
             // 
-            // dgvReporte
+            // dgvReporteIVA
             // 
-            dgvReporte.AllowUserToAddRows = false;
-            dgvReporte.AllowUserToDeleteRows = false;
-            dgvReporte.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            dgvReporte.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvReporte.BackgroundColor = Color.White;
-            dgvReporte.BorderStyle = BorderStyle.None;
-            dgvReporte.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvReporte.Location = new Point(20, 20);
-            dgvReporte.Name = "dgvReporte";
-            dgvReporte.ReadOnly = true;
-            dgvReporte.RowHeadersWidth = 51;
-            dgvReporte.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvReporte.Size = new Size(750, 339);
-            dgvReporte.TabIndex = 0;
+            dgvReporteIVA.AllowUserToAddRows = false;
+            dgvReporteIVA.AllowUserToDeleteRows = false;
+            dgvReporteIVA.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            dgvReporteIVA.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvReporteIVA.BackgroundColor = Color.White;
+            dgvReporteIVA.BorderStyle = BorderStyle.None;
+            dgvReporteIVA.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvReporteIVA.Location = new Point(20, 149);
+            dgvReporteIVA.Name = "dgvReporteIVA";
+            dgvReporteIVA.ReadOnly = true;
+            dgvReporteIVA.RowHeadersWidth = 51;
+            dgvReporteIVA.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvReporteIVA.Size = new Size(517, 193);
+            dgvReporteIVA.TabIndex = 1;
+            // 
+            // dgvReporteIGI
+            // 
+            dgvReporteIGI.AllowUserToAddRows = false;
+            dgvReporteIGI.AllowUserToDeleteRows = false;
+            dgvReporteIGI.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            dgvReporteIGI.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvReporteIGI.BackgroundColor = Color.White;
+            dgvReporteIGI.BorderStyle = BorderStyle.None;
+            dgvReporteIGI.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvReporteIGI.Location = new Point(20, 6);
+            dgvReporteIGI.Name = "dgvReporteIGI";
+            dgvReporteIGI.ReadOnly = true;
+            dgvReporteIGI.RowHeadersWidth = 51;
+            dgvReporteIGI.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvReporteIGI.Size = new Size(517, 137);
+            dgvReporteIGI.TabIndex = 0;
             // 
             // panelGrafica
             // 
             panelGrafica.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
             panelGrafica.BackColor = Color.White;
             panelGrafica.Controls.Add(lblTituloGrafica);
-            panelGrafica.Location = new Point(780, 20);
+            panelGrafica.Location = new Point(543, 6);
             panelGrafica.Name = "panelGrafica";
             panelGrafica.Padding = new Padding(10);
-            panelGrafica.Size = new Size(400, 339);
+            panelGrafica.Size = new Size(637, 336);
             panelGrafica.TabIndex = 2;
             // 
             // lblTituloGrafica
@@ -262,7 +282,7 @@ namespace Retorno360Tacna.FORMS
             lblTituloGrafica.ForeColor = Color.FromArgb(52, 73, 94);
             lblTituloGrafica.Location = new Point(10, 10);
             lblTituloGrafica.Name = "lblTituloGrafica";
-            lblTituloGrafica.Size = new Size(380, 30);
+            lblTituloGrafica.Size = new Size(617, 30);
             lblTituloGrafica.TabIndex = 0;
             lblTituloGrafica.Text = "IGI Pagado vs Calculado";
             lblTituloGrafica.TextAlign = ContentAlignment.MiddleCenter;
@@ -273,10 +293,10 @@ namespace Retorno360Tacna.FORMS
             panelResumen.Controls.Add(lblResumenInfo);
             panelResumen.Controls.Add(lblProgreso);
             panelResumen.Dock = DockStyle.Bottom;
-            panelResumen.Location = new Point(20, 419);
+            panelResumen.Location = new Point(20, 348);
             panelResumen.Name = "panelResumen";
             panelResumen.Padding = new Padding(10);
-            panelResumen.Size = new Size(1160, 120);
+            panelResumen.Size = new Size(1160, 151);
             panelResumen.TabIndex = 1;
             // 
             // lblResumenInfo
@@ -286,17 +306,16 @@ namespace Retorno360Tacna.FORMS
             lblResumenInfo.ForeColor = Color.FromArgb(52, 73, 94);
             lblResumenInfo.Location = new Point(10, 10);
             lblResumenInfo.Name = "lblResumenInfo";
-            lblResumenInfo.Size = new Size(1140, 80);
+            lblResumenInfo.Size = new Size(1140, 111);
             lblResumenInfo.TabIndex = 0;
             lblResumenInfo.Text = "Seleccione los filtros y presione Consultar";
-            lblResumenInfo.TextAlign = ContentAlignment.TopLeft;
             // 
             // lblProgreso
             // 
             lblProgreso.Dock = DockStyle.Bottom;
             lblProgreso.Font = new Font("Segoe UI", 9F);
             lblProgreso.ForeColor = Color.FromArgb(127, 140, 141);
-            lblProgreso.Location = new Point(10, 90);
+            lblProgreso.Location = new Point(10, 121);
             lblProgreso.Name = "lblProgreso";
             lblProgreso.Size = new Size(1140, 20);
             lblProgreso.TabIndex = 1;
@@ -350,7 +369,8 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.ResumeLayout(false);
             panelFiltros.PerformLayout();
             panelResultados.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)dgvReporte).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dgvReporteIVA).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dgvReporteIGI).EndInit();
             panelGrafica.ResumeLayout(false);
             panelResumen.ResumeLayout(false);
             panelCargando.ResumeLayout(false);
@@ -371,7 +391,8 @@ namespace Retorno360Tacna.FORMS
         private Button btnGenerarPDF;
         private CheckBox chkSinGlosa;
         private Panel panelResultados;
-        private DataGridView dgvReporte;
+        private DataGridView dgvReporteIGI;
+        private DataGridView dgvReporteIVA;
         private Panel panelResumen;
         private Label lblResumenInfo;
         private Label lblProgreso;
