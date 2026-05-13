@@ -1360,6 +1360,356 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
+        /// Genera gráfico de barras apiladas horizontales por mes y forma de pago para IGI
+        /// </summary>
+        private byte[] GenerarGraficoIGIPorMes(List<ReporteIGIPagado> reporteCompleto)
+        {
+            int width = 700;
+            int height = 500;
+
+            var surface = SKSurface.Create(new SKImageInfo(width, height));
+            var canvas = surface.Canvas;
+            canvas.Clear(SKColors.White);
+
+            // Agrupar datos por mes y forma de pago
+            var datosPorMes = reporteCompleto
+                .Where(r => r.FechaPago.HasValue)
+                .GroupBy(r => new {
+                    Año = r.FechaPago.Value.Year,
+                    Mes = r.FechaPago.Value.Month,
+                    FormaPago = r.FormaPago_IGI
+                })
+                .Select(g => new {
+                    Periodo = new DateTime(g.Key.Año, g.Key.Mes, 1),
+                    MesNombre = new DateTime(g.Key.Año, g.Key.Mes, 1).ToString("MMMM").ToLower(),
+                    FormaPago = g.Key.FormaPago,
+                    Pagado = g.Sum(x => x.IGI_Pagado),
+                    Calculado = g.Sum(x => x.IGI_Calculado),
+                    Diferencia = g.Sum(x => x.DiferenciaIGI)
+                })
+                .OrderByDescending(x => x.Periodo)
+                .ToList();
+
+            if (datosPorMes.Count == 0) return Array.Empty<byte>();
+
+            // Colores
+            var colorPagado = new SKColor(79, 129, 189);    // Azul
+            var colorCalculado = new SKColor(192, 192, 192); // Gris
+            var colorDiferencia = new SKColor(155, 194, 230); // Azul claro
+
+            // Obtener meses únicos y formas de pago
+            var mesesUnicos = datosPorMes.Select(x => x.MesNombre).Distinct().ToList();
+            var formasPago = datosPorMes.Select(x => x.FormaPago).Distinct().OrderBy(x => x).ToList();
+
+            // Calcular número total de barras
+            int totalBarras = mesesUnicos.Count * formasPago.Count;
+            float barHeight = Math.Min(30, (height - 150) / (totalBarras * 1.3f));
+            float leftMargin = 120;
+            float rightMargin = 50;
+            float maxBarWidth = width - leftMargin - rightMargin;
+
+            // Calcular máximo para escalar
+            decimal maxValor = datosPorMes.Any() ? datosPorMes.Max(x => x.Pagado + x.Calculado + Math.Abs(x.Diferencia)) : 1;
+            if (maxValor == 0) maxValor = 1;
+
+            // Dibujar eje vertical (línea base)
+            using (var axisPaint = new SKPaint { Color = SKColors.Black, StrokeWidth = 2 })
+            {
+                canvas.DrawLine(leftMargin, 50, leftMargin, height - 50, axisPaint);
+            }
+
+            // Dibujar líneas de cuadrícula y etiquetas del eje X
+            using (var gridPaint = new SKPaint { Color = new SKColor(230, 230, 230), StrokeWidth = 1 })
+            using (var textPaint = new SKPaint { Color = SKColors.Gray, TextSize = 8, IsAntialias = true })
+            {
+                for (int i = 0; i <= 5; i++)
+                {
+                    decimal valorEje = maxValor * i / 5;
+                    float x = leftMargin + (maxBarWidth * i / 5);
+                    canvas.DrawLine(x, 50, x, height - 50, gridPaint);
+                    string label = valorEje >= 1000000 ? $"{valorEje / 1000000:N0}M"
+                                 : valorEje >= 1000 ? $"{valorEje / 1000:N0}K"
+                                 : $"{valorEje:N0}";
+                    canvas.DrawText(label, x, height - 35, textPaint);
+                }
+            }
+
+            // Dibujar barras horizontales apiladas por mes y forma de pago
+            float startY = 60;
+            float spacing = Math.Min(60, (height - 110) / totalBarras);
+            int barIndex = 0;
+
+            foreach (var mes in mesesUnicos)
+            {
+                foreach (var fp in formasPago)
+                {
+                    var datos = datosPorMes.FirstOrDefault(x => x.MesNombre == mes && x.FormaPago == fp);
+
+                    if (datos == null)
+                    {
+                        barIndex++;
+                        continue;
+                    }
+
+                    float yPos = startY + (barIndex * spacing);
+
+                    // Calcular anchos
+                    float anchoPagado = (float)(datos.Pagado / maxValor) * maxBarWidth;
+                    float anchoCalculado = (float)(datos.Calculado / maxValor) * maxBarWidth;
+                    float anchoDiferencia = (float)(Math.Abs(datos.Diferencia) / maxValor) * maxBarWidth;
+
+                    float xInicio = leftMargin;
+
+                    // Barra IGI Pagado (azul)
+                    if (datos.Pagado > 0)
+                    {
+                        using (var paint = new SKPaint { Color = colorPagado, Style = SKPaintStyle.Fill, IsAntialias = true })
+                        {
+                            canvas.DrawRect(xInicio, yPos, anchoPagado, barHeight, paint);
+                        }
+                        // Etiqueta Pagado
+                        using (var labelPaint = new SKPaint { Color = SKColors.White, TextSize = 7, IsAntialias = true, FakeBoldText = true })
+                        {
+                            string texto = datos.Pagado >= 1000 ? $"{datos.Pagado / 1000:N0}K" : $"{datos.Pagado:N0}";
+                            float textWidth = labelPaint.MeasureText(texto);
+                            if (anchoPagado > textWidth + 5)
+                                canvas.DrawText(texto, xInicio + anchoPagado / 2 - textWidth / 2, yPos + barHeight / 2 + 3, labelPaint);
+                        }
+                    }
+                    xInicio += anchoPagado;
+
+                    // Barra IGI Calculado (gris)
+                    if (datos.Calculado > 0)
+                    {
+                        using (var paint = new SKPaint { Color = colorCalculado, Style = SKPaintStyle.Fill, IsAntialias = true })
+                        {
+                            canvas.DrawRect(xInicio, yPos, anchoCalculado, barHeight, paint);
+                        }
+                        // Etiqueta Calculado
+                        using (var labelPaint = new SKPaint { Color = new SKColor(64, 64, 64), TextSize = 7, IsAntialias = true, FakeBoldText = true })
+                        {
+                            string texto = datos.Calculado >= 1000 ? $"{datos.Calculado / 1000:N0}K" : $"{datos.Calculado:N0}";
+                            float textWidth = labelPaint.MeasureText(texto);
+                            if (anchoCalculado > textWidth + 5)
+                                canvas.DrawText(texto, xInicio + anchoCalculado / 2 - textWidth / 2, yPos + barHeight / 2 + 3, labelPaint);
+                        }
+                    }
+                    xInicio += anchoCalculado;
+
+                    // Barra Diferencia (azul claro)
+                    if (datos.Diferencia != 0)
+                    {
+                        using (var paint = new SKPaint { Color = colorDiferencia, Style = SKPaintStyle.Fill, IsAntialias = true })
+                        {
+                            canvas.DrawRect(xInicio, yPos, anchoDiferencia, barHeight, paint);
+                        }
+                        // Etiqueta Diferencia
+                        using (var labelPaint = new SKPaint { Color = new SKColor(64, 64, 64), TextSize = 7, IsAntialias = true, FakeBoldText = true })
+                        {
+                            string texto = Math.Abs(datos.Diferencia) >= 1000 ? $"{Math.Abs(datos.Diferencia) / 1000:N0}K" : $"{Math.Abs(datos.Diferencia):N0}";
+                            float textWidth = labelPaint.MeasureText(texto);
+                            if (anchoDiferencia > textWidth + 5)
+                                canvas.DrawText(texto, xInicio + anchoDiferencia / 2 - textWidth / 2, yPos + barHeight / 2 + 3, labelPaint);
+                        }
+                    }
+
+                    // Etiqueta del mes y forma de pago (a la izquierda)
+                    using (var labelPaint = new SKPaint { Color = SKColors.Black, TextSize = 11, IsAntialias = true })
+                    {
+                        string etiqueta = $"{mes} FP-{fp}";
+                        canvas.DrawText(etiqueta, 5, yPos + barHeight / 2 + 4, labelPaint);
+                    }
+
+                    barIndex++;
+                }
+            }
+
+            // Título
+            using (var titlePaint = new SKPaint { Color = SKColors.Black, TextSize = 14, TextAlign = SKTextAlign.Center, IsAntialias = true, FakeBoldText = true })
+            {
+                canvas.DrawText("IGI por Mes y Forma de Pago", width / 2, 25, titlePaint);
+            }
+
+            // Leyenda
+            using (var legendPaint = new SKPaint { TextSize = 9, IsAntialias = true })
+            {
+                float legendX = leftMargin;
+                float legendY = height - 20;
+
+                using (var rectPaint = new SKPaint { Color = colorPagado, Style = SKPaintStyle.Fill })
+                {
+                    canvas.DrawRect(legendX, legendY, 12, 12, rectPaint);
+                }
+                legendPaint.Color = SKColors.Black;
+                canvas.DrawText("IGI pagado", legendX + 17, legendY + 10, legendPaint);
+
+                using (var rectPaint = new SKPaint { Color = colorCalculado, Style = SKPaintStyle.Fill })
+                {
+                    canvas.DrawRect(legendX + 100, legendY, 12, 12, rectPaint);
+                }
+                canvas.DrawText("IGI calculado", legendX + 117, legendY + 10, legendPaint);
+
+                using (var rectPaint = new SKPaint { Color = colorDiferencia, Style = SKPaintStyle.Fill })
+                {
+                    canvas.DrawRect(legendX + 210, legendY, 12, 12, rectPaint);
+                }
+                canvas.DrawText("Diferencia", legendX + 227, legendY + 10, legendPaint);
+            }
+
+            var image = surface.Snapshot();
+            var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            return data.ToArray();
+        }
+
+        /// <summary>
+        /// Genera gráfico de barras horizontales por mes y forma de pago para IVA
+        /// </summary>
+        private byte[] GenerarGraficoIVAPorMes(List<ReporteIGIPagado> reporteCompleto)
+        {
+            int width = 800;
+            int height = 700;
+
+            var surface = SKSurface.Create(new SKImageInfo(width, height));
+            var canvas = surface.Canvas;
+            canvas.Clear(SKColors.White);
+
+            // Agrupar datos por mes y forma de pago IVA
+            var datosPorMes = reporteCompleto
+                .Where(r => r.FechaPago.HasValue && r.FormaPago_IVA != null)
+                .GroupBy(r => new {
+                    Año = r.FechaPago.Value.Year,
+                    Mes = r.FechaPago.Value.Month,
+                    FormaPago = r.FormaPago_IVA
+                })
+                .Select(g => new {
+                    Periodo = new DateTime(g.Key.Año, g.Key.Mes, 1),
+                    MesNombre = new DateTime(g.Key.Año, g.Key.Mes, 1).ToString("MMMM").ToLower(),
+                    FormaPago = g.Key.FormaPago,
+                    IVAPagado = g.Sum(x => x.IVA_Pagado)
+                })
+                .OrderByDescending(x => x.Periodo)
+                .ToList();
+
+            if (datosPorMes.Count == 0) return Array.Empty<byte>();
+
+            // Color verde para IVA
+            var colorIVA = new SKColor(46, 204, 113);
+
+            // Obtener meses únicos y formas de pago
+            var mesesUnicos = datosPorMes.Select(x => x.MesNombre).Distinct().ToList();
+            var formasPago = datosPorMes.Select(x => x.FormaPago).Distinct().OrderBy(x => x).ToList();
+
+            // Calcular número total de barras con mayor altura
+            int totalBarras = mesesUnicos.Count * formasPago.Count;
+            float barHeight = Math.Min(50, (height - 150) / (totalBarras * 1.1f));
+            float leftMargin = 120;
+            float rightMargin = 50;
+            float maxBarWidth = width - leftMargin - rightMargin;
+
+            // Calcular máximo para escalar
+            decimal maxValor = datosPorMes.Any() ? datosPorMes.Max(x => x.IVAPagado) : 1;
+            if (maxValor == 0) maxValor = 1;
+
+            // Dibujar eje vertical (línea base)
+            using (var axisPaint = new SKPaint { Color = SKColors.Black, StrokeWidth = 2 })
+            {
+                canvas.DrawLine(leftMargin, 50, leftMargin, height - 50, axisPaint);
+            }
+
+            // Dibujar líneas de cuadrícula y etiquetas del eje X
+            using (var gridPaint = new SKPaint { Color = new SKColor(230, 230, 230), StrokeWidth = 1 })
+            using (var textPaint = new SKPaint { Color = SKColors.Gray, TextSize = 8, IsAntialias = true })
+            {
+                for (int i = 0; i <= 5; i++)
+                {
+                    decimal valorEje = maxValor * i / 5;
+                    float x = leftMargin + (maxBarWidth * i / 5);
+                    canvas.DrawLine(x, 50, x, height - 50, gridPaint);
+                    string label = valorEje >= 1000000 ? $"{valorEje / 1000000:N0}M"
+                                 : valorEje >= 1000 ? $"{valorEje / 1000:N0}K"
+                                 : $"{valorEje:N0}";
+                    canvas.DrawText(label, x, height - 35, textPaint);
+                }
+            }
+
+            // Dibujar barras horizontales por mes y forma de pago
+            float startY = 60;
+            float spacing = Math.Min(60, (height - 110) / totalBarras);
+            int barIndex = 0;
+
+            foreach (var mes in mesesUnicos)
+            {
+                foreach (var fp in formasPago)
+                {
+                    var datos = datosPorMes.FirstOrDefault(x => x.MesNombre == mes && x.FormaPago == fp);
+
+                    if (datos == null)
+                    {
+                        barIndex++;
+                        continue;
+                    }
+
+                    float yPos = startY + (barIndex * spacing);
+
+                    // Calcular ancho
+                    float anchoIVA = (float)(datos.IVAPagado / maxValor) * maxBarWidth;
+
+                    float xInicio = leftMargin;
+
+                    // Barra IVA Pagado (verde)
+                    if (datos.IVAPagado > 0)
+                    {
+                        using (var paint = new SKPaint { Color = colorIVA, Style = SKPaintStyle.Fill, IsAntialias = true })
+                        {
+                            canvas.DrawRect(xInicio, yPos, anchoIVA, barHeight, paint);
+                        }
+                        // Etiqueta IVA
+                        using (var labelPaint = new SKPaint { Color = SKColors.White, TextSize = 11, IsAntialias = true, FakeBoldText = true })
+                        {
+                            string texto = datos.IVAPagado >= 1000 ? $"{datos.IVAPagado / 1000:N0}K" : $"{datos.IVAPagado:N0}";
+                            float textWidth = labelPaint.MeasureText(texto);
+                            if (anchoIVA > textWidth + 5)
+                                canvas.DrawText(texto, xInicio + anchoIVA / 2 - textWidth / 2, yPos + barHeight / 2 + 4, labelPaint);
+                        }
+                    }
+
+                    // Etiqueta del mes y forma de pago (a la izquierda)
+                    using (var labelPaint = new SKPaint { Color = SKColors.Black, TextSize = 11, IsAntialias = true })
+                    {
+                        string etiqueta = $"{mes} FP-{fp}";
+                        canvas.DrawText(etiqueta, 5, yPos + barHeight / 2 + 4, labelPaint);
+                    }
+
+                    barIndex++;
+                }
+            }
+
+            // Título
+            using (var titlePaint = new SKPaint { Color = SKColors.Black, TextSize = 14, TextAlign = SKTextAlign.Center, IsAntialias = true, FakeBoldText = true })
+            {
+                canvas.DrawText("IVA por Mes y Forma de Pago", width / 2, 25, titlePaint);
+            }
+
+            // Leyenda
+            using (var legendPaint = new SKPaint { TextSize = 9, IsAntialias = true })
+            {
+                float legendX = leftMargin;
+                float legendY = height - 20;
+
+                using (var rectPaint = new SKPaint { Color = colorIVA, Style = SKPaintStyle.Fill })
+                {
+                    canvas.DrawRect(legendX, legendY, 12, 12, rectPaint);
+                }
+                legendPaint.Color = SKColors.Black;
+                canvas.DrawText("IVA pagado", legendX + 17, legendY + 10, legendPaint);
+            }
+
+            var image = surface.Snapshot();
+            var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            return data.ToArray();
+        }
+
+        /// <summary>
         /// Genera el PDF del reporte IGI con tablas separadas, gráfico y resumen por forma de pago
         /// </summary>
         public void GenerarReporteIGIConFormasPagoPDF(
@@ -1391,12 +1741,9 @@ namespace Retorno360Tacna.SERVICES
             var totalIVA_Pagado21 = reportesIVA_FormaPago21.Sum(r => r.IVA_Pagado);
             var totalIVA_Pagado0 = reportesIVA_FormaPago0.Sum(r => r.IVA_Pagado);
 
-            // Generar gráfico
-            byte[] imagenGrafico = GenerarGraficoCompletoPorFormaPago(
-                totalIGI_Pagado0, totalIGI_Calculado0, diferenciaIGI_0,
-                totalIGI_Pagado5, totalIGI_Calculado5, diferenciaIGI_5,
-                totalIVA_Pagado0, totalIVA_Pagado21
-            );
+            // Generar gráfico de barras apiladas por mes
+            byte[] imagenGraficoIGI = GenerarGraficoIGIPorMes(reporteCompleto);
+            byte[] imagenGraficoIVA = GenerarGraficoIVAPorMes(reporteCompleto);
 
             Document.Create(container =>
             {
@@ -1507,14 +1854,14 @@ namespace Retorno360Tacna.SERVICES
                             // Gráfico
                             column.Item().PaddingTop(15).PaddingBottom(10).Column(col =>
                             {
-                                col.Item().Text("Representación Gráfica")
+                                col.Item().Text("Representación Gráfica - IGI por Mes")
                                     .FontSize(14)
                                     .Bold()
                                     .FontColor(Colors.Blue.Darken2);
                             });
 
                             column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10)
-                                .Image(imagenGrafico).FitArea();
+                                .Image(imagenGraficoIGI).FitArea();
 
                             // Salto de página antes de las tablas
                             column.Item().PageBreak();
@@ -1570,6 +1917,21 @@ namespace Retorno360Tacna.SERVICES
                                     contador++;
                                 }
                             });
+
+                            // Salto de página antes de la tabla IVA
+                            column.Item().PageBreak();
+
+                            // Gráfico IVA
+                            column.Item().PaddingTop(15).PaddingBottom(10).Column(col =>
+                            {
+                                col.Item().Text("Representación Gráfica - IVA por Mes y Forma de Pago")
+                                    .FontSize(14)
+                                    .Bold()
+                                    .FontColor(Colors.Purple.Darken2);
+                            });
+
+                            column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10)
+                                .Image(imagenGraficoIVA).FitArea();
 
                             // Tabla IVA
                             column.Item().PaddingTop(20).PaddingBottom(10).Text("Detalle IVA por Mes y Forma de Pago")

@@ -55,12 +55,12 @@ namespace Retorno360Tacna.FORMS
                 // Posiciones y tamaños base del diseño original
                 const int BASE_WIDTH = 1230;
                 const int BASE_HEIGHT = 618;
-                const int CHART_LEFT = 350;
+                const int CHART_LEFT = 340;
                 const int PIE_LEFT = 799;
-                const int CHART_TOP = 188;
-                const int CHART_BASE_WIDTH = 428;
+                const int CHART_TOP = 172;
+                const int CHART_BASE_WIDTH = 450;
                 const int PIE_BASE_WIDTH = 400;
-                const int CHART_BASE_HEIGHT = 396;
+                const int CHART_BASE_HEIGHT = 410;
 
                 // Calcular factores de escala
                 float factorAncho = (float)anchoDisponible / BASE_WIDTH;
@@ -75,29 +75,26 @@ namespace Retorno360Tacna.FORMS
                     factorEscala = 1.0f + ((factorEscala - 1.0f) * 0.7f); // Crecer solo 70% del exceso
                 }
 
-                // Ajustar gráfica de barras (cartesiana)
-                if (cartesianChartView != null)
+                // Ajustar panel de gráfica de columnas
+                if (panelGraficaColumnas != null)
                 {
                     int nuevoAncho = (int)(CHART_BASE_WIDTH * factorEscala);
                     int nuevoAlto = (int)(CHART_BASE_HEIGHT * factorEscala);
 
-                    cartesianChartView.Location = new Point(CHART_LEFT, CHART_TOP);
-                    cartesianChartView.Width = Math.Max(350, nuevoAncho);
-                    cartesianChartView.Height = Math.Max(300, nuevoAlto);
+                    panelGraficaColumnas.Location = new Point(CHART_LEFT, CHART_TOP);
+                    panelGraficaColumnas.Width = Math.Max(350, nuevoAncho);
+                    panelGraficaColumnas.Height = Math.Max(300, nuevoAlto);
                 }
 
-                // Ajustar gráfica de pie
-                if (pieChartView != null)
+                // Ajustar panel de gráfica de pie
+                if (panelGraficaPie != null)
                 {
-                    int nuevoAncho = (int)(PIE_BASE_WIDTH * factorEscala);
+                    int nuevoAncho = (int)(CHART_BASE_WIDTH * factorEscala);
                     int nuevoAlto = (int)(CHART_BASE_HEIGHT * factorEscala);
 
-                    // Calcular nueva posición X manteniendo proporción con el ancho total
-                    int nuevaPosX = (int)(PIE_LEFT * factorAncho);
-
-                    pieChartView.Location = new Point(nuevaPosX, CHART_TOP);
-                    pieChartView.Width = Math.Max(350, nuevoAncho);
-                    pieChartView.Height = Math.Max(300, nuevoAlto);
+                    panelGraficaPie.Location = new Point(CHART_LEFT, CHART_TOP);
+                    panelGraficaPie.Width = Math.Max(350, nuevoAncho);
+                    panelGraficaPie.Height = Math.Max(300, nuevoAlto);
                 }
 
                 this.ResumeLayout(false);
@@ -124,6 +121,60 @@ namespace Retorno360Tacna.FORMS
 
         private void ConfigurarGrafica()
         {
+            // Configurar gráfica de columnas con zoom completo
+            cartesianChartView = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart
+            {
+                Dock = DockStyle.Fill,
+                ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both,
+                ZoomingSpeed = 1.1
+            };
+
+            // Agregar gráfica de columnas al panel
+            panelGraficaColumnas.Controls.Add(cartesianChartView);
+            cartesianChartView.SendToBack(); // Enviar la gráfica atrás
+
+            // Asegurar que los botones de navegación estén visibles y configurados
+            btnAnteriorColumnas.Cursor = Cursors.Hand;
+            btnSiguienteColumnas.Cursor = Cursors.Hand;
+
+            // Agregar los controles de navegación AL FRENTE
+            panelGraficaColumnas.Controls.Add(lblTituloColumnas);
+            panelGraficaColumnas.Controls.Add(btnAnteriorColumnas);
+            panelGraficaColumnas.Controls.Add(btnSiguienteColumnas);
+            lblTituloColumnas.BringToFront();
+            btnAnteriorColumnas.BringToFront();
+            btnSiguienteColumnas.BringToFront();
+
+            // Configurar gráfica de pie
+            pieChartView = new LiveChartsCore.SkiaSharpView.WinForms.PieChart
+            {
+                Dock = DockStyle.Fill
+            };
+
+            // Agregar gráfica de pie al panel
+            panelGraficaPie.Controls.Add(pieChartView);
+            pieChartView.SendToBack(); // Enviar la gráfica atrás
+
+            // Asegurar que los botones de navegación estén visibles y configurados
+            btnAnteriorPie.Cursor = Cursors.Hand;
+            btnSiguientePie.Cursor = Cursors.Hand;
+
+            // Agregar los controles de navegación AL FRENTE
+            panelGraficaPie.Controls.Add(lblTituloPie);
+            panelGraficaPie.Controls.Add(btnAnteriorPie);
+            panelGraficaPie.Controls.Add(btnSiguientePie);
+            lblTituloPie.BringToFront();
+            btnAnteriorPie.BringToFront();
+            btnSiguientePie.BringToFront();
+
+            // Configurar tooltips para los botones
+            ToolTip tooltip = new ToolTip();
+            tooltip.SetToolTip(btnAnteriorColumnas, "Gráfica anterior");
+            tooltip.SetToolTip(btnSiguienteColumnas, "Gráfica siguiente");
+            tooltip.SetToolTip(btnAnteriorPie, "Gráfica anterior");
+            tooltip.SetToolTip(btnSiguientePie, "Gráfica siguiente");
+
+            // Inicializar series vacías
             pieChartView.Series = Array.Empty<ISeries>();
             cartesianChartView.Series = Array.Empty<ISeries>();
         }
@@ -419,9 +470,10 @@ namespace Retorno360Tacna.FORMS
                     Fill = new SolidColorPaint(SKColors.Crimson),
                     Stroke = new SolidColorPaint(SKColors.DarkRed) { StrokeThickness = 2 },
                     DataLabelsPaint = new SolidColorPaint(SKColors.Black),
-                    DataLabelsSize = 11,
+                    DataLabelsSize = 14,
                     DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
-                    DataLabelsFormatter = point => $"${point.Model:N0}"
+                    DataLabelsFormatter = point => $"${point.Model:N0}",
+                    MaxBarWidth = 100
                 },
                 new ColumnSeries<double>
                 {
@@ -430,13 +482,14 @@ namespace Retorno360Tacna.FORMS
                     Fill = new SolidColorPaint(new SKColor(41, 128, 185)),
                     Stroke = new SolidColorPaint(new SKColor(21, 67, 96)) { StrokeThickness = 2 },
                     DataLabelsPaint = new SolidColorPaint(SKColors.Black),
-                    DataLabelsSize = 11,
+                    DataLabelsSize = 14,
                     DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
-                    DataLabelsFormatter = point => $"${point.Model:N0}"
+                    DataLabelsFormatter = point => $"${point.Model:N0}",
+                    MaxBarWidth = 100
                 }
             };
 
-            // Configurar ejes de la gráfica lineal
+            // Configurar ejes de la gráfica de columnas con soporte completo para zoom
             cartesianChartView.XAxes = new[]
             {
                 new LiveChartsCore.SkiaSharpView.Axis
@@ -444,7 +497,11 @@ namespace Retorno360Tacna.FORMS
                     Labels = new[] { "Valores Comerciales" },
                     LabelsRotation = 0,
                     TextSize = 12,
-                    SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) { StrokeThickness = 1 }
+                    SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) { StrokeThickness = 1 },
+                    MinLimit = null,
+                    MaxLimit = null,
+                    MinStep = 1,
+                    ForceStepToMin = false
                 }
             };
 
@@ -456,9 +513,27 @@ namespace Retorno360Tacna.FORMS
                     NamePaint = new SolidColorPaint(SKColors.Black),
                     TextSize = 12,
                     SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) { StrokeThickness = 1 },
-                    Labeler = value => $"${value:N0}"
+                    Labeler = value => $"${value:N0}",
+                    MinLimit = null,
+                    MaxLimit = null,
+                    ForceStepToMin = false
                 }
             };
+        }
+
+        private void btnCambiarGrafica_Click(object sender, EventArgs e)
+        {
+            // Alternar entre paneles de gráficas
+            if (panelGraficaColumnas.Visible)
+            {
+                panelGraficaColumnas.Visible = false;
+                panelGraficaPie.Visible = true;
+            }
+            else
+            {
+                panelGraficaColumnas.Visible = true;
+                panelGraficaPie.Visible = false;
+            }
         }
 
         private void btnGenerarPDF_Click(object sender, EventArgs e)

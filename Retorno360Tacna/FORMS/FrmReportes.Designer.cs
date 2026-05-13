@@ -44,7 +44,13 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIVA = new DataGridView();
             dgvReporteIGI = new DataGridView();
             panelGrafica = new Panel();
+            btnSiguienteGrafica = new Button();
+            btnAnteriorGrafica = new Button();
             lblTituloGrafica = new Label();
+            panelGraficaIVA = new Panel();
+            btnSiguienteGraficaIVA = new Button();
+            btnAnteriorGraficaIVA = new Button();
+            lblTituloGraficaIVA = new Label();
             panelResumen = new Panel();
             lblResumenInfo = new Label();
             lblProgreso = new Label();
@@ -56,6 +62,7 @@ namespace Retorno360Tacna.FORMS
             ((System.ComponentModel.ISupportInitialize)dgvReporteIVA).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvReporteIGI).BeginInit();
             panelGrafica.SuspendLayout();
+            panelGraficaIVA.SuspendLayout();
             panelResumen.SuspendLayout();
             panelCargando.SuspendLayout();
             SuspendLayout();
@@ -222,6 +229,7 @@ namespace Retorno360Tacna.FORMS
             panelResultados.Controls.Add(dgvReporteIVA);
             panelResultados.Controls.Add(dgvReporteIGI);
             panelResultados.Controls.Add(panelGrafica);
+            panelResultados.Controls.Add(panelGraficaIVA);
             panelResultados.Controls.Add(panelResumen);
             panelResultados.Dock = DockStyle.Fill;
             panelResultados.Location = new Point(0, 131);
@@ -239,12 +247,12 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIVA.BackgroundColor = Color.White;
             dgvReporteIVA.BorderStyle = BorderStyle.None;
             dgvReporteIVA.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvReporteIVA.Location = new Point(20, 149);
+            dgvReporteIVA.Location = new Point(20, 165);
             dgvReporteIVA.Name = "dgvReporteIVA";
             dgvReporteIVA.ReadOnly = true;
             dgvReporteIVA.RowHeadersWidth = 51;
             dgvReporteIVA.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvReporteIVA.Size = new Size(517, 193);
+            dgvReporteIVA.Size = new Size(517, 177);
             dgvReporteIVA.TabIndex = 1;
             // 
             // dgvReporteIGI
@@ -261,19 +269,54 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIGI.ReadOnly = true;
             dgvReporteIGI.RowHeadersWidth = 51;
             dgvReporteIGI.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvReporteIGI.Size = new Size(517, 137);
+            dgvReporteIGI.Size = new Size(517, 153);
             dgvReporteIGI.TabIndex = 0;
             // 
             // panelGrafica
             // 
             panelGrafica.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
             panelGrafica.BackColor = Color.White;
+            panelGrafica.Controls.Add(btnSiguienteGrafica);
+            panelGrafica.Controls.Add(btnAnteriorGrafica);
             panelGrafica.Controls.Add(lblTituloGrafica);
             panelGrafica.Location = new Point(543, 6);
             panelGrafica.Name = "panelGrafica";
             panelGrafica.Padding = new Padding(10);
             panelGrafica.Size = new Size(637, 336);
             panelGrafica.TabIndex = 2;
+            // 
+            // btnSiguienteGrafica
+            // 
+            btnSiguienteGrafica.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnSiguienteGrafica.BackColor = Color.FromArgb(52, 152, 219);
+            btnSiguienteGrafica.Cursor = Cursors.Hand;
+            btnSiguienteGrafica.FlatAppearance.BorderSize = 0;
+            btnSiguienteGrafica.FlatStyle = FlatStyle.Flat;
+            btnSiguienteGrafica.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnSiguienteGrafica.ForeColor = Color.White;
+            btnSiguienteGrafica.Location = new Point(597, 10);
+            btnSiguienteGrafica.Name = "btnSiguienteGrafica";
+            btnSiguienteGrafica.Size = new Size(30, 30);
+            btnSiguienteGrafica.TabIndex = 2;
+            btnSiguienteGrafica.Text = "›";
+            btnSiguienteGrafica.UseVisualStyleBackColor = false;
+            btnSiguienteGrafica.Click += btnSiguienteGrafica_Click;
+            // 
+            // btnAnteriorGrafica
+            // 
+            btnAnteriorGrafica.BackColor = Color.FromArgb(52, 152, 219);
+            btnAnteriorGrafica.Cursor = Cursors.Hand;
+            btnAnteriorGrafica.FlatAppearance.BorderSize = 0;
+            btnAnteriorGrafica.FlatStyle = FlatStyle.Flat;
+            btnAnteriorGrafica.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnAnteriorGrafica.ForeColor = Color.White;
+            btnAnteriorGrafica.Location = new Point(10, 10);
+            btnAnteriorGrafica.Name = "btnAnteriorGrafica";
+            btnAnteriorGrafica.Size = new Size(30, 30);
+            btnAnteriorGrafica.TabIndex = 1;
+            btnAnteriorGrafica.Text = "‹";
+            btnAnteriorGrafica.UseVisualStyleBackColor = false;
+            btnAnteriorGrafica.Click += btnAnteriorGrafica_Click;
             // 
             // lblTituloGrafica
             // 
@@ -282,10 +325,71 @@ namespace Retorno360Tacna.FORMS
             lblTituloGrafica.ForeColor = Color.FromArgb(52, 73, 94);
             lblTituloGrafica.Location = new Point(10, 10);
             lblTituloGrafica.Name = "lblTituloGrafica";
+            lblTituloGrafica.Padding = new Padding(40, 0, 40, 0);
             lblTituloGrafica.Size = new Size(617, 30);
             lblTituloGrafica.TabIndex = 0;
-            lblTituloGrafica.Text = "IGI Pagado vs Calculado";
+            lblTituloGrafica.Text = "IGI por Mes y Forma de Pago (1/2)";
             lblTituloGrafica.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // panelGraficaIVA
+            // 
+            panelGraficaIVA.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
+            panelGraficaIVA.BackColor = Color.White;
+            panelGraficaIVA.Controls.Add(btnSiguienteGraficaIVA);
+            panelGraficaIVA.Controls.Add(btnAnteriorGraficaIVA);
+            panelGraficaIVA.Controls.Add(lblTituloGraficaIVA);
+            panelGraficaIVA.Location = new Point(543, 6);
+            panelGraficaIVA.Name = "panelGraficaIVA";
+            panelGraficaIVA.Padding = new Padding(10);
+            panelGraficaIVA.Size = new Size(637, 336);
+            panelGraficaIVA.TabIndex = 3;
+            panelGraficaIVA.Visible = false;
+            // 
+            // btnSiguienteGraficaIVA
+            // 
+            btnSiguienteGraficaIVA.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnSiguienteGraficaIVA.BackColor = Color.FromArgb(52, 152, 219);
+            btnSiguienteGraficaIVA.Cursor = Cursors.Hand;
+            btnSiguienteGraficaIVA.FlatAppearance.BorderSize = 0;
+            btnSiguienteGraficaIVA.FlatStyle = FlatStyle.Flat;
+            btnSiguienteGraficaIVA.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnSiguienteGraficaIVA.ForeColor = Color.White;
+            btnSiguienteGraficaIVA.Location = new Point(597, 10);
+            btnSiguienteGraficaIVA.Name = "btnSiguienteGraficaIVA";
+            btnSiguienteGraficaIVA.Size = new Size(30, 30);
+            btnSiguienteGraficaIVA.TabIndex = 2;
+            btnSiguienteGraficaIVA.Text = "›";
+            btnSiguienteGraficaIVA.UseVisualStyleBackColor = false;
+            btnSiguienteGraficaIVA.Click += btnSiguienteGrafica_Click;
+            // 
+            // btnAnteriorGraficaIVA
+            // 
+            btnAnteriorGraficaIVA.BackColor = Color.FromArgb(52, 152, 219);
+            btnAnteriorGraficaIVA.Cursor = Cursors.Hand;
+            btnAnteriorGraficaIVA.FlatAppearance.BorderSize = 0;
+            btnAnteriorGraficaIVA.FlatStyle = FlatStyle.Flat;
+            btnAnteriorGraficaIVA.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnAnteriorGraficaIVA.ForeColor = Color.White;
+            btnAnteriorGraficaIVA.Location = new Point(10, 10);
+            btnAnteriorGraficaIVA.Name = "btnAnteriorGraficaIVA";
+            btnAnteriorGraficaIVA.Size = new Size(30, 30);
+            btnAnteriorGraficaIVA.TabIndex = 1;
+            btnAnteriorGraficaIVA.Text = "‹";
+            btnAnteriorGraficaIVA.UseVisualStyleBackColor = false;
+            btnAnteriorGraficaIVA.Click += btnAnteriorGrafica_Click;
+            // 
+            // lblTituloGraficaIVA
+            // 
+            lblTituloGraficaIVA.Dock = DockStyle.Top;
+            lblTituloGraficaIVA.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            lblTituloGraficaIVA.ForeColor = Color.FromArgb(52, 73, 94);
+            lblTituloGraficaIVA.Location = new Point(10, 10);
+            lblTituloGraficaIVA.Name = "lblTituloGraficaIVA";
+            lblTituloGraficaIVA.Padding = new Padding(40, 0, 40, 0);
+            lblTituloGraficaIVA.Size = new Size(617, 30);
+            lblTituloGraficaIVA.TabIndex = 0;
+            lblTituloGraficaIVA.Text = "IVA por Mes y Forma de Pago (2/2)";
+            lblTituloGraficaIVA.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // panelResumen
             // 
@@ -372,6 +476,7 @@ namespace Retorno360Tacna.FORMS
             ((System.ComponentModel.ISupportInitialize)dgvReporteIVA).EndInit();
             ((System.ComponentModel.ISupportInitialize)dgvReporteIGI).EndInit();
             panelGrafica.ResumeLayout(false);
+            panelGraficaIVA.ResumeLayout(false);
             panelResumen.ResumeLayout(false);
             panelCargando.ResumeLayout(false);
             ResumeLayout(false);
@@ -397,7 +502,13 @@ namespace Retorno360Tacna.FORMS
         private Label lblResumenInfo;
         private Label lblProgreso;
         private Panel panelGrafica;
+        private Button btnSiguienteGrafica;
+        private Button btnAnteriorGrafica;
         private Label lblTituloGrafica;
+        private Panel panelGraficaIVA;
+        private Button btnSiguienteGraficaIVA;
+        private Button btnAnteriorGraficaIVA;
+        private Label lblTituloGraficaIVA;
         private Panel panelCargando;
         private Label lblCargando;
         private ProgressBar progressBarCargando;

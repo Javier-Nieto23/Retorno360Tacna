@@ -45,17 +45,25 @@ namespace Retorno360Tacna.FORMS
             lblExportadoTitulo = new Label();
             lblImportadoValor = new Label();
             lblImportadoTitulo = new Label();
-            pieChartView = new LiveChartsCore.SkiaSharpView.WinForms.PieChart();
-            cartesianChartView = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart();
+            lblTotalPedimentos = new Label();
             lblCantPedimentosImp = new Label();
             lblCantPedimentosExp = new Label();
-            lblTotalPedimentos = new Label();
+            pieChartView = new LiveChartsCore.SkiaSharpView.WinForms.PieChart();
+            cartesianChartView = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart();
             chkCalRazon = new CheckBox();
             chkForzarCalculo = new CheckBox();
             panelCargando = new Panel();
             lblCargando = new Label();
             progressBarCargando = new ProgressBar();
             btnPDF = new Button();
+            panelGraficaColumnas = new Panel();
+            lblTituloColumnas = new Label();
+            btnAnteriorColumnas = new Button();
+            btnSiguienteColumnas = new Button();
+            panelGraficaPie = new Panel();
+            lblTituloPie = new Label();
+            btnAnteriorPie = new Button();
+            btnSiguientePie = new Button();
             groupBoxResultados.SuspendLayout();
             panelCargando.SuspendLayout();
             SuspendLayout();
@@ -185,12 +193,15 @@ namespace Retorno360Tacna.FORMS
             groupBoxResultados.Controls.Add(lblExportadoTitulo);
             groupBoxResultados.Controls.Add(lblImportadoValor);
             groupBoxResultados.Controls.Add(lblImportadoTitulo);
+            groupBoxResultados.Controls.Add(lblTotalPedimentos);
+            groupBoxResultados.Controls.Add(lblCantPedimentosImp);
+            groupBoxResultados.Controls.Add(lblCantPedimentosExp);
             groupBoxResultados.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            groupBoxResultados.Location = new Point(26, 244);
+            groupBoxResultados.Location = new Point(12, 172);
             groupBoxResultados.Margin = new Padding(3, 2, 3, 2);
             groupBoxResultados.Name = "groupBoxResultados";
             groupBoxResultados.Padding = new Padding(3, 2, 3, 2);
-            groupBoxResultados.Size = new Size(306, 211);
+            groupBoxResultados.Size = new Size(310, 298);
             groupBoxResultados.TabIndex = 10;
             groupBoxResultados.TabStop = false;
             groupBoxResultados.Text = "Resultados";
@@ -200,7 +211,7 @@ namespace Retorno360Tacna.FORMS
             lblPorcentajeValor.AutoSize = true;
             lblPorcentajeValor.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
             lblPorcentajeValor.ForeColor = Color.FromArgb(39, 174, 96);
-            lblPorcentajeValor.Location = new Point(15, 169);
+            lblPorcentajeValor.Location = new Point(15, 160);
             lblPorcentajeValor.Name = "lblPorcentajeValor";
             lblPorcentajeValor.Size = new Size(58, 30);
             lblPorcentajeValor.TabIndex = 5;
@@ -210,7 +221,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblPorcentajeTitulo.AutoSize = true;
             lblPorcentajeTitulo.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblPorcentajeTitulo.Location = new Point(8, 150);
+            lblPorcentajeTitulo.Location = new Point(13, 143);
             lblPorcentajeTitulo.Name = "lblPorcentajeTitulo";
             lblPorcentajeTitulo.Size = new Size(164, 19);
             lblPorcentajeTitulo.TabIndex = 4;
@@ -258,6 +269,37 @@ namespace Retorno360Tacna.FORMS
             lblImportadoTitulo.TabIndex = 0;
             lblImportadoTitulo.Text = "Valor Com. Importado:";
             // 
+            // lblTotalPedimentos
+            // 
+            lblTotalPedimentos.AutoSize = true;
+            lblTotalPedimentos.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblTotalPedimentos.ForeColor = Color.FromArgb(41, 128, 185);
+            lblTotalPedimentos.Location = new Point(14, 240);
+            lblTotalPedimentos.Name = "lblTotalPedimentos";
+            lblTotalPedimentos.Size = new Size(116, 15);
+            lblTotalPedimentos.TabIndex = 18;
+            lblTotalPedimentos.Text = "Total Pedimentos: 0";
+            // 
+            // lblCantPedimentosImp
+            // 
+            lblCantPedimentosImp.AutoSize = true;
+            lblCantPedimentosImp.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblCantPedimentosImp.Location = new Point(14, 196);
+            lblCantPedimentosImp.Name = "lblCantPedimentosImp";
+            lblCantPedimentosImp.Size = new Size(157, 15);
+            lblCantPedimentosImp.TabIndex = 16;
+            lblCantPedimentosImp.Text = "Pedimentos Importación: 0";
+            // 
+            // lblCantPedimentosExp
+            // 
+            lblCantPedimentosExp.AutoSize = true;
+            lblCantPedimentosExp.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblCantPedimentosExp.Location = new Point(14, 218);
+            lblCantPedimentosExp.Name = "lblCantPedimentosExp";
+            lblCantPedimentosExp.Size = new Size(155, 15);
+            lblCantPedimentosExp.TabIndex = 17;
+            lblCantPedimentosExp.Text = "Pedimentos Exportación: 0";
+            // 
             // pieChartView
             // 
             pieChartView.InitialRotation = 0D;
@@ -277,37 +319,6 @@ namespace Retorno360Tacna.FORMS
             cartesianChartView.Name = "cartesianChartView";
             cartesianChartView.Size = new Size(428, 396);
             cartesianChartView.TabIndex = 15;
-            // 
-            // lblCantPedimentosImp
-            // 
-            lblCantPedimentosImp.AutoSize = true;
-            lblCantPedimentosImp.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblCantPedimentosImp.Location = new Point(26, 166);
-            lblCantPedimentosImp.Name = "lblCantPedimentosImp";
-            lblCantPedimentosImp.Size = new Size(157, 15);
-            lblCantPedimentosImp.TabIndex = 16;
-            lblCantPedimentosImp.Text = "Pedimentos Importación: 0";
-            // 
-            // lblCantPedimentosExp
-            // 
-            lblCantPedimentosExp.AutoSize = true;
-            lblCantPedimentosExp.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblCantPedimentosExp.Location = new Point(26, 193);
-            lblCantPedimentosExp.Name = "lblCantPedimentosExp";
-            lblCantPedimentosExp.Size = new Size(155, 15);
-            lblCantPedimentosExp.TabIndex = 17;
-            lblCantPedimentosExp.Text = "Pedimentos Exportación: 0";
-            // 
-            // lblTotalPedimentos
-            // 
-            lblTotalPedimentos.AutoSize = true;
-            lblTotalPedimentos.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            lblTotalPedimentos.ForeColor = Color.FromArgb(41, 128, 185);
-            lblTotalPedimentos.Location = new Point(26, 218);
-            lblTotalPedimentos.Name = "lblTotalPedimentos";
-            lblTotalPedimentos.Size = new Size(116, 15);
-            lblTotalPedimentos.TabIndex = 18;
-            lblTotalPedimentos.Text = "Total Pedimentos: 0";
             // 
             // chkCalRazon
             // 
@@ -387,22 +398,120 @@ namespace Retorno360Tacna.FORMS
             btnPDF.UseVisualStyleBackColor = false;
             btnPDF.Click += btnGenerarPDF_Click;
             // 
+            // panelGraficaColumnas
+            // 
+            panelGraficaColumnas.BackColor = Color.White;
+            panelGraficaColumnas.BorderStyle = BorderStyle.FixedSingle;
+            panelGraficaColumnas.Location = new Point(685, 170);
+            panelGraficaColumnas.Name = "panelGraficaColumnas";
+            panelGraficaColumnas.Size = new Size(428, 396);
+            panelGraficaColumnas.TabIndex = 23;
+            // 
+            // lblTituloColumnas
+            // 
+            lblTituloColumnas.AutoSize = true;
+            lblTituloColumnas.BackColor = Color.White;
+            lblTituloColumnas.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            lblTituloColumnas.Location = new Point(60, 10);
+            lblTituloColumnas.Name = "lblTituloColumnas";
+            lblTituloColumnas.Size = new Size(213, 20);
+            lblTituloColumnas.TabIndex = 2;
+            lblTituloColumnas.Text = "Importaciones vs Exportaciones (1/2)";
+            // 
+            // btnAnteriorColumnas
+            // 
+            btnAnteriorColumnas.BackColor = Color.FromArgb(52, 152, 219);
+            btnAnteriorColumnas.FlatAppearance.BorderSize = 0;
+            btnAnteriorColumnas.FlatStyle = FlatStyle.Flat;
+            btnAnteriorColumnas.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnAnteriorColumnas.ForeColor = Color.White;
+            btnAnteriorColumnas.Location = new Point(5, 5);
+            btnAnteriorColumnas.Name = "btnAnteriorColumnas";
+            btnAnteriorColumnas.Size = new Size(40, 30);
+            btnAnteriorColumnas.TabIndex = 0;
+            btnAnteriorColumnas.Text = "◀";
+            btnAnteriorColumnas.UseVisualStyleBackColor = false;
+            btnAnteriorColumnas.Click += btnCambiarGrafica_Click;
+            // 
+            // btnSiguienteColumnas
+            // 
+            btnSiguienteColumnas.BackColor = Color.FromArgb(52, 152, 219);
+            btnSiguienteColumnas.FlatAppearance.BorderSize = 0;
+            btnSiguienteColumnas.FlatStyle = FlatStyle.Flat;
+            btnSiguienteColumnas.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnSiguienteColumnas.ForeColor = Color.White;
+            btnSiguienteColumnas.Location = new Point(380, 5);
+            btnSiguienteColumnas.Name = "btnSiguienteColumnas";
+            btnSiguienteColumnas.Size = new Size(40, 30);
+            btnSiguienteColumnas.TabIndex = 1;
+            btnSiguienteColumnas.Text = "▶";
+            btnSiguienteColumnas.UseVisualStyleBackColor = false;
+            btnSiguienteColumnas.Click += btnCambiarGrafica_Click;
+            // 
+            // panelGraficaPie
+            // 
+            panelGraficaPie.BackColor = Color.White;
+            panelGraficaPie.BorderStyle = BorderStyle.FixedSingle;
+            panelGraficaPie.Location = new Point(685, 170);
+            panelGraficaPie.Name = "panelGraficaPie";
+            panelGraficaPie.Size = new Size(428, 396);
+            panelGraficaPie.TabIndex = 24;
+            panelGraficaPie.Visible = false;
+            // 
+            // lblTituloPie
+            // 
+            lblTituloPie.AutoSize = true;
+            lblTituloPie.BackColor = Color.White;
+            lblTituloPie.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            lblTituloPie.Location = new Point(60, 10);
+            lblTituloPie.Name = "lblTituloPie";
+            lblTituloPie.Size = new Size(179, 20);
+            lblTituloPie.TabIndex = 2;
+            lblTituloPie.Text = "Distribución Porcentual (2/2)";
+            // 
+            // btnAnteriorPie
+            // 
+            btnAnteriorPie.BackColor = Color.FromArgb(52, 152, 219);
+            btnAnteriorPie.FlatAppearance.BorderSize = 0;
+            btnAnteriorPie.FlatStyle = FlatStyle.Flat;
+            btnAnteriorPie.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnAnteriorPie.ForeColor = Color.White;
+            btnAnteriorPie.Location = new Point(5, 5);
+            btnAnteriorPie.Name = "btnAnteriorPie";
+            btnAnteriorPie.Size = new Size(40, 30);
+            btnAnteriorPie.TabIndex = 0;
+            btnAnteriorPie.Text = "◀";
+            btnAnteriorPie.UseVisualStyleBackColor = false;
+            btnAnteriorPie.Click += btnCambiarGrafica_Click;
+            // 
+            // btnSiguientePie
+            // 
+            btnSiguientePie.BackColor = Color.FromArgb(52, 152, 219);
+            btnSiguientePie.FlatAppearance.BorderSize = 0;
+            btnSiguientePie.FlatStyle = FlatStyle.Flat;
+            btnSiguientePie.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnSiguientePie.ForeColor = Color.White;
+            btnSiguientePie.Location = new Point(380, 5);
+            btnSiguientePie.Name = "btnSiguientePie";
+            btnSiguientePie.Size = new Size(40, 30);
+            btnSiguientePie.TabIndex = 1;
+            btnSiguientePie.Text = "▶";
+            btnSiguientePie.UseVisualStyleBackColor = false;
+            btnSiguientePie.Click += btnCambiarGrafica_Click;
+            // 
             // FrmRetorno
             // 
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.White;
             ClientSize = new Size(1230, 618);
+            Controls.Add(groupBoxResultados);
+            Controls.Add(panelGraficaPie);
+            Controls.Add(panelGraficaColumnas);
             Controls.Add(btnPDF);
             Controls.Add(chkForzarCalculo);
             Controls.Add(panelCargando);
             Controls.Add(chkCalRazon);
-            Controls.Add(lblTotalPedimentos);
-            Controls.Add(lblCantPedimentosExp);
-            Controls.Add(lblCantPedimentosImp);
-            Controls.Add(cartesianChartView);
-            Controls.Add(pieChartView);
-            Controls.Add(groupBoxResultados);
             Controls.Add(btnCalcular);
             Controls.Add(chkMateriaPrima);
             Controls.Add(dtpFechaFin);
@@ -455,5 +564,13 @@ namespace Retorno360Tacna.FORMS
         private Panel panelCargando;
         private Label lblCargando;
         private ProgressBar progressBarCargando;
+        private Panel panelGraficaColumnas;
+        private Panel panelGraficaPie;
+        private Button btnAnteriorColumnas;
+        private Button btnSiguienteColumnas;
+        private Label lblTituloColumnas;
+        private Button btnAnteriorPie;
+        private Button btnSiguientePie;
+        private Label lblTituloPie;
     }
 }
