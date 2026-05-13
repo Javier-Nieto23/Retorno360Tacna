@@ -304,7 +304,7 @@ Retorno360Tacna/
 
 ## 🔄 Actualizaciones y Versiones
 
-### Versión Actual: 1.5.0
+### Versión Actual: 2.5.1
 
 **Fecha de Lanzamiento**: Enero 2025
 
@@ -333,6 +333,13 @@ Retorno360Tacna/
    - Etiquetas de pedimentos dentro del groupBox
    - Gráficas más grandes y visibles
 
+5. **🆕 Soporte Multi-DPI y Escalado de Windows**
+   - Detección automática del escalado de pantalla de Windows (100%, 125%, 150%, 175%)
+   - Ajuste dinámico de gráficas según el DPI del sistema
+   - Posicionamiento proporcional de controles en FrmRetorno
+   - Compatibilidad total con pantallas de alta resolución (4K, UHD)
+   - Botones de navegación se reposicionan automáticamente
+
 #### 🐛 Correcciones de Bugs
 
 - ✅ Botones de navegación ahora visibles en todas las gráficas
@@ -340,16 +347,19 @@ Retorno360Tacna/
 - ✅ PDF genera correctamente ambas gráficas (IGI e IVA)
 - ✅ Espaciado mejorado en FrmRetorno
 - ✅ Ejes de gráficas con límites dinámicos
+- ✅ **[NUEVO]** Gráficas en FrmRetorno se alinean correctamente con escalado de Windows al 125% o superior
+- ✅ **[NUEVO]** Paneles de gráficas se escalan proporcionalmente según DPI
 
 #### 🔧 Mejoras de Rendimiento
 
 - Optimización en generación de gráficas para PDF
 - Reducción de tiempo de carga de reportes grandes
 - Mejor manejo de memoria en zoom de gráficas
+- Cálculo optimizado de posiciones DPI-aware
 
 ---
 
-## 🆕 Fix de Última Versión (v1.5.0)
+## 🆕 Fix de Última Versión (v2.5.1)
 
 ### Aplicar Actualización Manual
 
@@ -358,7 +368,7 @@ Si ya tienes una versión anterior instalada y necesitas actualizar manualmente:
 #### Opción 1: Instalador Automático (Recomendado)
 
 1. **Descargar** la última versión:
-   - 🔗 [Retorno360 Tacna v1.5.0](https://digizen.tacna.net/index.php/s/NqeekQR2MrtkH3x)
+   - 🔗 [Retorno360 Tacna v2.5.1](https://digizen.tacna.net/index.php/s/NqeekQR2MrtkH3x)
 
 2. **Ejecutar** el instalador
    - El instalador detectará la versión anterior
@@ -383,7 +393,7 @@ Si el instalador automático falla:
    - **NO** eliminar la carpeta de configuración
 
 3. **Instalar** nueva versión:
-   - Ejecutar instalador v2.5.0
+   - Ejecutar instalador v2.5.1
    - Seguir pasos de instalación estándar
 
 4. **Restaurar Configuración**:
@@ -396,9 +406,9 @@ Para verificar la versión actual:
 
 1. Abrir Retorno360 Tacna
 2. Menú **Ayuda** → **Acerca de**
-3. Verificar número de versión: `v2.5.0`
+3. Verificar número de versión: `v2.5.1`
 
-### Cambios Importantes en v2.5.0
+### Cambios Importantes en v2.5.1
 
 #### ⚠️ Cambios que Requieren Acción
 
@@ -416,6 +426,11 @@ Para verificar la versión actual:
    - Los PDFs generados tendrán nuevo formato
    - Compatible con reportes anteriores
    - Mejor calidad de gráficas embebidas
+
+4. **🆕 Escalado DPI Automático**
+   - El sistema ahora detecta automáticamente el escalado de Windows
+   - Las gráficas se ajustarán automáticamente sin configuración adicional
+   - Recomendado reiniciar la aplicación si cambias el escalado de Windows mientras está abierta
 
 #### 🔄 Migración de Datos
 
@@ -456,6 +471,31 @@ dotnet --list-runtimes
    ```
 2. Reiniciar aplicación
 3. Si persiste, reinstalar limpiamente
+
+#### Problema: "Gráficas desalineadas con escalado de Windows al 125% o superior"
+
+**Problema**: Al configurar el escalado de Windows al 125%, 150% o 175% (Settings → Display → Scale), las gráficas en FrmRetorno no se alinean correctamente con el resto del formulario y aparecen desplazadas o cortadas.
+
+**Solución Implementada en v2.5.1**:
+- Se corrigió la detección y ajuste automático de DPI (Dots Per Inch)
+- Los paneles de gráficas ahora se escalan proporcionalmente según el DPI del sistema
+- Las posiciones se calculan dinámicamente basándose en el factor de escala DPI
+- Los botones de navegación se reposicionan automáticamente
+
+**Si experimentas este problema**:
+1. Actualizar a la versión v2.5.1 o superior
+2. Reiniciar la aplicación después de actualizar
+3. El sistema detectará automáticamente el escalado de Windows
+4. Las gráficas se ajustarán correctamente sin intervención manual
+
+**Workaround Temporal** (si no puedes actualizar):
+1. Cambiar temporalmente el escalado de Windows a 100%:
+   - Configuración de Windows → Sistema → Pantalla
+   - Cambiar "Escala y distribución" a 100%
+2. Usar la aplicación normalmente
+3. Restaurar el escalado después de usarla
+
+**Nota**: Esta corrección también mejora la experiencia en pantallas de alta resolución (4K, UHD) donde el escalado es esencial para la legibilidad
 
 #### Problema: "PDFs generados son diferentes"
 

@@ -49,52 +49,78 @@ namespace Retorno360Tacna.FORMS
 
                 this.SuspendLayout();
 
-                int anchoDisponible = this.ClientSize.Width;
-                int altoDisponible = this.ClientSize.Height;
-
-                // Posiciones y tamaños base del diseño original
-                const int BASE_WIDTH = 1230;
-                const int BASE_HEIGHT = 618;
-                const int CHART_LEFT = 340;
-                const int PIE_LEFT = 799;
-                const int CHART_TOP = 172;
-                const int CHART_BASE_WIDTH = 450;
-                const int PIE_BASE_WIDTH = 400;
-                const int CHART_BASE_HEIGHT = 410;
-
-                // Calcular factores de escala
-                float factorAncho = (float)anchoDisponible / BASE_WIDTH;
-                float factorAlto = (float)altoDisponible / BASE_HEIGHT;
-
-                // Usar el factor menor para mantener proporciones
-                float factorEscala = Math.Min(factorAncho, factorAlto);
-
-                // No reducir más allá del tamaño original
-                if (factorEscala > 1.0f)
+                // Obtener el DPI actual
+                using (Graphics g = this.CreateGraphics())
                 {
-                    factorEscala = 1.0f + ((factorEscala - 1.0f) * 0.7f); // Crecer solo 70% del exceso
-                }
+                    float dpiX = g.DpiX;
+                    float dpiScale = dpiX / 96.0f; // 96 DPI es 100%, 120 DPI es 125%, etc.
 
-                // Ajustar panel de gráfica de columnas
-                if (panelGraficaColumnas != null)
-                {
-                    int nuevoAncho = (int)(CHART_BASE_WIDTH * factorEscala);
-                    int nuevoAlto = (int)(CHART_BASE_HEIGHT * factorEscala);
+                    int anchoDisponible = this.ClientSize.Width;
+                    int altoDisponible = this.ClientSize.Height;
 
-                    panelGraficaColumnas.Location = new Point(CHART_LEFT, CHART_TOP);
-                    panelGraficaColumnas.Width = Math.Max(350, nuevoAncho);
-                    panelGraficaColumnas.Height = Math.Max(300, nuevoAlto);
-                }
+                    // Posiciones y tamaños base del diseño original (a 96 DPI / 100%)
+                    const int BASE_WIDTH = 1230;
+                    const int BASE_HEIGHT = 618;
+                    const int RESULTS_WIDTH = 310;
+                    const int MARGIN = 12;
+                    const int CHART_TOP = 172;
+                    const int CHART_BASE_WIDTH = 428;
+                    const int CHART_BASE_HEIGHT = 396;
 
-                // Ajustar panel de gráfica de pie
-                if (panelGraficaPie != null)
-                {
-                    int nuevoAncho = (int)(CHART_BASE_WIDTH * factorEscala);
-                    int nuevoAlto = (int)(CHART_BASE_HEIGHT * factorEscala);
+                    // Calcular factores de escala
+                    float factorAncho = (float)anchoDisponible / BASE_WIDTH;
+                    float factorAlto = (float)altoDisponible / BASE_HEIGHT;
 
-                    panelGraficaPie.Location = new Point(CHART_LEFT, CHART_TOP);
-                    panelGraficaPie.Width = Math.Max(350, nuevoAncho);
-                    panelGraficaPie.Height = Math.Max(300, nuevoAlto);
+                    // Usar el factor menor para mantener proporciones
+                    float factorEscala = Math.Min(factorAncho, factorAlto);
+
+                    // Ajustar según DPI
+                    factorEscala = factorEscala / dpiScale;
+
+                    // No reducir más allá del tamaño original
+                    if (factorEscala > 1.0f)
+                    {
+                        factorEscala = 1.0f + ((factorEscala - 1.0f) * 0.7f); // Crecer solo 70% del exceso
+                    }
+
+                    // Calcular posición izquierda del panel de gráficas
+                    // Debe estar después del groupBoxResultados + un margen
+                    int chartLeft = (int)((RESULTS_WIDTH + MARGIN * 2) * dpiScale);
+                    int chartTop = (int)(CHART_TOP * dpiScale);
+
+                    // Calcular tamaño disponible para las gráficas
+                    int anchoGrafica = (int)(anchoDisponible - chartLeft - (MARGIN * dpiScale));
+                    int altoGrafica = (int)(altoDisponible - chartTop - (MARGIN * dpiScale));
+
+                    // Aplicar límites mínimos
+                    anchoGrafica = Math.Max((int)(350 * dpiScale), Math.Min(anchoGrafica, (int)(CHART_BASE_WIDTH * dpiScale * 1.5f)));
+                    altoGrafica = Math.Max((int)(300 * dpiScale), Math.Min(altoGrafica, (int)(CHART_BASE_HEIGHT * dpiScale * 1.3f)));
+
+                    // Ajustar panel de gráfica de columnas
+                    if (panelGraficaColumnas != null)
+                    {
+                        panelGraficaColumnas.Location = new Point(chartLeft, chartTop);
+                        panelGraficaColumnas.Size = new Size(anchoGrafica, altoGrafica);
+
+                        // Ajustar controles internos del panel (botones de navegación)
+                        if (btnSiguienteColumnas != null)
+                        {
+                            btnSiguienteColumnas.Location = new Point(anchoGrafica - 45, 5);
+                        }
+                    }
+
+                    // Ajustar panel de gráfica de pie (mismo tamaño y posición)
+                    if (panelGraficaPie != null)
+                    {
+                        panelGraficaPie.Location = new Point(chartLeft, chartTop);
+                        panelGraficaPie.Size = new Size(anchoGrafica, altoGrafica);
+
+                        // Ajustar controles internos del panel (botones de navegación)
+                        if (btnSiguientePie != null)
+                        {
+                            btnSiguientePie.Location = new Point(anchoGrafica - 45, 5);
+                        }
+                    }
                 }
 
                 this.ResumeLayout(false);
