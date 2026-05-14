@@ -173,7 +173,7 @@ namespace Retorno360Tacna.FORMS
             btnCalcular.FlatStyle = FlatStyle.Flat;
             btnCalcular.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnCalcular.ForeColor = Color.White;
-            btnCalcular.Image = Properties.Resources.Magnifying_glass_404531;
+            btnCalcular.Image = Properties.Resources.search_magnifying_glass_icon_192631;
             btnCalcular.ImageAlign = ContentAlignment.MiddleRight;
             btnCalcular.Location = new Point(811, 23);
             btnCalcular.Margin = new Padding(3, 2, 3, 2);
@@ -387,7 +387,7 @@ namespace Retorno360Tacna.FORMS
             btnPDF.FlatStyle = FlatStyle.Flat;
             btnPDF.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnPDF.ForeColor = Color.White;
-            btnPDF.Image = Properties.Resources.PDF_icon_icons_com_52413;
+            btnPDF.Image = Properties.Resources.applicationpdf_103614;
             btnPDF.ImageAlign = ContentAlignment.MiddleRight;
             btnPDF.Location = new Point(811, 92);
             btnPDF.Name = "btnPDF";

@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(CargaDePantalla));
             pictureBox1 = new PictureBox();
             lblMensajeCarga = new Label();
             progressBar1 = new ProgressBar();
@@ -40,7 +41,7 @@
             pictureBox1.Image = Properties.Resources.ChatGPT_Image_Apr_21__2026__12_48_04_PM;
             pictureBox1.Location = new Point(-186, -30);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(1169, 468);
+            pictureBox1.Size = new Size(1188, 468);
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox1.TabIndex = 0;
             pictureBox1.TabStop = false;
@@ -72,7 +73,7 @@
             label1.Name = "label1";
             label1.Size = new Size(72, 15);
             label1.TabIndex = 3;
-            label1.Text = "Version 1.6.0";
+            label1.Text = "Version 1.8.0";
             // 
             // CargaDePantalla
             // 
@@ -85,6 +86,7 @@
             Controls.Add(lblMensajeCarga);
             Controls.Add(pictureBox1);
             FormBorderStyle = FormBorderStyle.None;
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "CargaDePantalla";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Cargando";

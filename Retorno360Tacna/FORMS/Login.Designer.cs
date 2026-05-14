@@ -40,6 +40,7 @@ namespace Retorno360Tacna.FORMS
             button2 = new Button();
             label4 = new Label();
             label5 = new Label();
+            chkRecordarUsuario = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
             // 
@@ -108,7 +109,7 @@ namespace Retorno360Tacna.FORMS
             // 
             // button1
             // 
-            button1.Location = new Point(314, 234);
+            button1.Location = new Point(314, 250);
             button1.Name = "button1";
             button1.Size = new Size(100, 31);
             button1.TabIndex = 7;
@@ -118,7 +119,7 @@ namespace Retorno360Tacna.FORMS
             // 
             // button2
             // 
-            button2.Location = new Point(420, 234);
+            button2.Location = new Point(420, 250);
             button2.Name = "button2";
             button2.Size = new Size(100, 31);
             button2.TabIndex = 8;
@@ -142,7 +143,17 @@ namespace Retorno360Tacna.FORMS
             label5.Name = "label5";
             label5.Size = new Size(72, 15);
             label5.TabIndex = 10;
-            label5.Text = "Version 1.6.0";
+            label5.Text = "Version 1.8.0";
+            // 
+            // chkRecordarUsuario
+            // 
+            chkRecordarUsuario.AutoSize = true;
+            chkRecordarUsuario.Location = new Point(314, 215);
+            chkRecordarUsuario.Name = "chkRecordarUsuario";
+            chkRecordarUsuario.Size = new Size(115, 19);
+            chkRecordarUsuario.TabIndex = 3;
+            chkRecordarUsuario.Text = "Recordar usuario";
+            chkRecordarUsuario.UseVisualStyleBackColor = true;
             // 
             // Login
             // 
@@ -154,6 +165,7 @@ namespace Retorno360Tacna.FORMS
             Controls.Add(label4);
             Controls.Add(button2);
             Controls.Add(button1);
+            Controls.Add(chkRecordarUsuario);
             Controls.Add(pictureBox1);
             Controls.Add(label3);
             Controls.Add(label2);
@@ -186,5 +198,6 @@ namespace Retorno360Tacna.FORMS
         private Button button2;
         private Label label4;
         private Label label5;
+        private CheckBox chkRecordarUsuario;
     }
 }

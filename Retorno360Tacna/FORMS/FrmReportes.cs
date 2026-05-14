@@ -6,6 +6,7 @@ using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 using LiveChartsCore.SkiaSharpView.WinForms;
 using System.Diagnostics;
+using ClosedXML.Excel;
 
 namespace Retorno360Tacna.FORMS
 {
@@ -18,6 +19,8 @@ namespace Retorno360Tacna.FORMS
         private CartesianChart? chartIGI;
         private CartesianChart? chartIVA;
         private int graficaActual = 0; // 0 = IGI, 1 = IVA
+        private bool modalAbierto = false;
+        private int ultimaFilaClickeada = -1;
 
         public FrmReportes(ConexionInfo conexion)
         {
@@ -93,6 +96,7 @@ namespace Retorno360Tacna.FORMS
 
             // Deshabilitar botón PDF al inicio
             btnGenerarPDF.Enabled = false;
+            btnExportarExcel.Enabled = false;
         }
 
         private async void CargarRazonesSociales()
@@ -312,6 +316,7 @@ namespace Retorno360Tacna.FORMS
                 lblProgreso.Text = "No se encontraron registros";
                 lblResumenInfo.Text = "Sin resultados para los filtros seleccionados";
                 btnGenerarPDF.Enabled = false;
+                btnExportarExcel.Enabled = false;
                 return;
             }
 
@@ -332,6 +337,7 @@ namespace Retorno360Tacna.FORMS
 
             lblProgreso.Text = $"Consulta completada: {reporteActual.Count} registros encontrados";
             btnGenerarPDF.Enabled = true;
+            btnExportarExcel.Enabled = true;
         }
 
         private void chkSinGlosa_CheckedChanged(object sender, EventArgs e)
@@ -373,6 +379,10 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIVA.MultiSelect = false;
             dgvReporteIVA.RowHeadersVisible = false;
             dgvReporteIVA.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
+
+            // Registrar eventos de doble clic para abrir detalle de pedimentos
+            dgvReporteIGI.CellDoubleClick += DgvReporteIGI_CellDoubleClick;
+            dgvReporteIVA.CellDoubleClick += DgvReporteIVA_CellDoubleClick;
         }
 
         private void FormatearGridIGI()
@@ -442,6 +452,114 @@ namespace Retorno360Tacna.FORMS
             {
                 dgvReporteIVA.Columns["FORMA DE PAGO IVA"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                 dgvReporteIVA.Columns["FORMA DE PAGO IVA"].MinimumWidth = 100;
+            }
+        }
+
+        private void DgvReporteIGI_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            // Validar índice de fila válido
+            if (e.RowIndex < 0) return;
+
+            // Si ya hay un modal abierto, ignorar completamente
+            if (modalAbierto) return;
+
+            // Si es la misma fila que ya fue procesada, ignorar para evitar múltiples aperturas
+            if (ultimaFilaClickeada == e.RowIndex) return;
+
+            try
+            {
+                // Marcar como procesando
+                modalAbierto = true;
+                ultimaFilaClickeada = e.RowIndex;
+
+                // Obtener datos de la fila seleccionada
+                DataGridViewRow row = dgvReporteIGI.Rows[e.RowIndex];
+
+                string mes = row.Cells["MES"]?.Value?.ToString() ?? "";
+                string formaPago = row.Cells["FORMA DE PAGO IGI"]?.Value?.ToString() ?? "";
+
+                if (string.IsNullOrEmpty(mes) || string.IsNullOrEmpty(formaPago))
+                {
+                    MessageBox.Show("No se pudo obtener la información del mes o forma de pago.",
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Abrir formulario de detalle
+                var frmDetalle = new FrmDetallePedimentos(reporteActual, mes, formaPago, "IGI");
+                frmDetalle.ShowDialog(this);
+                frmDetalle.Dispose();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al mostrar el detalle: {ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Resetear después de un pequeño delay para evitar clics duplicados inmediatos
+                Task.Delay(300).ContinueWith(_ =>
+                {
+                    this.Invoke(() =>
+                    {
+                        modalAbierto = false;
+                        ultimaFilaClickeada = -1;
+                    });
+                });
+            }
+        }
+
+        private void DgvReporteIVA_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            // Validar índice de fila válido
+            if (e.RowIndex < 0) return;
+
+            // Si ya hay un modal abierto, ignorar completamente
+            if (modalAbierto) return;
+
+            // Si es la misma fila que ya fue procesada, ignorar para evitar múltiples aperturas
+            if (ultimaFilaClickeada == e.RowIndex) return;
+
+            try
+            {
+                // Marcar como procesando
+                modalAbierto = true;
+                ultimaFilaClickeada = e.RowIndex;
+
+                // Obtener datos de la fila seleccionada
+                DataGridViewRow row = dgvReporteIVA.Rows[e.RowIndex];
+
+                string mes = row.Cells["MES"]?.Value?.ToString() ?? "";
+                string formaPago = row.Cells["FORMA DE PAGO IVA"]?.Value?.ToString() ?? "";
+
+                if (string.IsNullOrEmpty(mes) || string.IsNullOrEmpty(formaPago))
+                {
+                    MessageBox.Show("No se pudo obtener la información del mes o forma de pago.",
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Abrir formulario de detalle
+                var frmDetalle = new FrmDetallePedimentos(reporteActual, mes, formaPago, "IVA");
+                frmDetalle.ShowDialog(this);
+                frmDetalle.Dispose();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al mostrar el detalle: {ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Resetear después de un pequeño delay para evitar clics duplicados inmediatos
+                Task.Delay(300).ContinueWith(_ =>
+                {
+                    this.Invoke(() =>
+                    {
+                        modalAbierto = false;
+                        ultimaFilaClickeada = -1;
+                    });
+                });
             }
         }
 
@@ -979,6 +1097,156 @@ namespace Retorno360Tacna.FORMS
             finally
             {
                 btnGenerarPDF.Enabled = reporteActual.Any();
+            }
+        }
+
+        private void btnExportarExcel_Click(object sender, EventArgs e)
+        {
+            if (!reporteActual.Any())
+            {
+                MessageBox.Show(
+                    "No hay datos de reporte para exportar.\nPor favor, genere un reporte primero.",
+                    "Sin Datos",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return;
+            }
+
+            try
+            {
+                using (SaveFileDialog saveDialog = new SaveFileDialog())
+                {
+                    string nombreArchivo = $"Reporte_IGI_IVA_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                    saveDialog.Filter = "Archivos Excel|*.xlsx";
+                    saveDialog.Title = "Guardar Reporte en Excel";
+                    saveDialog.FileName = nombreArchivo;
+
+                    if (saveDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        btnExportarExcel.Enabled = false;
+                        lblProgreso.Text = "Generando archivo Excel...";
+
+                        // Crear workbook de Excel
+                        using (var workbook = new XLWorkbook())
+                        {
+                            // Hoja 1: Reporte IGI
+                            var worksheetIGI = workbook.Worksheets.Add("Reporte IGI");
+                            var tablaIGI = dgvReporteIGI.DataSource as System.Data.DataTable;
+
+                            if (tablaIGI != null && tablaIGI.Rows.Count > 0)
+                            {
+                                // Agregar encabezados
+                                for (int col = 0; col < tablaIGI.Columns.Count; col++)
+                                {
+                                    worksheetIGI.Cell(1, col + 1).Value = tablaIGI.Columns[col].ColumnName;
+                                    worksheetIGI.Cell(1, col + 1).Style.Font.Bold = true;
+                                    worksheetIGI.Cell(1, col + 1).Style.Fill.BackgroundColor = XLColor.FromArgb(41, 128, 185);
+                                    worksheetIGI.Cell(1, col + 1).Style.Font.FontColor = XLColor.White;
+                                    worksheetIGI.Cell(1, col + 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                                }
+
+                                // Agregar datos
+                                for (int row = 0; row < tablaIGI.Rows.Count; row++)
+                                {
+                                    for (int col = 0; col < tablaIGI.Columns.Count; col++)
+                                    {
+                                        var valor = tablaIGI.Rows[row][col];
+                                        var cell = worksheetIGI.Cell(row + 2, col + 1);
+
+                                        if (valor is decimal || valor is double || valor is float)
+                                        {
+                                            cell.Value = Convert.ToDecimal(valor);
+                                            cell.Style.NumberFormat.Format = "$#,##0.00";
+                                        }
+                                        else
+                                        {
+                                            cell.Value = valor?.ToString() ?? "";
+                                        }
+                                    }
+                                }
+
+                                // Ajustar ancho de columnas
+                                worksheetIGI.Columns().AdjustToContents();
+                            }
+
+                            // Hoja 2: Reporte IVA
+                            var worksheetIVA = workbook.Worksheets.Add("Reporte IVA");
+                            var tablaIVA = dgvReporteIVA.DataSource as System.Data.DataTable;
+
+                            if (tablaIVA != null && tablaIVA.Rows.Count > 0)
+                            {
+                                // Agregar encabezados
+                                for (int col = 0; col < tablaIVA.Columns.Count; col++)
+                                {
+                                    worksheetIVA.Cell(1, col + 1).Value = tablaIVA.Columns[col].ColumnName;
+                                    worksheetIVA.Cell(1, col + 1).Style.Font.Bold = true;
+                                    worksheetIVA.Cell(1, col + 1).Style.Fill.BackgroundColor = XLColor.FromArgb(39, 174, 96);
+                                    worksheetIVA.Cell(1, col + 1).Style.Font.FontColor = XLColor.White;
+                                    worksheetIVA.Cell(1, col + 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                                }
+
+                                // Agregar datos
+                                for (int row = 0; row < tablaIVA.Rows.Count; row++)
+                                {
+                                    for (int col = 0; col < tablaIVA.Columns.Count; col++)
+                                    {
+                                        var valor = tablaIVA.Rows[row][col];
+                                        var cell = worksheetIVA.Cell(row + 2, col + 1);
+
+                                        if (valor is decimal || valor is double || valor is float)
+                                        {
+                                            cell.Value = Convert.ToDecimal(valor);
+                                            cell.Style.NumberFormat.Format = "$#,##0.00";
+                                        }
+                                        else
+                                        {
+                                            cell.Value = valor?.ToString() ?? "";
+                                        }
+                                    }
+                                }
+
+                                // Ajustar ancho de columnas
+                                worksheetIVA.Columns().AdjustToContents();
+                            }
+
+                            // Guardar archivo
+                            workbook.SaveAs(saveDialog.FileName);
+                        }
+
+                        lblProgreso.Text = "Archivo Excel generado exitosamente";
+
+                        var result = MessageBox.Show(
+                            $"El archivo Excel se ha generado correctamente.\n\n¿Desea abrir el archivo?",
+                            "Éxito",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Information
+                        );
+
+                        if (result == DialogResult.Yes)
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = saveDialog.FileName,
+                                UseShellExecute = true
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error al generar el archivo Excel:\n{ex.Message}",
+                    "Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                lblProgreso.Text = "Error al generar Excel";
+            }
+            finally
+            {
+                btnExportarExcel.Enabled = reporteActual.Any();
             }
         }
 

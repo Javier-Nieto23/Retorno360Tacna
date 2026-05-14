@@ -65,7 +65,11 @@ namespace Retorno360Tacna.SERVICES
                 using (SqlConnection conn = conexion!.ObtenerConexion())
                 {
                     conn.Open();
-                    string query = "SELECT IdUsuario, UserAlias, NombreUsuario, ApellidoUsuario, Activo FROM Usuarios WHERE UserAlias = @Usuario AND PasswordHash = @Password AND Activo = 1";
+                    string query = @"
+                        SELECT u.IdUsuario, u.UserAlias, u.NombreUsuario, u.ApellidoUsuario, u.Activo, u.IdRol, r.NombreRol 
+                        FROM Usuarios u
+                        INNER JOIN Roles r ON u.IdRol = r.IdRol
+                        WHERE u.UserAlias = @Usuario AND u.PasswordHash = @Password AND u.Activo = 1";
 
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
@@ -78,13 +82,17 @@ namespace Retorno360Tacna.SERVICES
                             {
                                 string nombreUsuario = reader.IsDBNull(2) ? "" : reader.GetString(2);
                                 string apellidoUsuario = reader.IsDBNull(3) ? "" : reader.GetString(3);
+                                int idRol = reader.GetInt32(5);
+                                string nombreRol = reader.IsDBNull(6) ? "" : reader.GetString(6);
 
                                 return new Usuario
                                 {
                                     IdUsuario = reader.GetInt32(0),
                                     NombreUsuario = reader.GetString(1),
                                     NombreCompleto = $"{nombreUsuario} {apellidoUsuario}".Trim(),
-                                    Activo = reader.GetBoolean(4)
+                                    Activo = reader.GetBoolean(4),
+                                    IdRol = idRol,
+                                    NombreRol = nombreRol
                                 };
                             }
                         }

@@ -8,5 +8,7 @@ namespace Retorno360Tacna.MODELS
         public string? NombreCompleto { get; set; }
         public bool Activo { get; set; }
         public DateTime? FechaCreacion { get; set; }
+        public int IdRol { get; set; }
+        public string? NombreRol { get; set; }
     }
 }

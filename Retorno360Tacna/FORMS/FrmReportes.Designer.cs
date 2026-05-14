@@ -30,6 +30,7 @@ namespace Retorno360Tacna.FORMS
         {
             panelFiltros = new Panel();
             chkSinGlosa = new CheckBox();
+            btnExportarExcel = new Button();
             btnGenerarPDF = new Button();
             btnConsultar = new Button();
             dtpFechaFin = new DateTimePicker();
@@ -71,6 +72,7 @@ namespace Retorno360Tacna.FORMS
             // 
             panelFiltros.BackColor = Color.White;
             panelFiltros.Controls.Add(chkSinGlosa);
+            panelFiltros.Controls.Add(btnExportarExcel);
             panelFiltros.Controls.Add(btnGenerarPDF);
             panelFiltros.Controls.Add(btnConsultar);
             panelFiltros.Controls.Add(dtpFechaFin);
@@ -93,13 +95,33 @@ namespace Retorno360Tacna.FORMS
             chkSinGlosa.AutoSize = true;
             chkSinGlosa.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             chkSinGlosa.ForeColor = Color.FromArgb(52, 73, 94);
-            chkSinGlosa.Location = new Point(267, 95);
+            chkSinGlosa.Location = new Point(267, 104);
             chkSinGlosa.Name = "chkSinGlosa";
             chkSinGlosa.Size = new Size(425, 21);
             chkSinGlosa.TabIndex = 9;
             chkSinGlosa.Text = "Consultar por Razon Social(solo mostrara los datos de TR_Glosa)";
             chkSinGlosa.UseVisualStyleBackColor = true;
             chkSinGlosa.CheckedChanged += chkSinGlosa_CheckedChanged;
+            // 
+            // btnExportarExcel
+            // 
+            btnExportarExcel.BackColor = Color.FromArgb(46, 125, 50);
+            btnExportarExcel.Cursor = Cursors.Hand;
+            btnExportarExcel.Enabled = false;
+            btnExportarExcel.FlatAppearance.BorderSize = 0;
+            btnExportarExcel.FlatStyle = FlatStyle.Flat;
+            btnExportarExcel.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnExportarExcel.ForeColor = Color.White;
+            btnExportarExcel.Image = Properties.Resources.gdform_103694;
+            btnExportarExcel.ImageAlign = ContentAlignment.MiddleRight;
+            btnExportarExcel.Location = new Point(969, 42);
+            btnExportarExcel.Name = "btnExportarExcel";
+            btnExportarExcel.Size = new Size(154, 56);
+            btnExportarExcel.TabIndex = 11;
+            btnExportarExcel.Text = "Excel";
+            btnExportarExcel.TextAlign = ContentAlignment.MiddleLeft;
+            btnExportarExcel.UseVisualStyleBackColor = false;
+            btnExportarExcel.Click += btnExportarExcel_Click;
             // 
             // btnGenerarPDF
             // 
@@ -110,11 +132,11 @@ namespace Retorno360Tacna.FORMS
             btnGenerarPDF.FlatStyle = FlatStyle.Flat;
             btnGenerarPDF.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnGenerarPDF.ForeColor = Color.White;
-            btnGenerarPDF.Image = Properties.Resources.PDF_icon_icons_com_52413;
+            btnGenerarPDF.Image = Properties.Resources.applicationpdf_103614;
             btnGenerarPDF.ImageAlign = ContentAlignment.MiddleRight;
-            btnGenerarPDF.Location = new Point(903, 52);
+            btnGenerarPDF.Location = new Point(809, 42);
             btnGenerarPDF.Name = "btnGenerarPDF";
-            btnGenerarPDF.Size = new Size(177, 56);
+            btnGenerarPDF.Size = new Size(154, 56);
             btnGenerarPDF.TabIndex = 10;
             btnGenerarPDF.Text = "Generar PDF";
             btnGenerarPDF.TextAlign = ContentAlignment.MiddleLeft;
@@ -129,11 +151,11 @@ namespace Retorno360Tacna.FORMS
             btnConsultar.FlatStyle = FlatStyle.Flat;
             btnConsultar.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnConsultar.ForeColor = Color.White;
-            btnConsultar.Image = Properties.Resources.Analysis_36777;
+            btnConsultar.Image = Properties.Resources.search_magnifying_glass_icon_192631;
             btnConsultar.ImageAlign = ContentAlignment.MiddleRight;
-            btnConsultar.Location = new Point(698, 52);
+            btnConsultar.Location = new Point(649, 42);
             btnConsultar.Name = "btnConsultar";
-            btnConsultar.Size = new Size(177, 56);
+            btnConsultar.Size = new Size(154, 56);
             btnConsultar.TabIndex = 8;
             btnConsultar.Text = "Consultar";
             btnConsultar.TextAlign = ContentAlignment.MiddleLeft;
@@ -494,6 +516,7 @@ namespace Retorno360Tacna.FORMS
         private Label lblFechaFin;
         private Button btnConsultar;
         private Button btnGenerarPDF;
+        private Button btnExportarExcel;
         private CheckBox chkSinGlosa;
         private Panel panelResultados;
         private DataGridView dgvReporteIGI;

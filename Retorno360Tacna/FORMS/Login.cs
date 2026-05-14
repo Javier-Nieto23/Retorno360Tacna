@@ -2,6 +2,8 @@ using Retorno360Tacna.CNX;
 using Retorno360Tacna.SERVICES;
 using Retorno360Tacna.MODELS;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Retorno360Tacna.FORMS
 {
@@ -23,6 +25,7 @@ namespace Retorno360Tacna.FORMS
             InitializeComponent();
             this.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 20, 20));
             CargarConexiones();
+            CargarUsuarioGuardado();
         }
 
         protected override void WndProc(ref Message m)
@@ -81,6 +84,24 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
+        private void CargarUsuarioGuardado()
+        {
+            try
+            {
+                string usuarioGuardado = Properties.Settings.Default.UsuarioGuardado;
+                if (!string.IsNullOrEmpty(usuarioGuardado))
+                {
+                    textBox1.Text = usuarioGuardado;
+                    chkRecordarUsuario.Checked = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Si falla al cargar, simplemente no pre-llenar el usuario
+                System.Diagnostics.Debug.WriteLine($"Error al cargar usuario guardado: {ex.Message}");
+            }
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
             try
@@ -99,12 +120,27 @@ namespace Retorno360Tacna.FORMS
 
                 ConexionInfo conexionPrincipal = (ConexionInfo)comboBox1.SelectedItem;
 
+                // ✅ Calcular hash SHA256 de la contraseña
+                string passwordHash = CalcularHashSHA256(textBox2.Text);
+
                 // ✅ Validar usuario contra RetornoMaster (servidor principal)
                 LoginService loginService = new LoginService();
-                Usuario? usuario = loginService.ValidarUsuario(textBox1.Text, textBox2.Text);
+                Usuario? usuario = loginService.ValidarUsuario(textBox1.Text, passwordHash);
 
                 if (usuario != null)
                 {
+                    // Guardar usuario si la opción está marcada
+                    if (chkRecordarUsuario.Checked)
+                    {
+                        Properties.Settings.Default.UsuarioGuardado = textBox1.Text;
+                        Properties.Settings.Default.Save();
+                    }
+                    else
+                    {
+                        Properties.Settings.Default.UsuarioGuardado = string.Empty;
+                        Properties.Settings.Default.Save();
+                    }
+
                     // ✅ Probar conexión al servidor principal
                     Conexion conexionPrueba = new Conexion(
                         conexionPrincipal.Servidor!,
@@ -177,6 +213,23 @@ namespace Retorno360Tacna.FORMS
             {
                 e.Handled = true;
                 button1_Click(sender, e);
+            }
+        }
+
+        private string CalcularHashSHA256(string texto)
+        {
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(texto);
+                byte[] hash = sha256.ComputeHash(bytes);
+
+                StringBuilder builder = new StringBuilder();
+                foreach (byte b in hash)
+                {
+                    builder.Append(b.ToString("x2"));
+                }
+
+                return builder.ToString();
             }
         }
     }

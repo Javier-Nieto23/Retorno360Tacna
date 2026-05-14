@@ -63,9 +63,49 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap _268434_menu_icon {
+            get {
+                object obj = ResourceManager.GetObject("268434_menu-icon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Analysis_36777 {
             get {
                 object obj = ResourceManager.GetObject("Analysis_36777", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap applicationpdf_103614 {
+            get {
+                object obj = ResourceManager.GetObject("applicationpdf_103614", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap business_inventory_maintenance_product_box_boxes_2326 {
+            get {
+                object obj = ResourceManager.GetObject("business_inventory_maintenance_product_box_boxes_2326", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap caculator_icon_icons_com_52399__1_ {
+            get {
+                object obj = ResourceManager.GetObject("caculator_icon-icons.com_52399 (1)", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -96,6 +136,66 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap connection_40540 {
             get {
                 object obj = ResourceManager.GetObject("connection_40540", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Earning_statement_25391 {
+            get {
+                object obj = ResourceManager.GetObject("Earning-statement_25391", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Earning_statement_253911 {
+            get {
+                object obj = ResourceManager.GetObject("Earning-statement_253911", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Earning_statement_253912 {
+            get {
+                object obj = ResourceManager.GetObject("Earning-statement_253912", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ext_pdf_filetype_icon_176234 {
+            get {
+                object obj = ResourceManager.GetObject("ext_pdf_filetype_icon_176234", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ext_xlsx_icon_176245 {
+            get {
+                object obj = ResourceManager.GetObject("ext_xlsx_icon_176245", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap gdform_103694 {
+            get {
+                object obj = ResourceManager.GetObject("gdform_103694", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -216,6 +316,36 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap Sales_report_25411 {
             get {
                 object obj = ResourceManager.GetObject("Sales-report_25411", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap search_magnifying_glass_icon_192631 {
+            get {
+                object obj = ResourceManager.GetObject("search_magnifying_glass_icon_192631", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Teachers_35749 {
+            get {
+                object obj = ResourceManager.GetObject("Teachers_35749", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ui_interface_list_navigation_menu_switcher_icon_219789 {
+            get {
+                object obj = ResourceManager.GetObject("ui_interface_list_navigation_menu_switcher_icon_219789", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

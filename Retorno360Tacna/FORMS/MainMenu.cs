@@ -8,6 +8,10 @@ namespace Retorno360Tacna.FORMS
         private Usuario? usuarioActual;
         private ConexionInfo? conexionActual;
         private Button? botonActivo;
+        private bool sidebarColapsado = false;
+        private bool menuAdminExpandido = false;
+        private const int ANCHO_SIDEBAR_EXPANDIDO = 250;
+        private const int ANCHO_SIDEBAR_COLAPSADO = 60;
 
         public MainMenu()
         {
@@ -19,6 +23,14 @@ namespace Retorno360Tacna.FORMS
             InitializeComponent();
             usuarioActual = usuario;
             conexionActual = conexion;
+            InicializarMenuDesplegable();
+        }
+
+        private void InicializarMenuDesplegable()
+        {
+            // Ocultar el panel de sub-menú al inicio
+            panelSubMenuAdmin.Visible = false;
+            panelSubMenuAdmin.Height = 0;
         }
 
         private void MainMenu_Load(object sender, EventArgs e)
@@ -87,9 +99,103 @@ namespace Retorno360Tacna.FORMS
             panelContenido.Controls.Clear();
         }
 
+        private void btnAdministracion_Click(object sender, EventArgs e)
+        {
+            if (sidebarColapsado)
+            {
+                // Si el sidebar está colapsado, expandirlo primero
+                btnToggleSidebar_Click(sender, e);
+            }
+
+            menuAdminExpandido = !menuAdminExpandido;
+
+            if (menuAdminExpandido)
+            {
+                // Expandir sub-menú
+                panelSubMenuAdmin.Visible = true;
+                panelSubMenuAdmin.Height = 120; // 2 botones x 60px
+                btnAdministracion.Text = "Administración";
+            }
+            else
+            {
+                // Colapsar sub-menú
+                panelSubMenuAdmin.Visible = false;
+                panelSubMenuAdmin.Height = 0;
+                btnAdministracion.Text = "Administración";
+            }
+        }
+
+        private void btnToggleSidebar_Click(object sender, EventArgs e)
+        {
+            sidebarColapsado = !sidebarColapsado;
+
+            if (sidebarColapsado)
+            {
+                // Colapsar sidebar
+                panelSidebar.Width = ANCHO_SIDEBAR_COLAPSADO;
+
+                // Ocultar sub-menú si está expandido
+                if (menuAdminExpandido)
+                {
+                    panelSubMenuAdmin.Visible = false;
+                    menuAdminExpandido = false;
+                }
+
+                // Ocultar textos de botones principales
+                btnDiagramas.Text = "";
+                btnAdministracion.Text = "";
+                btnInventarios.Text = "";
+                btnConfiguracion.Text = "";
+                btnCerrarSesion.Text = "";
+                btnToggleSidebar.Text = "";
+
+                // Ocultar logo
+                pictureBoxLogo.Visible = false;
+            }
+            else
+            {
+                // Expandir sidebar
+                panelSidebar.Width = ANCHO_SIDEBAR_EXPANDIDO;
+
+                // Mostrar textos de botones
+                btnDiagramas.Text = "Inicio";
+                btnAdministracion.Text = "Administración";
+                btnInventarios.Text = "Inventarios";
+                btnConfiguracion.Text = "Configuración";
+                btnCerrarSesion.Text = "Cerrar Sesión";
+                btnToggleSidebar.Text = "";
+
+                // Mostrar logo
+                pictureBoxLogo.Visible = true;
+            }
+        }
+
+        private void btnInventarios_Click(object sender, EventArgs e)
+        {
+            ActivarBoton(btnInventarios);
+            lblTitulo.Text = "Inventarios";
+            LimpiarPanel();
+
+            MessageBox.Show("Módulo de Inventarios en desarrollo",
+                "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            // TODO: Implementar formulario de Inventarios cuando esté disponible
+            // if (conexionActual != null)
+            // {
+            //     FrmInventarios frmInventarios = new FrmInventarios(conexionActual)
+            //     {
+            //         TopLevel = false,
+            //         FormBorderStyle = FormBorderStyle.None,
+            //         Dock = DockStyle.Fill
+            //     };
+            //     panelContenido.Controls.Add(frmInventarios);
+            //     frmInventarios.Show();
+            // }
+        }
+
         private void btnSeleccionRazon_Click(object sender, EventArgs e)
         {
-            ActivarBoton(btnSeleccionRazon);
+            ActivarBoton(btnSubMenuReporteIGI);
             lblTitulo.Text = "Cálculo de IGI Pagado";
             LimpiarPanel();
 
@@ -113,7 +219,7 @@ namespace Retorno360Tacna.FORMS
 
         private void btnRetorno_Click(object sender, EventArgs e)
         {
-            ActivarBoton(btnRetorno);
+            ActivarBoton(btnSubMenuPorcentaje);
             lblTitulo.Text = "Gestión de Retorno";
             LimpiarPanel();
 
@@ -141,7 +247,7 @@ namespace Retorno360Tacna.FORMS
             lblTitulo.Text = "Reporte IGI Pagado";
             LimpiarPanel();
 
-            
+
         }
 
         private void btnDiagramas_Click(object sender, EventArgs e)
@@ -185,16 +291,25 @@ namespace Retorno360Tacna.FORMS
 
         private void btnConfiguracion_Click(object sender, EventArgs e)
         {
-            // Crear instancia de configuración del usuario actual
-            var configuracion = CargarConfiguracion();
+            ActivarBoton(btnConfiguracion);
+            lblTitulo.Text = "Configuración";
+            LimpiarPanel();
 
-            // Abrir formulario de configuración
-            using (FrmConfiguracion frmConfig = new FrmConfiguracion(configuracion))
+            if (conexionActual != null)
             {
-                if (frmConfig.ShowDialog() == DialogResult.OK)
+                FrmConfiguracion frmConfig = new FrmConfiguracion(conexionActual, usuarioActual)
                 {
-                    // La configuración se guardó, podría recargar aquí si es necesario
-                }
+                    TopLevel = false,
+                    FormBorderStyle = FormBorderStyle.None,
+                    Dock = DockStyle.Fill
+                };
+                panelContenido.Controls.Add(frmConfig);
+                frmConfig.Show();
+            }
+            else
+            {
+                MessageBox.Show("No hay información de conexión disponible.",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -246,5 +361,12 @@ namespace Retorno360Tacna.FORMS
                 };
             }
         }
+
+        private void panelSidebar_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+ 
     }
 }
