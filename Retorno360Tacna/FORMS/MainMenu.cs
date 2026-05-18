@@ -10,6 +10,7 @@ namespace Retorno360Tacna.FORMS
         private Button? botonActivo;
         private bool sidebarColapsado = false;
         private bool menuAdminExpandido = false;
+        private bool menuInventariosExpandido = false;
         private const int ANCHO_SIDEBAR_EXPANDIDO = 250;
         private const int ANCHO_SIDEBAR_COLAPSADO = 60;
 
@@ -31,6 +32,22 @@ namespace Retorno360Tacna.FORMS
             // Ocultar el panel de sub-menú al inicio
             panelSubMenuAdmin.Visible = false;
             panelSubMenuAdmin.Height = 0;
+
+            panelSubMenuInventarios.Visible = false;
+            panelSubMenuInventarios.Height = 0;
+        }
+
+        private void MostrarSubMenu(Panel subMenu)
+        {
+            // Ocultar todos los submenús
+            panelSubMenuAdmin.Visible = false;
+            panelSubMenuAdmin.Height = 0;
+            panelSubMenuInventarios.Visible = false;
+            panelSubMenuInventarios.Height = 0;
+
+            // Mostrar el submenú solicitado
+            subMenu.Visible = true;
+            subMenu.Height = 60; // 1 botón x 60px (ajustar según número de botones)
         }
 
         private void MainMenu_Load(object sender, EventArgs e)
@@ -172,25 +189,49 @@ namespace Retorno360Tacna.FORMS
 
         private void btnInventarios_Click(object sender, EventArgs e)
         {
-            ActivarBoton(btnInventarios);
-            lblTitulo.Text = "Inventarios";
+            if (sidebarColapsado)
+            {
+                btnToggleSidebar_Click(sender, e);
+            }
+
+            menuInventariosExpandido = !menuInventariosExpandido;
+
+            if (menuInventariosExpandido)
+            {
+                panelSubMenuInventarios.Visible = true;
+                panelSubMenuInventarios.Height = 60;
+                btnInventarios.Text = "Inventarios";
+            }
+            else
+            {
+                panelSubMenuInventarios.Visible = false;
+                panelSubMenuInventarios.Height = 0;
+                btnInventarios.Text = "Inventarios";
+            }
+        }
+
+        private void btnCatalogoPartes_Click(object sender, EventArgs e)
+        {
+            ActivarBoton(btnCatalogoPartes);
+            lblTitulo.Text = "Catálogo de Partes";
             LimpiarPanel();
 
-            MessageBox.Show("Módulo de Inventarios en desarrollo",
-                "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-            // TODO: Implementar formulario de Inventarios cuando esté disponible
-            // if (conexionActual != null)
-            // {
-            //     FrmInventarios frmInventarios = new FrmInventarios(conexionActual)
-            //     {
-            //         TopLevel = false,
-            //         FormBorderStyle = FormBorderStyle.None,
-            //         Dock = DockStyle.Fill
-            //     };
-            //     panelContenido.Controls.Add(frmInventarios);
-            //     frmInventarios.Show();
-            // }
+            if (conexionActual != null)
+            {
+                FrmCatalogoPartes frmCatalogo = new FrmCatalogoPartes(conexionActual)
+                {
+                    TopLevel = false,
+                    FormBorderStyle = FormBorderStyle.None,
+                    Dock = DockStyle.Fill
+                };
+                panelContenido.Controls.Add(frmCatalogo);
+                frmCatalogo.Show();
+            }
+            else
+            {
+                MessageBox.Show("No hay conexión activa. Por favor, inicie sesión nuevamente.",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSeleccionRazon_Click(object sender, EventArgs e)

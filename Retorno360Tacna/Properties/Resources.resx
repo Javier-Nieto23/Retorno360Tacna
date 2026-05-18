@@ -130,6 +130,9 @@
   <data name="applicationpdf_103614" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\applicationpdf_103614.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="search_magnifying_glass_icon_1926311" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\search_magnifying_glass_icon_1926311.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="gdform_103694" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\gdform_103694.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -138,6 +141,9 @@
   </data>
   <data name="Earning-statement_253911" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Earning-statement_253911.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Packing1_25393" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Packing1_25393.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="PDF_icon-icons.com_52413" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\PDF_icon-icons.com_52413.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -168,6 +174,9 @@
   </data>
   <data name="business_inventory_maintenance_product_box_boxes_2326" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\business_inventory_maintenance_product_box_boxes_2326.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="gdform_1036941" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\gdform_1036941.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Magnifying-glass_404531" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Magnifying-glass_404531.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -205,13 +214,16 @@
   <data name="Logout_371271" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Logout_371271.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="Earning-statement_253912" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Earning-statement_253912.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="monitor_40526" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\monitor_40526.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="caculator_icon-icons.com_52399 (1)" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\caculator_icon-icons.com_52399 (1)1.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="Earning-statement_253912" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\Earning-statement_253912.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="Surveys_37105" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Surveys_37105.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

@@ -298,6 +298,7 @@ namespace Retorno360Tacna.FORMS
             // 
             panelGrafica.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
             panelGrafica.BackColor = Color.White;
+            panelGrafica.BorderStyle = BorderStyle.FixedSingle;
             panelGrafica.Controls.Add(btnSiguienteGrafica);
             panelGrafica.Controls.Add(btnAnteriorGrafica);
             panelGrafica.Controls.Add(lblTituloGrafica);
@@ -316,7 +317,7 @@ namespace Retorno360Tacna.FORMS
             btnSiguienteGrafica.FlatStyle = FlatStyle.Flat;
             btnSiguienteGrafica.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
             btnSiguienteGrafica.ForeColor = Color.White;
-            btnSiguienteGrafica.Location = new Point(597, 10);
+            btnSiguienteGrafica.Location = new Point(595, 10);
             btnSiguienteGrafica.Name = "btnSiguienteGrafica";
             btnSiguienteGrafica.Size = new Size(30, 30);
             btnSiguienteGrafica.TabIndex = 2;
@@ -348,7 +349,7 @@ namespace Retorno360Tacna.FORMS
             lblTituloGrafica.Location = new Point(10, 10);
             lblTituloGrafica.Name = "lblTituloGrafica";
             lblTituloGrafica.Padding = new Padding(40, 0, 40, 0);
-            lblTituloGrafica.Size = new Size(617, 30);
+            lblTituloGrafica.Size = new Size(615, 30);
             lblTituloGrafica.TabIndex = 0;
             lblTituloGrafica.Text = "IGI por Mes y Forma de Pago (1/2)";
             lblTituloGrafica.TextAlign = ContentAlignment.MiddleCenter;

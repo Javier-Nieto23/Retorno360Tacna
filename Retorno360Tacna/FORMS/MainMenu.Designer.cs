@@ -33,6 +33,8 @@ namespace Retorno360Tacna.FORMS
             btnConfiguracion = new Button();
             btnCerrarSesion = new Button();
             btnReportes = new Button();
+            panelSubMenuInventarios = new Panel();
+            btnCatalogoPartes = new Button();
             btnInventarios = new Button();
             panelSubMenuAdmin = new Panel();
             btnSubMenuReporteIGI = new Button();
@@ -48,6 +50,7 @@ namespace Retorno360Tacna.FORMS
             lblUsuario = new Label();
             lblTitulo = new Label();
             panelSidebar.SuspendLayout();
+            panelSubMenuInventarios.SuspendLayout();
             panelSubMenuAdmin.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBoxLogo).BeginInit();
             panelTop.SuspendLayout();
@@ -59,6 +62,7 @@ namespace Retorno360Tacna.FORMS
             panelSidebar.Controls.Add(btnConfiguracion);
             panelSidebar.Controls.Add(btnCerrarSesion);
             panelSidebar.Controls.Add(btnReportes);
+            panelSidebar.Controls.Add(panelSubMenuInventarios);
             panelSidebar.Controls.Add(btnInventarios);
             panelSidebar.Controls.Add(panelSubMenuAdmin);
             panelSidebar.Controls.Add(btnAdministracion);
@@ -126,7 +130,7 @@ namespace Retorno360Tacna.FORMS
             btnReportes.ForeColor = Color.White;
             btnReportes.Image = Properties.Resources.Sales_report_25411;
             btnReportes.ImageAlign = ContentAlignment.MiddleRight;
-            btnReportes.Location = new Point(0, 588);
+            btnReportes.Location = new Point(0, 648);
             btnReportes.Name = "btnReportes";
             btnReportes.Padding = new Padding(20, 0, 0, 0);
             btnReportes.Size = new Size(250, 60);
@@ -137,6 +141,39 @@ namespace Retorno360Tacna.FORMS
             btnReportes.Click += btnReportes_Click;
             btnReportes.MouseEnter += MenuButton_MouseEnter;
             btnReportes.MouseLeave += MenuButton_MouseLeave;
+            // 
+            // panelSubMenuInventarios
+            // 
+            panelSubMenuInventarios.BackColor = Color.FromArgb(35, 42, 50);
+            panelSubMenuInventarios.Controls.Add(btnCatalogoPartes);
+            panelSubMenuInventarios.Dock = DockStyle.Top;
+            panelSubMenuInventarios.Location = new Point(0, 588);
+            panelSubMenuInventarios.Name = "panelSubMenuInventarios";
+            panelSubMenuInventarios.Size = new Size(250, 60);
+            panelSubMenuInventarios.TabIndex = 9;
+            panelSubMenuInventarios.Visible = false;
+            // 
+            // btnCatalogoPartes
+            // 
+            btnCatalogoPartes.Cursor = Cursors.Hand;
+            btnCatalogoPartes.Dock = DockStyle.Top;
+            btnCatalogoPartes.FlatAppearance.BorderSize = 0;
+            btnCatalogoPartes.FlatStyle = FlatStyle.Flat;
+            btnCatalogoPartes.Font = new Font("Segoe UI", 10F);
+            btnCatalogoPartes.ForeColor = Color.LightGray;
+            btnCatalogoPartes.Image = Properties.Resources.Packing1_25393;
+            btnCatalogoPartes.ImageAlign = ContentAlignment.MiddleRight;
+            btnCatalogoPartes.Location = new Point(0, 0);
+            btnCatalogoPartes.Name = "btnCatalogoPartes";
+            btnCatalogoPartes.Padding = new Padding(35, 0, 0, 0);
+            btnCatalogoPartes.Size = new Size(250, 60);
+            btnCatalogoPartes.TabIndex = 0;
+            btnCatalogoPartes.Text = "Catálogo de Partes";
+            btnCatalogoPartes.TextAlign = ContentAlignment.MiddleLeft;
+            btnCatalogoPartes.UseVisualStyleBackColor = true;
+            btnCatalogoPartes.Click += btnCatalogoPartes_Click;
+            btnCatalogoPartes.MouseEnter += MenuButton_MouseEnter;
+            btnCatalogoPartes.MouseLeave += MenuButton_MouseLeave;
             // 
             // btnInventarios
             // 
@@ -394,6 +431,7 @@ namespace Retorno360Tacna.FORMS
             WindowState = FormWindowState.Maximized;
             Load += MainMenu_Load;
             panelSidebar.ResumeLayout(false);
+            panelSubMenuInventarios.ResumeLayout(false);
             panelSubMenuAdmin.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)pictureBoxLogo).EndInit();
             panelTop.ResumeLayout(false);
@@ -421,5 +459,7 @@ namespace Retorno360Tacna.FORMS
         private Button btnSubMenuReporteIGI;
         private Button btnInventarios;
         private Button btnToggleSidebar;
+        private Panel panelSubMenuInventarios;
+        private Button btnCatalogoPartes;
     }
 }

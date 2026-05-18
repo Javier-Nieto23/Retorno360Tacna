@@ -27,9 +27,10 @@ namespace Retorno360Tacna.MODELS
         public string EstatusOrigen { get; set; } = string.Empty;
 
         /// <summary>
-        /// Calcula la diferencia entre IGI Pagado y Calculado
+        /// Calcula la diferencia (ahorro) entre IGI Calculado y Pagado
+        /// Valor positivo = ahorro (se pagó menos de lo calculado)
         /// </summary>
-        public decimal DiferenciaIGI => IGI_Pagado - IGI_Calculado;
+        public decimal DiferenciaIGI => IGI_Calculado - IGI_Pagado;
     }
 
     /// <summary>
@@ -40,7 +41,7 @@ namespace Retorno360Tacna.MODELS
         public decimal TotalIGI_Pagado { get; set; }
         public decimal TotalIGI_Calculado { get; set; }
         public decimal TotalIVA_Pagado { get; set; }
-        public decimal DiferenciaTotal => TotalIGI_Pagado - TotalIGI_Calculado;
+        public decimal DiferenciaTotal => TotalIGI_Calculado - TotalIGI_Pagado;
         public int TotalPedimentos { get; set; }
         public int PedimentosCargadosGlosa { get; set; }
         public int PedimentosNoCargados => TotalPedimentos - PedimentosCargadosGlosa;

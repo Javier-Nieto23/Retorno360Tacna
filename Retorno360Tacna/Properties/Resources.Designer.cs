@@ -203,6 +203,16 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap gdform_1036941 {
+            get {
+                object obj = ResourceManager.GetObject("gdform_1036941", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Gemini_Generated_Image_k5c47uk5c47uk5c4 {
             get {
                 object obj = ResourceManager.GetObject("Gemini_Generated_Image_k5c47uk5c47uk5c4", resourceCulture);
@@ -293,6 +303,16 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Packing1_25393 {
+            get {
+                object obj = ResourceManager.GetObject("Packing1_25393", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap pdf_filetype_icon_177525 {
             get {
                 object obj = ResourceManager.GetObject("pdf_filetype_icon_177525", resourceCulture);
@@ -326,6 +346,26 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap search_magnifying_glass_icon_192631 {
             get {
                 object obj = ResourceManager.GetObject("search_magnifying_glass_icon_192631", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap search_magnifying_glass_icon_1926311 {
+            get {
+                object obj = ResourceManager.GetObject("search_magnifying_glass_icon_1926311", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Surveys_37105 {
+            get {
+                object obj = ResourceManager.GetObject("Surveys_37105", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

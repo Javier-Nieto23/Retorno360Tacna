@@ -73,7 +73,7 @@
             label1.Name = "label1";
             label1.Size = new Size(72, 15);
             label1.TabIndex = 3;
-            label1.Text = "Version 1.8.0";
+            label1.Text = "Version 1.9.0";
             // 
             // CargaDePantalla
             // 

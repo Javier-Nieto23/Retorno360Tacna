@@ -80,7 +80,8 @@ namespace Retorno360Tacna.FORMS
 
                 foreach (var pedimento in pedimentosFiltrados)
                 {
-                    decimal diferencia = pedimento.IGI_Pagado - pedimento.IGI_Calculado;
+                    // Diferencia: Calculado - Pagado (positivo = ahorro)
+                    decimal diferencia = pedimento.IGI_Calculado - pedimento.IGI_Pagado;
 
                     dt.Rows.Add(
                         pedimento.FechaPago?.ToString("dd/MM/yyyy") ?? "",
@@ -168,13 +169,14 @@ namespace Retorno360Tacna.FORMS
                         if (row.Cells["DIFERENCIA"].Value != null)
                         {
                             decimal diferencia = Convert.ToDecimal(row.Cells["DIFERENCIA"].Value);
+                            // Verde para ahorro (positivo), Rojo para sobrepago (negativo)
                             if (diferencia > 0)
                             {
-                                row.Cells["DIFERENCIA"].Style.ForeColor = Color.FromArgb(39, 174, 96);
+                                row.Cells["DIFERENCIA"].Style.ForeColor = Color.FromArgb(39, 174, 96); // Verde
                             }
                             else if (diferencia < 0)
                             {
-                                row.Cells["DIFERENCIA"].Style.ForeColor = Color.FromArgb(192, 57, 43);
+                                row.Cells["DIFERENCIA"].Style.ForeColor = Color.FromArgb(192, 57, 43); // Rojo
                             }
                         }
                     }

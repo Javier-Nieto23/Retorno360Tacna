@@ -46,7 +46,8 @@ namespace Retorno360Tacna.SERVICES
 
             foreach (var grupo in agrupadoPorMesIGI)
             {
-                decimal diferencia = grupo.IGI_Pagado - grupo.IGI_Calculado;
+                // Calcular diferencia: Calculado - Pagado (positivo = ahorro)
+                decimal diferencia = grupo.IGI_Calculado - grupo.IGI_Pagado;
 
                 dt.Rows.Add(
                     grupo.MesTexto,

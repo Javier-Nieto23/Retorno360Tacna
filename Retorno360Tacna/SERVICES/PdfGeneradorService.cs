@@ -557,7 +557,7 @@ namespace Retorno360Tacna.SERVICES
                                     .Padding(8).AlignRight()
                                     .Text($"${resumen.DiferenciaTotal:N2}")
                                     .FontSize(14)
-                                    .FontColor(resumen.DiferenciaTotal > 0 ? Colors.Red.Darken2 : Colors.Green.Darken2).Bold();
+                                    .FontColor(resumen.DiferenciaTotal > 0 ? Colors.Green.Darken2 : Colors.Red.Darken2).Bold();
 
                                 table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8)
                                     .Text("IVA Pagado");
@@ -636,7 +636,7 @@ namespace Retorno360Tacna.SERVICES
                                         table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
                                             .Text($"${item.DiferenciaIGI:N2}")
                                             .FontSize(8)
-                                            .FontColor(item.DiferenciaIGI != 0 ? Colors.Red.Darken1 : Colors.Green.Darken1);
+                                            .FontColor(item.DiferenciaIGI > 0 ? Colors.Green.Darken1 : item.DiferenciaIGI < 0 ? Colors.Red.Darken1 : Colors.Grey.Darken1);
 
                                         contador++;
                                     }

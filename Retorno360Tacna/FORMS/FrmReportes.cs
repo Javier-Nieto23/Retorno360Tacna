@@ -67,12 +67,7 @@ namespace Retorno360Tacna.FORMS
                 // El panelResumen ahora usa Dock = DockStyle.Bottom
                 // por lo que no necesitamos ajustar su posición manualmente
 
-                // Ajustar la gráfica interna si existe
-                if (chartIGI != null && panelGrafica != null)
-                {
-                    chartIGI.Width = panelGrafica.Width - 20;
-                    chartIGI.Height = panelGrafica.Height - lblTituloGrafica.Height - 30;
-                }
+                // chartIGI usa Dock.Fill, se ajustará automáticamente
 
                 this.ResumeLayout(true);
             }
@@ -583,11 +578,11 @@ namespace Retorno360Tacna.FORMS
 
             var totalIGI_Pagado5 = reportesIGI_FormaPago5.Sum(r => r.IGI_Pagado);
             var totalIGI_Calculado5 = reportesIGI_FormaPago5.Sum(r => r.IGI_Calculado);
-            var diferenciaIGI_5 = totalIGI_Pagado5 - totalIGI_Calculado5;
+            var diferenciaIGI_5 = totalIGI_Calculado5 - totalIGI_Pagado5;
 
             var totalIGI_Pagado0 = reportesIGI_FormaPago0.Sum(r => r.IGI_Pagado);
             var totalIGI_Calculado0 = reportesIGI_FormaPago0.Sum(r => r.IGI_Calculado);
-            var diferenciaIGI_0 = totalIGI_Pagado0 - totalIGI_Calculado0;
+            var diferenciaIGI_0 = totalIGI_Calculado0 - totalIGI_Pagado0;
 
             // Calcular totales separados por forma de pago IVA (0 y 21)
             var reportesIVA_FormaPago21 = reporteActual.Where(r => r.FormaPago_IVA == "21").ToList();
@@ -625,9 +620,8 @@ namespace Retorno360Tacna.FORMS
             chartIGI = new CartesianChart
             {
                 Dock = DockStyle.Fill,
-                Location = new Point(10, 50),
-                Size = new Size(380, 350),
-                ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both
+                ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both,
+                TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Top
             };
 
             // Agregar al panel de gráfica (después del título)
@@ -668,9 +662,8 @@ namespace Retorno360Tacna.FORMS
             chartIVA = new CartesianChart
             {
                 Dock = DockStyle.Fill,
-                Location = new Point(10, 50),
-                Size = new Size(380, 350),
-                ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both
+                ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both,
+                TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Top
             };
 
             // Agregar al panel de gráfica IVA (después del título)
@@ -709,6 +702,10 @@ namespace Retorno360Tacna.FORMS
         {
             if (chartIGI == null) return;
 
+            // Calcular la diferencia (ahorro: calculado - pagado)
+            // Valor positivo = ahorro (se pagó menos de lo calculado)
+            decimal diferencia = resumen.TotalIGI_Calculado - resumen.TotalIGI_Pagado;
+
             // Crear series de barras
             var series = new ISeries[]
             {
@@ -716,7 +713,7 @@ namespace Retorno360Tacna.FORMS
                 {
                     Name = "IGI Pagado",
                     Values = new[] { resumen.TotalIGI_Pagado },
-                    Fill = new SolidColorPaint(new SKColor(52, 152, 219)),
+                    Fill = new SolidColorPaint(new SKColor(79, 129, 189)), // Azul
                     Stroke = null,
                     DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
                     DataLabelsSize = 14,
@@ -724,11 +721,11 @@ namespace Retorno360Tacna.FORMS
                 },
                 new ColumnSeries<decimal>
                 {
-                    Name = "IGI Calculado",
-                    Values = new[] { resumen.TotalIGI_Calculado },
-                    Fill = new SolidColorPaint(new SKColor(46, 204, 113)),
+                    Name = "Diferencia",
+                    Values = new[] { diferencia },
+                    Fill = new SolidColorPaint(new SKColor(155, 194, 230)), // Azul claro
                     Stroke = null,
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(64, 64, 64)),
                     DataLabelsSize = 14,
                     DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle
                 }
@@ -746,9 +743,11 @@ namespace Retorno360Tacna.FORMS
 
             try
             {
-                // Agrupar datos por mes y forma de pago
+                // Agrupar datos por mes y forma de pago (solo formas válidas: 0 y 5)
                 var datosPorMes = reporteActual
-                    .Where(r => r.FechaPago.HasValue)
+                    .Where(r => r.FechaPago.HasValue && 
+                                !string.IsNullOrWhiteSpace(r.FormaPago_IGI) &&
+                                (r.FormaPago_IGI == "0" || r.FormaPago_IGI == "5"))
                     .GroupBy(r => new { 
                         Año = r.FechaPago.Value.Year, 
                         Mes = r.FechaPago.Value.Month,
@@ -771,41 +770,80 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
-                // Obtener lista de meses únicos y formas de pago
-                var mesesUnicos = datosPorMes.Select(x => x.MesNombre).Distinct().ToList();
+                // Obtener meses únicos ordenados cronológicamente (de más reciente a más antiguo)
+                var mesesUnicos = datosPorMes
+                    .GroupBy(x => new { x.MesNombre, x.Periodo })
+                    .OrderByDescending(g => g.Key.Periodo)
+                    .Select(g => g.Key.MesNombre)
+                    .ToList();
+
                 var formasPago = datosPorMes.Select(x => x.FormaPago).Distinct().OrderBy(x => x).ToList();
 
-                // Crear etiquetas combinadas: "enero FP-0", "enero FP-5", "febrero FP-0", etc.
+                // Crear etiquetas combinadas con porcentajes: "enero FP-0  ■ 76.9% ■ 23.1%"
                 var labels = new List<string>();
-                foreach (var mes in mesesUnicos)
-                {
-                    foreach (var fp in formasPago)
-                    {
-                        labels.Add($"{mes} FP-{fp}");
-                    }
-                }
-
-                // Preparar arrays de datos para cada serie
                 var pagadoValues = new List<decimal>();
                 var calculadoValues = new List<decimal>();
                 var diferenciaValues = new List<decimal>();
+                var pagadoPorcentajes = new List<decimal>();
+                var diferenciaPorcentajes = new List<decimal>();
 
                 foreach (var mes in mesesUnicos)
                 {
                     foreach (var fp in formasPago)
                     {
                         var dato = datosPorMes.FirstOrDefault(x => x.MesNombre == mes && x.FormaPago == fp);
-                        pagadoValues.Add(dato?.Pagado ?? 0);
-                        calculadoValues.Add(dato?.Calculado ?? 0);
-                        diferenciaValues.Add(dato?.Diferencia ?? 0);
+                        decimal pagado = dato?.Pagado ?? 0;
+                        decimal calculado = dato?.Calculado ?? 0;
+                        decimal diferencia = dato?.Diferencia ?? 0;
+
+                        pagadoValues.Add(pagado);
+                        calculadoValues.Add(calculado);
+                        diferenciaValues.Add(diferencia);
+
+                        // Calcular porcentajes basados en IGI Calculado como 100%
+                        decimal porcPagado = 0;
+                        decimal porcDiferencia = 0;
+
+                        if (calculado > 0)
+                        {
+                            porcPagado = (pagado / calculado) * 100;
+                            porcDiferencia = (diferencia / calculado) * 100;
+                        }
+
+                        pagadoPorcentajes.Add(porcPagado);
+                        diferenciaPorcentajes.Add(porcDiferencia);
+
+                        // Crear etiqueta con porcentajes incluidos
+                        string etiqueta = $"{mes} FP-{fp}    ■ {porcPagado:N1}%  ■ {porcDiferencia:N1}%";
+                        labels.Add(etiqueta);
                     }
                 }
 
                 // Crear series de barras apiladas horizontales
                 var series = new List<ISeries>();
 
-                // Serie 1: IGI Pagado (azul)
-                series.Add(new StackedRowSeries<decimal>
+                // Crear diccionario para mapeo confiable de valores a porcentajes
+                var pagadoDictionary = new Dictionary<decimal, decimal>();
+                var diferenciaDictionary = new Dictionary<decimal, decimal>();
+
+                for (int i = 0; i < pagadoValues.Count; i++)
+                {
+                    var keyPagado = pagadoValues[i];
+                    var keyDiferencia = diferenciaValues[i];
+
+                    // Solo agregar si no existe (para evitar duplicados)
+                    if (!pagadoDictionary.ContainsKey(keyPagado))
+                    {
+                        pagadoDictionary[keyPagado] = pagadoPorcentajes[i];
+                    }
+                    if (!diferenciaDictionary.ContainsKey(keyDiferencia))
+                    {
+                        diferenciaDictionary[keyDiferencia] = diferenciaPorcentajes[i];
+                    }
+                }
+
+                // Serie 1: IGI Pagado (azul) - mostrar porcentaje en la etiqueta
+                var seriePagado = new StackedRowSeries<decimal>
                 {
                     Name = "IGI pagado",
                     Values = pagadoValues.ToArray(),
@@ -814,24 +852,21 @@ namespace Retorno360Tacna.FORMS
                     DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
                     DataLabelsSize = 11,
                     DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle,
-                    MaxBarWidth = 50
-                });
+                    MaxBarWidth = 50,
+                    DataLabelsFormatter = point => {
+                        var valor = (decimal)point.Model;
+                        if (valor > 0 && pagadoDictionary.TryGetValue(valor, out var porcentaje))
+                        {
+                            return $"{porcentaje:N1}%";
+                        }
+                        return "";
+                    }
+                };
 
-                // Serie 2: IGI Calculado (gris)
-                series.Add(new StackedRowSeries<decimal>
-                {
-                    Name = "IGI calculado",
-                    Values = calculadoValues.ToArray(),
-                    Fill = new SolidColorPaint(new SKColor(192, 192, 192)), // Gris
-                    Stroke = null,
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(64, 64, 64)),
-                    DataLabelsSize = 11,
-                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle,
-                    MaxBarWidth = 50
-                });
+                series.Add(seriePagado);
 
-                // Serie 3: Diferencia (azul claro si positivo)
-                series.Add(new StackedRowSeries<decimal>
+                // Serie 2: Diferencia (azul claro) - mostrar porcentaje en la etiqueta
+                var serieDiferencia = new StackedRowSeries<decimal>
                 {
                     Name = "Diferencia",
                     Values = diferenciaValues.ToArray(),
@@ -840,12 +875,22 @@ namespace Retorno360Tacna.FORMS
                     DataLabelsPaint = new SolidColorPaint(new SKColor(64, 64, 64)),
                     DataLabelsSize = 11,
                     DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle,
-                    MaxBarWidth = 50
-                });
+                    MaxBarWidth = 50,
+                    DataLabelsFormatter = point => {
+                        var valor = (decimal)point.Model;
+                        if (valor > 0 && diferenciaDictionary.TryGetValue(valor, out var porcentaje))
+                        {
+                            return $"{porcentaje:N1}%";
+                        }
+                        return "";
+                    }
+                };
+
+                series.Add(serieDiferencia);
 
                 chartIGI.Series = series.ToArray();
 
-                // Configurar eje X (valores horizontales) con zoom habilitado
+                // Configurar eje X (valores horizontales)
                 chartIGI.XAxes = new[]
                 {
                     new Axis
@@ -855,14 +900,13 @@ namespace Retorno360Tacna.FORMS
                         Labeler = value => value >= 1000000 ? $"{value/1000000:N0}M" 
                                          : value >= 1000 ? $"{value/1000:N0}K" 
                                          : $"{value:N0}",
-                        ShowSeparatorLines = true,
-                        MinLimit = null,
-                        MaxLimit = null,
-                        ForceStepToMin = false
+                        ShowSeparatorLines = true
                     }
                 };
 
-                // Configurar eje Y (etiquetas de meses + forma de pago) con zoom habilitado
+                // Configurar eje Y (etiquetas de meses + forma de pago)
+                var totalFilas = labels.Count;
+
                 chartIGI.YAxes = new[]
                 {
                     new Axis
@@ -870,11 +914,14 @@ namespace Retorno360Tacna.FORMS
                         Labels = labels.ToArray(),
                         TextSize = 9,
                         SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
-                        ShowSeparatorLines = false,
-                        MinLimit = null,
-                        MaxLimit = null
+                        ShowSeparatorLines = false
                     }
                 };
+
+                // Habilitar zoom y pan en ambos ejes
+                // Ctrl + Rueda del mouse = Zoom
+                // Click y arrastrar = Pan (desplazamiento)
+                chartIGI.ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both;
 
                 // Actualizar título de la gráfica
                 lblTituloGrafica.Text = "IGI por Mes y Forma de Pago (1/2)";
@@ -892,9 +939,11 @@ namespace Retorno360Tacna.FORMS
 
             try
             {
-                // Agrupar datos por mes y forma de pago IVA
+                // Agrupar datos por mes y forma de pago IVA (solo formas válidas: 0 y 21)
                 var datosPorMes = reporteActual
-                    .Where(r => r.FechaPago.HasValue && r.FormaPago_IVA != null)
+                    .Where(r => r.FechaPago.HasValue && 
+                                !string.IsNullOrWhiteSpace(r.FormaPago_IVA) &&
+                                (r.FormaPago_IVA == "0" || r.FormaPago_IVA == "21"))
                     .GroupBy(r => new {
                         Año = r.FechaPago.Value.Year,
                         Mes = r.FechaPago.Value.Month,
@@ -915,29 +964,31 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
-                // Obtener meses únicos y formas de pago
-                var mesesUnicos = datosPorMes.Select(x => x.MesNombre).Distinct().OrderBy(x => x).ToList();
+                // Obtener meses únicos ordenados cronológicamente (de más reciente a más antiguo)
+                var mesesOrdenados = datosPorMes
+                    .GroupBy(x => new { x.MesNombre, x.Periodo })
+                    .OrderByDescending(g => g.Key.Periodo)
+                    .Select(g => g.Key.MesNombre)
+                    .ToList();
+
                 var formasPago = datosPorMes.Select(x => x.FormaPago).Distinct().OrderBy(x => x).ToList();
 
-                // Construir etiquetas combinadas (mes + forma de pago)
+                // Construir etiquetas combinadas (mes + forma de pago + monto IVA)
                 var labels = new List<string>();
-                foreach (var mes in mesesUnicos)
-                {
-                    foreach (var fp in formasPago)
-                    {
-                        labels.Add($"{mes} FP-{fp}");
-                    }
-                }
-
-                // Preparar arrays de datos
                 var ivaPagadoValues = new List<decimal>();
 
-                foreach (var mes in mesesUnicos)
+                foreach (var mes in mesesOrdenados)
                 {
                     foreach (var fp in formasPago)
                     {
                         var dato = datosPorMes.FirstOrDefault(x => x.MesNombre == mes && x.FormaPago == fp);
-                        ivaPagadoValues.Add(dato?.IVAPagado ?? 0);
+                        decimal ivaPagado = dato?.IVAPagado ?? 0;
+
+                        ivaPagadoValues.Add(ivaPagado);
+
+                        // Crear etiqueta con monto incluido
+                        string etiqueta = $"{mes} FP-{fp}    ■ {ivaPagado:C0}";
+                        labels.Add(etiqueta);
                     }
                 }
 
@@ -959,7 +1010,7 @@ namespace Retorno360Tacna.FORMS
 
                 chartIVA.Series = series.ToArray();
 
-                // Configurar eje X (valores horizontales) con zoom habilitado
+                // Configurar eje X (valores horizontales)
                 chartIVA.XAxes = new[]
                 {
                     new Axis
@@ -969,14 +1020,11 @@ namespace Retorno360Tacna.FORMS
                         Labeler = value => value >= 1000000 ? $"{value/1000000:N0}M" 
                                          : value >= 1000 ? $"{value/1000:N0}K" 
                                          : $"{value:N0}",
-                        ShowSeparatorLines = true,
-                        MinLimit = null,
-                        MaxLimit = null,
-                        ForceStepToMin = false
+                        ShowSeparatorLines = true
                     }
                 };
 
-                // Configurar eje Y (etiquetas de meses + forma de pago) con zoom habilitado
+                // Configurar eje Y (etiquetas de meses + forma de pago)
                 chartIVA.YAxes = new[]
                 {
                     new Axis
@@ -984,11 +1032,14 @@ namespace Retorno360Tacna.FORMS
                         Labels = labels.ToArray(),
                         TextSize = 9,
                         SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
-                        ShowSeparatorLines = false,
-                        MinLimit = null,
-                        MaxLimit = null
+                        ShowSeparatorLines = false
                     }
                 };
+
+                // Habilitar zoom y pan en ambos ejes
+                // Ctrl + Rueda del mouse = Zoom
+                // Click y arrastrar = Pan (desplazamiento)
+                chartIVA.ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both;
 
                 // Actualizar título de la gráfica
                 lblTituloGraficaIVA.Text = "IVA por Mes y Forma de Pago (2/2)";
