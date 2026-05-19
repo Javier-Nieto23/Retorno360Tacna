@@ -34,9 +34,14 @@ namespace Retorno360Tacna.FORMS
             lblTotalPartes = new Label();
             lblTotalConBOM = new Label();
             lblTotalSinBOM = new Label();
+            panelNavegacionGrafico = new Panel();
+            btnGraficoAnterior = new Button();
+            lblIndicadorGrafico = new Label();
+            btnGraficoSiguiente = new Button();
             chartCatalogo = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart();
             panelFiltros.SuspendLayout();
             panelResumen.SuspendLayout();
+            panelNavegacionGrafico.SuspendLayout();
             SuspendLayout();
             // 
             // panelFiltros
@@ -246,13 +251,68 @@ namespace Retorno360Tacna.FORMS
             lblTotalSinBOM.TabIndex = 2;
             lblTotalSinBOM.Text = "Sin BOM: 0";
             // 
+            // panelNavegacionGrafico
+            // 
+            panelNavegacionGrafico.BackColor = Color.White;
+            panelNavegacionGrafico.Controls.Add(btnGraficoAnterior);
+            panelNavegacionGrafico.Controls.Add(lblIndicadorGrafico);
+            panelNavegacionGrafico.Controls.Add(btnGraficoSiguiente);
+            panelNavegacionGrafico.Dock = DockStyle.Top;
+            panelNavegacionGrafico.Location = new Point(0, 170);
+            panelNavegacionGrafico.Name = "panelNavegacionGrafico";
+            panelNavegacionGrafico.Size = new Size(1231, 50);
+            panelNavegacionGrafico.TabIndex = 3;
+            // 
+            // btnGraficoAnterior
+            // 
+            btnGraficoAnterior.BackColor = Color.FromArgb(52, 152, 219);
+            btnGraficoAnterior.Cursor = Cursors.Hand;
+            btnGraficoAnterior.FlatAppearance.BorderSize = 0;
+            btnGraficoAnterior.FlatStyle = FlatStyle.Flat;
+            btnGraficoAnterior.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnGraficoAnterior.ForeColor = Color.White;
+            btnGraficoAnterior.Location = new Point(450, 8);
+            btnGraficoAnterior.Name = "btnGraficoAnterior";
+            btnGraficoAnterior.Size = new Size(50, 35);
+            btnGraficoAnterior.TabIndex = 0;
+            btnGraficoAnterior.Text = "◀";
+            btnGraficoAnterior.UseVisualStyleBackColor = false;
+            btnGraficoAnterior.Click += btnGraficoAnterior_Click;
+            // 
+            // lblIndicadorGrafico
+            // 
+            lblIndicadorGrafico.AutoSize = true;
+            lblIndicadorGrafico.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            lblIndicadorGrafico.ForeColor = Color.FromArgb(52, 73, 94);
+            lblIndicadorGrafico.Location = new Point(510, 15);
+            lblIndicadorGrafico.Name = "lblIndicadorGrafico";
+            lblIndicadorGrafico.Size = new Size(210, 20);
+            lblIndicadorGrafico.TabIndex = 1;
+            lblIndicadorGrafico.Text = "Gráfico: Partes MP (1 de 2)";
+            // 
+            // btnGraficoSiguiente
+            // 
+            btnGraficoSiguiente.BackColor = Color.FromArgb(52, 152, 219);
+            btnGraficoSiguiente.Cursor = Cursors.Hand;
+            btnGraficoSiguiente.FlatAppearance.BorderSize = 0;
+            btnGraficoSiguiente.FlatStyle = FlatStyle.Flat;
+            btnGraficoSiguiente.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            btnGraficoSiguiente.ForeColor = Color.White;
+            btnGraficoSiguiente.Location = new Point(730, 8);
+            btnGraficoSiguiente.Name = "btnGraficoSiguiente";
+            btnGraficoSiguiente.Size = new Size(50, 35);
+            btnGraficoSiguiente.TabIndex = 2;
+            btnGraficoSiguiente.Text = "▶";
+            btnGraficoSiguiente.UseVisualStyleBackColor = false;
+            btnGraficoSiguiente.Click += btnGraficoSiguiente_Click;
+            // 
             // chartCatalogo
             // 
             chartCatalogo.Dock = DockStyle.Fill;
-            chartCatalogo.Location = new Point(0, 120);
+            chartCatalogo.Location = new Point(0, 220);
             chartCatalogo.Name = "chartCatalogo";
-            chartCatalogo.Size = new Size(1231, 450);
-            chartCatalogo.TabIndex = 2;
+            chartCatalogo.Size = new Size(1231, 400);
+            chartCatalogo.TabIndex = 4;
             // 
             // FrmCatalogoPartes
             // 
@@ -261,6 +321,7 @@ namespace Retorno360Tacna.FORMS
             ClientSize = new Size(1231, 620);
             ControlBox = false;
             Controls.Add(chartCatalogo);
+            Controls.Add(panelNavegacionGrafico);
             Controls.Add(panelResumen);
             Controls.Add(panelFiltros);
             Font = new Font("Segoe UI", 9F);
@@ -272,6 +333,8 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.PerformLayout();
             panelResumen.ResumeLayout(false);
             panelResumen.PerformLayout();
+            panelNavegacionGrafico.ResumeLayout(false);
+            panelNavegacionGrafico.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -294,6 +357,10 @@ namespace Retorno360Tacna.FORMS
         private System.Windows.Forms.Label lblTotalPartes;
         private System.Windows.Forms.Label lblTotalConBOM;
         private System.Windows.Forms.Label lblTotalSinBOM;
+        private System.Windows.Forms.Panel panelNavegacionGrafico;
+        private System.Windows.Forms.Button btnGraficoAnterior;
+        private System.Windows.Forms.Label lblIndicadorGrafico;
+        private System.Windows.Forms.Button btnGraficoSiguiente;
         private LiveChartsCore.SkiaSharpView.WinForms.CartesianChart chartCatalogo;
     }
 }

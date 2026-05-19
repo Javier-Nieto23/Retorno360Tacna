@@ -46,7 +46,7 @@ namespace Retorno360Tacna.FORMS
 
         private void ConfigurarDataGridView()
         {
-            dgvDetalles.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            dgvDetalles.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dgvDetalles.AutoGenerateColumns = false;
             dgvDetalles.AllowUserToAddRows = false;
             dgvDetalles.AllowUserToDeleteRows = false;
@@ -58,7 +58,7 @@ namespace Retorno360Tacna.FORMS
             dgvDetalles.RowHeadersVisible = false;
             dgvDetalles.EnableHeadersVisualStyles = false;
             dgvDetalles.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
-            dgvDetalles.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(41, 128, 185);
+            dgvDetalles.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(46, 204, 113);
             dgvDetalles.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             dgvDetalles.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             dgvDetalles.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
@@ -68,10 +68,10 @@ namespace Retorno360Tacna.FORMS
 
             dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
             {
-                Name = "NoPartePadre",
+                Name = "Par_NoParte",
                 HeaderText = "NO. PARTE",
-                DataPropertyName = "NoPartePadre",
-                Width = 180
+                DataPropertyName = "Par_NoParte",
+                FillWeight = 20
             });
 
             dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
@@ -79,92 +79,33 @@ namespace Retorno360Tacna.FORMS
                 Name = "Par_DescripcionEsp",
                 HeaderText = "DESCRIPCIÓN",
                 DataPropertyName = "Par_DescripcionEsp",
-                Width = 300
+                FillWeight = 50
             });
 
             dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
             {
-                Name = "TotalComponentes",
-                HeaderText = "TOTAL",
-                DataPropertyName = "TotalComponentes",
-                Width = 80,
+                Name = "Par_InsercionFecha",
+                HeaderText = "FECHA INSERCIÓN",
+                DataPropertyName = "Par_InsercionFecha",
+                FillWeight = 15,
                 DefaultCellStyle = new DataGridViewCellStyle 
                 { 
                     Alignment = DataGridViewContentAlignment.MiddleCenter,
-                    Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+                    Format = "dd/MM/yyyy"
                 }
             });
 
             dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
             {
-                Name = "TotalSUB",
-                HeaderText = "SUB",
-                DataPropertyName = "TotalSUB",
-                Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
-            });
-
-            dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "TotalMP",
-                HeaderText = "MP",
-                DataPropertyName = "TotalMP",
-                Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
-            });
-
-            dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "TotalEQ",
-                HeaderText = "EQ",
-                DataPropertyName = "TotalEQ",
-                Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
-            });
-
-            dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "TotalRT",
-                HeaderText = "RT",
-                DataPropertyName = "TotalRT",
-                Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
-            });
-
-            dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "TotalEMP",
-                HeaderText = "EMP",
-                DataPropertyName = "TotalEMP",
-                Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
-            });
-
-            dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "TotalMAQ",
-                HeaderText = "MAQ",
-                DataPropertyName = "TotalMAQ",
-                Width = 70,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
-            });
-
-            dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "TotalOtros",
-                HeaderText = "OTROS",
-                DataPropertyName = "TotalOtros",
-                Width = 80,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
-            });
-
-            dgvDetalles.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "EstatusBOM",
-                HeaderText = "ESTATUS BOM",
-                DataPropertyName = "EstatusBOM",
-                Width = 180,
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                Name = "ExisteEnBOM",
+                HeaderText = "EN BOM",
+                DataPropertyName = "ExisteEnBOM",
+                FillWeight = 15,
+                DefaultCellStyle = new DataGridViewCellStyle 
+                { 
+                    Alignment = DataGridViewContentAlignment.MiddleCenter,
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+                }
             });
         }
 
@@ -195,11 +136,10 @@ namespace Retorno360Tacna.FORMS
         private void ActualizarResumen()
         {
             int totalPartes = detallesActuales.Count;
-            int totalComponentes = detallesActuales.Sum(d => d.TotalComponentes);
-            int conBOM = detallesActuales.Count(d => d.EstatusBOM == "SI TIENE COMPONENTES");
-            int sinBOM = detallesActuales.Count(d => d.EstatusBOM == "NO TIENE COMPONENTES");
+            int enBOM = detallesActuales.Count(d => d.ExisteEnBOM == "SI");
+            int noEnBOM = detallesActuales.Count(d => d.ExisteEnBOM == "NO");
 
-            lblResumen.Text = $"Total Partes: {totalPartes:N0} | Total Componentes: {totalComponentes:N0} | Con BOM: {conBOM:N0} | Sin BOM: {sinBOM:N0}";
+            lblResumen.Text = $"Total Partes MP: {totalPartes:N0} | En BOM: {enBOM:N0} | No en BOM: {noEnBOM:N0}";
         }
 
         private void txtBuscar_TextChanged(object sender, EventArgs e)
@@ -217,17 +157,17 @@ namespace Retorno360Tacna.FORMS
                 else
                 {
                     var filtrados = detallesActuales.Where(d =>
-                        d.NoPartePadre.ToLower().Contains(filtro) ||
+                        d.Par_NoParte.ToLower().Contains(filtro) ||
                         d.Par_DescripcionEsp.ToLower().Contains(filtro) ||
-                        d.EstatusBOM.ToLower().Contains(filtro)
+                        d.ExisteEnBOM.ToLower().Contains(filtro)
                     ).ToList();
 
                     dgvDetalles.DataSource = null;
                     dgvDetalles.DataSource = filtrados;
 
                     int totalPartes = filtrados.Count;
-                    int totalComponentes = filtrados.Sum(d => d.TotalComponentes);
-                    lblResumen.Text = $"Mostrando: {totalPartes:N0} de {detallesActuales.Count:N0} | Componentes: {totalComponentes:N0}";
+                    int enBOM = filtrados.Count(d => d.ExisteEnBOM == "SI");
+                    lblResumen.Text = $"Mostrando: {totalPartes:N0} de {detallesActuales.Count:N0} | En BOM: {enBOM:N0}";
                 }
             }
             catch (Exception ex)

@@ -39,7 +39,7 @@ namespace Retorno360Tacna.FORMS
             lblTitulo.Name = "lblTitulo";
             lblTitulo.Size = new Size(298, 21);
             lblTitulo.TabIndex = 0;
-            lblTitulo.Text = "Detalle de Componentes - BOM";
+            lblTitulo.Text = "Detalle de Partes MP - BOM";
             // 
             // dgvDetalles
             // 
@@ -61,7 +61,7 @@ namespace Retorno360Tacna.FORMS
             // 
             // panelHeader
             // 
-            panelHeader.BackColor = Color.FromArgb(41, 128, 185);
+            panelHeader.BackColor = Color.FromArgb(46, 204, 113);
             panelHeader.Controls.Add(btnCerrar);
             panelHeader.Controls.Add(lblTitulo);
             panelHeader.Dock = DockStyle.Top;

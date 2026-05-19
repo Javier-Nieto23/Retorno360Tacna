@@ -231,50 +231,27 @@ namespace Retorno360Tacna.SERVICES
 
             string query = @"
                 SELECT 
-                    cp.Par_NoParte AS NoPartePadre,
+                    cp.Par_NoParte,
                     cp.Par_DescripcionEsp,
                     cp.Par_InsercionFecha,
 
-                    MIN(cb.Bom_FechaIni) AS Bom_FechaInicio,
-                    MAX(cb.Bom_FechaFin) AS Bom_FechaFin,
-
-                    COUNT(cb.Par_NoParteHijo) AS TotalComponentes,
-
-                    SUM(CASE WHEN cp.Tim_Clave = 'SUB' THEN 1 ELSE 0 END) AS TotalSUB,
-                    SUM(CASE WHEN cp.Tim_Clave = 'MP'  THEN 1 ELSE 0 END) AS TotalMP,
-                    SUM(CASE WHEN cp.Tim_Clave = 'EQ'  THEN 1 ELSE 0 END) AS TotalEQ,
-                    SUM(CASE WHEN cp.Tim_Clave = 'RT'  THEN 1 ELSE 0 END) AS TotalRT,
-                    SUM(CASE WHEN cp.Tim_Clave = 'EMP' THEN 1 ELSE 0 END) AS TotalEMP,
-                    SUM(CASE WHEN cp.Tim_Clave = 'MAQ' THEN 1 ELSE 0 END) AS TotalMAQ,
-
-                    SUM(CASE 
-                            WHEN cp.Tim_Clave NOT IN ('SUB','MP','EQ','RT','EMP','MAQ') 
-                                 OR cp.Tim_Clave IS NULL
-                            THEN 1 
-                            ELSE 0 
-                        END) AS TotalOtros,
-
                     CASE 
-                        WHEN COUNT(cb.Par_NoParteHijo) > 0 
-                            THEN 'SI TIENE COMPONENTES'
-                        ELSE 'NO TIENE COMPONENTES'
-                    END AS EstatusBOM
+                        WHEN cb.Par_Padre IS NOT NULL 
+                            THEN 'SI'
+                        ELSE 'NO'
+                    END AS ExisteEnBOM
 
-                FROM Ca_Parte AS cp
+                FROM Ca_Parte cp
 
-                LEFT JOIN Ca_Bom AS cb
+                LEFT JOIN Ca_Bom cb
                     ON cp.Par_Consecutivo = cb.Par_Padre
 
                 WHERE 
-                    cp.Par_InsercionFecha BETWEEN @FechaInicio AND @FechaFin
-
-                GROUP BY 
-                    cp.Par_NoParte,
-                    cp.Par_DescripcionEsp,
-                    cp.Par_InsercionFecha
+                    cp.Tim_Clave = 'MP'
+                    AND cp.Par_InsercionFecha BETWEEN @FechaInicio AND @FechaFin
 
                 ORDER BY 
-                    TotalComponentes DESC";
+                    cp.Par_NoParte";
 
             try
             {
@@ -320,20 +297,10 @@ namespace Retorno360Tacna.SERVICES
                             {
                                 var parte = new ParteBOM
                                 {
-                                    NoPartePadre = reader["NoPartePadre"]?.ToString() ?? string.Empty,
+                                    Par_NoParte = reader["Par_NoParte"]?.ToString() ?? string.Empty,
                                     Par_DescripcionEsp = reader["Par_DescripcionEsp"]?.ToString() ?? string.Empty,
                                     Par_InsercionFecha = reader["Par_InsercionFecha"] as DateTime?,
-                                    Bom_FechaInicio = reader["Bom_FechaInicio"] as DateTime?,
-                                    Bom_FechaFin = reader["Bom_FechaFin"] as DateTime?,
-                                    TotalComponentes = reader["TotalComponentes"] != DBNull.Value ? Convert.ToInt32(reader["TotalComponentes"]) : 0,
-                                    TotalSUB = reader["TotalSUB"] != DBNull.Value ? Convert.ToInt32(reader["TotalSUB"]) : 0,
-                                    TotalMP = reader["TotalMP"] != DBNull.Value ? Convert.ToInt32(reader["TotalMP"]) : 0,
-                                    TotalEQ = reader["TotalEQ"] != DBNull.Value ? Convert.ToInt32(reader["TotalEQ"]) : 0,
-                                    TotalRT = reader["TotalRT"] != DBNull.Value ? Convert.ToInt32(reader["TotalRT"]) : 0,
-                                    TotalEMP = reader["TotalEMP"] != DBNull.Value ? Convert.ToInt32(reader["TotalEMP"]) : 0,
-                                    TotalMAQ = reader["TotalMAQ"] != DBNull.Value ? Convert.ToInt32(reader["TotalMAQ"]) : 0,
-                                    TotalOtros = reader["TotalOtros"] != DBNull.Value ? Convert.ToInt32(reader["TotalOtros"]) : 0,
-                                    EstatusBOM = reader["EstatusBOM"]?.ToString() ?? string.Empty
+                                    ExisteEnBOM = reader["ExisteEnBOM"]?.ToString() ?? string.Empty
                                 };
 
                                 partes.Add(parte);
@@ -350,48 +317,96 @@ namespace Retorno360Tacna.SERVICES
             return partes;
         }
 
-        public DataTable ConvertirADataTable(List<ParteBOM> partes)
-        {
-            DataTable dt = new DataTable();
-
-            dt.Columns.Add("NO PARTE", typeof(string));
-            dt.Columns.Add("DESCRIPCIÓN", typeof(string));
-            dt.Columns.Add("FECHA INSERCIÓN", typeof(DateTime));
-            dt.Columns.Add("BOM INICIO", typeof(DateTime));
-            dt.Columns.Add("BOM FIN", typeof(DateTime));
-            dt.Columns.Add("TOTAL COMPONENTES", typeof(int));
-            dt.Columns.Add("SUB", typeof(int));
-            dt.Columns.Add("MP", typeof(int));
-            dt.Columns.Add("EQ", typeof(int));
-            dt.Columns.Add("RT", typeof(int));
-            dt.Columns.Add("OTROS", typeof(int));
-            dt.Columns.Add("ESTATUS BOM", typeof(string));
-
-            foreach (var parte in partes)
-            {
-                DataRow row = dt.NewRow();
-                row["NO PARTE"] = parte.NoPartePadre;
-                row["DESCRIPCIÓN"] = parte.Par_DescripcionEsp;
-                row["FECHA INSERCIÓN"] = parte.Par_InsercionFecha.HasValue ? (object)parte.Par_InsercionFecha.Value : DBNull.Value;
-                row["BOM INICIO"] = parte.Bom_FechaInicio.HasValue ? (object)parte.Bom_FechaInicio.Value : DBNull.Value;
-                row["BOM FIN"] = parte.Bom_FechaFin.HasValue ? (object)parte.Bom_FechaFin.Value : DBNull.Value;
-                row["TOTAL COMPONENTES"] = parte.TotalComponentes;
-                row["SUB"] = parte.TotalSUB;
-                row["MP"] = parte.TotalMP;
-                row["EQ"] = parte.TotalEQ;
-                row["RT"] = parte.TotalRT;
-                row["OTROS"] = parte.TotalOtros;
-                row["ESTATUS BOM"] = parte.EstatusBOM;
-
-                dt.Rows.Add(row);
-            }
-
-            return dt;
-        }
-
         public List<DetalleComponente> ObtenerDetalleComponentes(string nombreBaseDatos, DateTime fechaInicio, DateTime fechaFin)
         {
             var detalles = new List<DetalleComponente>();
+
+            string query = @"
+                SELECT 
+                    cp.Par_NoParte,
+                    cp.Par_DescripcionEsp,
+                    cp.Par_InsercionFecha,
+
+                    CASE 
+                        WHEN cb.Par_Padre IS NOT NULL 
+                            THEN 'SI'
+                        ELSE 'NO'
+                    END AS ExisteEnBOM
+
+                FROM Ca_Parte cp
+
+                LEFT JOIN Ca_Bom cb
+                    ON cp.Par_Consecutivo = cb.Par_Padre
+
+                WHERE 
+                    cp.Tim_Clave = 'MP'
+                    AND cp.Par_InsercionFecha BETWEEN @FechaInicio AND @FechaFin
+
+                ORDER BY 
+                    cp.Par_NoParte";
+
+            try
+            {
+                var infoConexion = ObtenerConexionExterna(nombreBaseDatos);
+                Conexion conexion;
+
+                if (infoConexion.UsarConexionPrincipal)
+                {
+                    conexion = new Conexion(
+                        conexionInfo.Servidor ?? string.Empty,
+                        conexionInfo.UsuarioSQL ?? string.Empty,
+                        conexionInfo.PasswordSQL ?? string.Empty,
+                        nombreBaseDatos
+                    );
+                }
+                else
+                {
+                    conexion = new Conexion(
+                        infoConexion.Servidor ?? string.Empty,
+                        infoConexion.UsuarioSQL ?? string.Empty,
+                        infoConexion.PasswordSQL ?? string.Empty,
+                        nombreBaseDatos
+                    );
+                }
+
+                using (SqlConnection conn = conexion.ObtenerConexion())
+                {
+                    conn.Open();
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
+                        cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var detalle = new DetalleComponente
+                                {
+                                    Par_NoParte = reader["Par_NoParte"]?.ToString() ?? string.Empty,
+                                    Par_DescripcionEsp = reader["Par_DescripcionEsp"]?.ToString() ?? string.Empty,
+                                    Par_InsercionFecha = reader["Par_InsercionFecha"] as DateTime?,
+                                    ExisteEnBOM = reader["ExisteEnBOM"]?.ToString() ?? string.Empty
+                                };
+
+                                detalles.Add(detalle);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al obtener detalle de componentes: {ex.Message}", ex);
+            }
+
+            return detalles;
+        }
+
+        public List<ParteBOMCompleto> ObtenerCatalogoBOMCompleto(string nombreBaseDatos, DateTime fechaInicio, DateTime fechaFin)
+        {
+            var partes = new List<ParteBOMCompleto>();
 
             string query = @"
                 SELECT 
@@ -405,14 +420,11 @@ namespace Retorno360Tacna.SERVICES
                     COUNT(cb.Par_NoParteHijo) AS TotalComponentes,
 
                     SUM(CASE WHEN cp_hijo.Tim_Clave = 'SUB' THEN 1 ELSE 0 END) AS TotalSUB,
-                    SUM(CASE WHEN cp_hijo.Tim_Clave = 'MP'  THEN 1 ELSE 0 END) AS TotalMP,
                     SUM(CASE WHEN cp_hijo.Tim_Clave = 'EQ'  THEN 1 ELSE 0 END) AS TotalEQ,
                     SUM(CASE WHEN cp_hijo.Tim_Clave = 'RT'  THEN 1 ELSE 0 END) AS TotalRT,
-                    SUM(CASE WHEN cp_hijo.Tim_Clave = 'EMP' THEN 1 ELSE 0 END) AS TotalEMP,
-                    SUM(CASE WHEN cp_hijo.Tim_Clave = 'MAQ' THEN 1 ELSE 0 END) AS TotalMAQ,
 
                     SUM(CASE 
-                            WHEN cp_hijo.Tim_Clave NOT IN ('SUB','MP','EQ','RT','EMP','MAQ') 
+                            WHEN cp_hijo.Tim_Clave NOT IN ('SUB','EQ','RT') 
                                  OR cp_hijo.Tim_Clave IS NULL
                             THEN 1 
                             ELSE 0 
@@ -480,22 +492,22 @@ namespace Retorno360Tacna.SERVICES
                         {
                             while (reader.Read())
                             {
-                                var detalle = new DetalleComponente
+                                var parte = new ParteBOMCompleto
                                 {
                                     NoPartePadre = reader["NoPartePadre"]?.ToString() ?? string.Empty,
                                     Par_DescripcionEsp = reader["Par_DescripcionEsp"]?.ToString() ?? string.Empty,
+                                    Par_InsercionFecha = reader["Par_InsercionFecha"] as DateTime?,
+                                    Bom_FechaInicio = reader["Bom_FechaInicio"] as DateTime?,
+                                    Bom_FechaFin = reader["Bom_FechaFin"] as DateTime?,
                                     TotalComponentes = reader["TotalComponentes"] != DBNull.Value ? Convert.ToInt32(reader["TotalComponentes"]) : 0,
                                     TotalSUB = reader["TotalSUB"] != DBNull.Value ? Convert.ToInt32(reader["TotalSUB"]) : 0,
-                                    TotalMP = reader["TotalMP"] != DBNull.Value ? Convert.ToInt32(reader["TotalMP"]) : 0,
                                     TotalEQ = reader["TotalEQ"] != DBNull.Value ? Convert.ToInt32(reader["TotalEQ"]) : 0,
                                     TotalRT = reader["TotalRT"] != DBNull.Value ? Convert.ToInt32(reader["TotalRT"]) : 0,
-                                    TotalEMP = reader["TotalEMP"] != DBNull.Value ? Convert.ToInt32(reader["TotalEMP"]) : 0,
-                                    TotalMAQ = reader["TotalMAQ"] != DBNull.Value ? Convert.ToInt32(reader["TotalMAQ"]) : 0,
                                     TotalOtros = reader["TotalOtros"] != DBNull.Value ? Convert.ToInt32(reader["TotalOtros"]) : 0,
                                     EstatusBOM = reader["EstatusBOM"]?.ToString() ?? string.Empty
                                 };
 
-                                detalles.Add(detalle);
+                                partes.Add(parte);
                             }
                         }
                     }
@@ -503,10 +515,10 @@ namespace Retorno360Tacna.SERVICES
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error al obtener detalle de componentes: {ex.Message}", ex);
+                throw new Exception($"Error al obtener catálogo BOM completo: {ex.Message}", ex);
             }
 
-            return detalles;
+            return partes;
         }
     }
 }

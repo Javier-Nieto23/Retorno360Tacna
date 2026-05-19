@@ -316,7 +316,7 @@ namespace Retorno360Tacna.FORMS
             btnToggleSidebar.FlatStyle = FlatStyle.Flat;
             btnToggleSidebar.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
             btnToggleSidebar.ForeColor = Color.White;
-            btnToggleSidebar.Image = Properties.Resources.ui_interface_list_navigation_menu_switcher_icon_219789;
+            btnToggleSidebar.Image = Properties.Resources.Menu_Icon_icon_icons_com_69140;
             btnToggleSidebar.ImageAlign = ContentAlignment.MiddleRight;
             btnToggleSidebar.Location = new Point(0, 0);
             btnToggleSidebar.Name = "btnToggleSidebar";

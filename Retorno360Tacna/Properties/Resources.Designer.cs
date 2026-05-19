@@ -283,6 +283,16 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Menu_Icon_icon_icons_com_69140 {
+            get {
+                object obj = ResourceManager.GetObject("Menu_Icon_icon-icons.com_69140", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap monitor_40526 {
             get {
                 object obj = ResourceManager.GetObject("monitor_40526", resourceCulture);
