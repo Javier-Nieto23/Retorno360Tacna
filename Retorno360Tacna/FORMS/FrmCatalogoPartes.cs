@@ -34,19 +34,7 @@ namespace Retorno360Tacna.FORMS
         private void FrmCatalogoPartes_Load(object sender, EventArgs e)
         {
             CargarRazonesSociales();
-            CargarTiposClave();
             lblTotalPartes.Text = "Total de partes: 0";
-        }
-
-        private void CargarTiposClave()
-        {
-            cboTipoClave.Items.Clear();
-            cboTipoClave.Items.Add("MP");
-            cboTipoClave.Items.Add("EQ");
-            cboTipoClave.Items.Add("MAQ");
-            cboTipoClave.Items.Add("SUB");
-            cboTipoClave.Items.Add("RT");
-            cboTipoClave.SelectedIndex = 0;
         }
 
         private void CargarRazonesSociales()
@@ -150,15 +138,7 @@ namespace Retorno360Tacna.FORMS
                 return;
             }
 
-            if (cboTipoClave.SelectedItem == null)
-            {
-                MessageBox.Show("Por favor seleccione un tipo de clave.",
-                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
             string baseDatos = cboBaseDatos.SelectedItem.ToString();
-            string tipoClave = cboTipoClave.SelectedItem.ToString();
             DateTime fechaInicio = dtpFechaInicio.Value;
             DateTime fechaFin = dtpFechaFin.Value;
 
@@ -169,7 +149,7 @@ namespace Retorno360Tacna.FORMS
                 return;
             }
 
-            await ConsultarMateriaPrimaAsync(baseDatos, tipoClave, fechaInicio, fechaFin);
+            await ConsultarMateriaPrimaAsync(baseDatos, "MP", fechaInicio, fechaFin);
         }
 
         private async Task ConsultarMateriaPrimaAsync(string baseDatos, string tipoClave, DateTime fechaInicio, DateTime fechaFin)
@@ -564,6 +544,108 @@ namespace Retorno360Tacna.FORMS
             using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
             {
                 return data.ToArray();
+            }
+        }
+
+        private async void btnGraficaIndividual_Click(object sender, EventArgs e)
+        {
+            if (cboBaseDatos.SelectedItem == null)
+            {
+                MessageBox.Show("Por favor seleccione una base de datos primero.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string baseDatos = cboBaseDatos.SelectedItem.ToString();
+            DateTime fechaInicio = dtpFechaInicio.Value;
+            DateTime fechaFin = dtpFechaFin.Value;
+
+            if (fechaInicio > fechaFin)
+            {
+                MessageBox.Show("La fecha de inicio no puede ser mayor que la fecha fin.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await ConsultarMateriaPrimaAsync(baseDatos, "MP", fechaInicio, fechaFin);
+        }
+
+        private async void btnGraficaTodos_Click(object sender, EventArgs e)
+        {
+            if (cboBaseDatos.SelectedItem == null)
+            {
+                MessageBox.Show("Por favor seleccione una base de datos primero.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string baseDatos = cboBaseDatos.SelectedItem.ToString();
+            DateTime fechaInicio = dtpFechaInicio.Value;
+            DateTime fechaFin = dtpFechaFin.Value;
+
+            if (fechaInicio > fechaFin)
+            {
+                MessageBox.Show("La fecha de inicio no puede ser mayor que la fecha fin.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await ConsultarMateriaPrimaMultipleAsync(baseDatos, fechaInicio, fechaFin);
+        }
+
+        private async Task ConsultarMateriaPrimaMultipleAsync(string baseDatos, DateTime fechaInicio, DateTime fechaFin)
+        {
+            try
+            {
+                MostrarPanelCargando(true);
+                btnConsultar.Enabled = false;
+                btnGraficaTodos.Enabled = false;
+                btnGraficaIndividual.Enabled = false;
+
+                // Pequeño delay para asegurar que la UI se actualice
+                await Task.Delay(50);
+
+                var resultado = await Task.Run(() =>
+                    catalogoService.ObtenerMateriaPrimaBOMMultiple(baseDatos, fechaInicio, fechaFin));
+
+                // Guardar los datos consultados para exportar
+                datosConsultados = resultado;
+
+                dgvMateriaPrima.DataSource = resultado;
+
+                if (dgvMateriaPrima.Columns.Count > 0)
+                {
+                    dgvMateriaPrima.Columns["Par_NoParte"].HeaderText = "Número de Parte";
+                    dgvMateriaPrima.Columns["Par_DescripcionEsp"].HeaderText = "Descripción";
+                    dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
+                    dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
+
+                    // Mostrar la columna Clave para este caso
+                    dgvMateriaPrima.Columns["Clave"].Visible = true;
+                    dgvMateriaPrima.Columns["Clave"].HeaderText = "Tipo";
+
+                    dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
+                }
+
+                ActualizarGrafico(resultado);
+
+                // Actualizar el total de partes
+                lblTotalPartes.Text = $"Total de partes: {resultado.Count:N0}";
+
+                // Habilitar el botón de exportar PDF
+                btnExportarPdf.Enabled = resultado.Count > 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al consultar partes:\n{ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                MostrarPanelCargando(false);
+                btnConsultar.Enabled = true;
+                btnGraficaTodos.Enabled = true;
+                btnGraficaIndividual.Enabled = true;
             }
         }
     }

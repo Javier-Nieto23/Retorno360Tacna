@@ -1,5 +1,6 @@
 ﻿using Retorno360Tacna.MODELS;
 using Retorno360Tacna.CNX;
+using System.Runtime.InteropServices;
 
 namespace Retorno360Tacna.FORMS
 {
@@ -14,9 +15,17 @@ namespace Retorno360Tacna.FORMS
         private const int ANCHO_SIDEBAR_EXPANDIDO = 250;
         private const int ANCHO_SIDEBAR_COLAPSADO = 60;
 
+        // Importar funciones de Windows para personalizar la barra de título
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        private const int DWMWA_CAPTION_COLOR = 35;
+
         public MainMenu()
         {
             InitializeComponent();
+            PersonalizarBarraTitulo();
         }
 
         public MainMenu(Usuario usuario, ConexionInfo conexion)
@@ -25,6 +34,17 @@ namespace Retorno360Tacna.FORMS
             usuarioActual = usuario;
             conexionActual = conexion;
             InicializarMenuDesplegable();
+            PersonalizarBarraTitulo();
+        }
+
+        private void PersonalizarBarraTitulo()
+        {
+            if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
+            {
+                // Color azul oscuro RGB(44, 62, 80) convertido a formato BGR para Windows API
+                int colorBGR = 0x00503E2C; // 80, 62, 44 en hexadecimal BGR
+                DwmSetWindowAttribute(this.Handle, DWMWA_CAPTION_COLOR, ref colorBGR, sizeof(int));
+            }
         }
 
         private void InicializarMenuDesplegable()
@@ -39,6 +59,9 @@ namespace Retorno360Tacna.FORMS
 
         private void MainMenu_Load(object sender, EventArgs e)
         {
+            // Aplicar color personalizado a la barra de título
+            PersonalizarBarraTitulo();
+
             // Aplicar escalado de UI
             decimal escala = SERVICES.ConfiguracionService.ObtenerEscalaUI();
             if (escala != 1.0m)
@@ -138,11 +161,18 @@ namespace Retorno360Tacna.FORMS
                 // Colapsar sidebar
                 panelSidebar.Width = ANCHO_SIDEBAR_COLAPSADO;
 
-                // Ocultar sub-menú si está expandido
+                // Ocultar sub-menú de Administración si está expandido
                 if (menuAdminExpandido)
                 {
                     panelSubMenuAdmin.Visible = false;
                     menuAdminExpandido = false;
+                }
+
+                // Ocultar sub-menú de Inventarios si está expandido
+                if (menuInventariosExpandido)
+                {
+                    panelSubMenuInventarios.Visible = false;
+                    menuInventariosExpandido = false;
                 }
 
                 // Ocultar textos de botones principales
@@ -203,6 +233,12 @@ namespace Retorno360Tacna.FORMS
             lblTitulo.Text = "Catálogo de Partes";
             LimpiarPanel();
 
+            // Colapsar sidebar automáticamente al seleccionar una opción del submenú
+            if (!sidebarColapsado)
+            {
+                btnToggleSidebar_Click(sender, e);
+            }
+
             if (conexionActual != null)
             {
                 FrmCatalogoPartes frmCatalogo = new FrmCatalogoPartes(conexionActual)
@@ -227,6 +263,12 @@ namespace Retorno360Tacna.FORMS
             lblTitulo.Text = "Cálculo de IGI Pagado";
             LimpiarPanel();
 
+            // Colapsar sidebar automáticamente al seleccionar una opción del submenú
+            if (!sidebarColapsado)
+            {
+                btnToggleSidebar_Click(sender, e);
+            }
+
             if (conexionActual != null)
             {
                 FrmReportes frmReportes = new FrmReportes(conexionActual)
@@ -250,6 +292,12 @@ namespace Retorno360Tacna.FORMS
             ActivarBoton(btnSubMenuPorcentaje);
             lblTitulo.Text = "Gestión de Retorno";
             LimpiarPanel();
+
+            // Colapsar sidebar automáticamente al seleccionar una opción del submenú
+            if (!sidebarColapsado)
+            {
+                btnToggleSidebar_Click(sender, e);
+            }
 
             if (conexionActual != null)
             {

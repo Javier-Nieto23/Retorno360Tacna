@@ -244,5 +244,120 @@ namespace Retorno360Tacna.SERVICES
 
             return materiaPrima;
         }
+
+        public List<MateriaPrimaBOM> ObtenerMateriaPrimaBOMMultiple(string nombreBaseDatos, DateTime fechaInicio, DateTime fechaFin)
+        {
+            var materiaPrima = new List<MateriaPrimaBOM>();
+
+            string query = @"
+                -- Tabla temporal con componentes vigentes en BOM
+                DECLARE @componentesVigentesenbom TABLE (
+                    componente VARCHAR(100)
+                );
+
+                INSERT INTO @componentesVigentesenbom (componente)
+                SELECT DISTINCT par_nopartehijo 
+                FROM ca_bom WITH (NOLOCK)
+                WHERE GETDATE() BETWEEN bom_fechaini AND bom_fechafin;
+
+                -- Variables de fecha
+                DECLARE @FechaInicio DATE = @ParamFechaInicio;
+                DECLARE @FechaFin DATE = @ParamFechaFin;
+
+                -- Consulta principal con múltiples tipos de clave
+                SELECT 
+                    cp.Par_NoParte,
+                    cp.Par_DescripcionEsp,
+                    cp.Tim_Clave AS Clave,
+                    cp.Par_InsercionFecha,
+                    CASE 
+                        WHEN cp.Par_NoParte IN (SELECT componente FROM @componentesVigentesenbom)
+                        THEN 'VIGENTE EN BOM'
+                        ELSE 'NO ESTA EN BOM'
+                    END AS EstatusComponente
+                FROM Ca_Parte AS cp WITH (NOLOCK)
+                WHERE 
+                    cp.Tim_Clave IN ('EQ','MAQ','SUB','RT')
+                    AND cp.Par_InsercionFecha BETWEEN @FechaInicio AND @FechaFin
+                ORDER BY 
+                    cp.Par_InsercionFecha,
+                    cp.Par_NoParte
+                OPTION (MAXDOP 4)";
+
+            ConexionExternaInfo? infoConexion = null;
+
+            try
+            {
+                infoConexion = ObtenerConexionExterna(nombreBaseDatos);
+                Conexion conexion;
+
+                if (infoConexion.UsarConexionPrincipal)
+                {
+                    conexion = new Conexion(
+                        conexionPrincipal.Servidor ?? string.Empty,
+                        conexionPrincipal.UsuarioSQL ?? string.Empty,
+                        conexionPrincipal.PasswordSQL ?? string.Empty,
+                        nombreBaseDatos
+                    );
+                }
+                else
+                {
+                    conexion = new Conexion(
+                        infoConexion.Servidor ?? string.Empty,
+                        infoConexion.UsuarioSQL ?? string.Empty,
+                        infoConexion.PasswordSQL ?? string.Empty,
+                        nombreBaseDatos
+                    );
+                }
+
+                using (SqlConnection conn = conexion.ObtenerConexion())
+                {
+                    conn.Open();
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.CommandTimeout = 300;
+
+                        // Agregar parámetros de fecha
+                        cmd.Parameters.AddWithValue("@ParamFechaInicio", fechaInicio.Date);
+                        cmd.Parameters.AddWithValue("@ParamFechaFin", fechaFin.Date);
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var mp = new MateriaPrimaBOM
+                                {
+                                    Par_NoParte = reader["Par_NoParte"]?.ToString() ?? string.Empty,
+                                    Par_DescripcionEsp = reader["Par_DescripcionEsp"]?.ToString() ?? string.Empty,
+                                    Clave = reader["Clave"]?.ToString() ?? string.Empty,
+                                    Par_InsercionFecha = reader["Par_InsercionFecha"] == DBNull.Value ? null : (DateTime?)reader["Par_InsercionFecha"],
+                                    EstatusComponente = reader["EstatusComponente"]?.ToString() ?? string.Empty
+                                };
+
+                                materiaPrima.Add(mp);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (SqlException sqlEx)
+            {
+                string servidor = infoConexion?.UsarConexionPrincipal == true 
+                    ? conexionPrincipal.Servidor ?? "desconocido"
+                    : infoConexion?.Servidor ?? "desconocido";
+
+                string mensajeError = sqlEx.Number == -2 
+                    ? $"Timeout al conectar con el servidor '{servidor}'. Verifica que el servidor esté disponible y accesible."
+                    : $"Error de SQL al obtener materia prima BOM: {sqlEx.Message}";
+                throw new Exception(mensajeError, sqlEx);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al obtener materia prima BOM: {ex.Message}", ex);
+            }
+
+            return materiaPrima;
+        }
     }
 }
