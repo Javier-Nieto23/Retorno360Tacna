@@ -23,6 +23,8 @@ namespace Retorno360Tacna.FORMS
             cboRazonSocial = new ComboBox();
             lblBaseDatos = new Label();
             cboBaseDatos = new ComboBox();
+            lblTipoClave = new Label();
+            cboTipoClave = new ComboBox();
             lblFechaInicio = new Label();
             dtpFechaInicio = new DateTimePicker();
             lblFechaFin = new Label();
@@ -52,6 +54,8 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.Controls.Add(cboRazonSocial);
             panelFiltros.Controls.Add(lblBaseDatos);
             panelFiltros.Controls.Add(cboBaseDatos);
+            panelFiltros.Controls.Add(lblTipoClave);
+            panelFiltros.Controls.Add(cboTipoClave);
             panelFiltros.Controls.Add(lblFechaInicio);
             panelFiltros.Controls.Add(dtpFechaInicio);
             panelFiltros.Controls.Add(lblFechaFin);
@@ -80,7 +84,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblRazonSocial.AutoSize = true;
             lblRazonSocial.Font = new Font("Segoe UI", 9F);
-            lblRazonSocial.Location = new Point(15, 50);
+            lblRazonSocial.Location = new Point(15, 43);
             lblRazonSocial.Name = "lblRazonSocial";
             lblRazonSocial.Size = new Size(76, 15);
             lblRazonSocial.TabIndex = 1;
@@ -90,7 +94,7 @@ namespace Retorno360Tacna.FORMS
             // 
             cboRazonSocial.DropDownStyle = ComboBoxStyle.DropDownList;
             cboRazonSocial.FormattingEnabled = true;
-            cboRazonSocial.Location = new Point(15, 70);
+            cboRazonSocial.Location = new Point(15, 63);
             cboRazonSocial.Name = "cboRazonSocial";
             cboRazonSocial.Size = new Size(250, 23);
             cboRazonSocial.TabIndex = 2;
@@ -100,7 +104,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblBaseDatos.AutoSize = true;
             lblBaseDatos.Font = new Font("Segoe UI", 9F);
-            lblBaseDatos.Location = new Point(280, 50);
+            lblBaseDatos.Location = new Point(280, 43);
             lblBaseDatos.Name = "lblBaseDatos";
             lblBaseDatos.Size = new Size(83, 15);
             lblBaseDatos.TabIndex = 3;
@@ -111,34 +115,53 @@ namespace Retorno360Tacna.FORMS
             cboBaseDatos.DropDownStyle = ComboBoxStyle.DropDownList;
             cboBaseDatos.Enabled = false;
             cboBaseDatos.FormattingEnabled = true;
-            cboBaseDatos.Location = new Point(280, 70);
+            cboBaseDatos.Location = new Point(280, 63);
             cboBaseDatos.Name = "cboBaseDatos";
             cboBaseDatos.Size = new Size(200, 23);
             cboBaseDatos.TabIndex = 4;
+            // 
+            // lblTipoClave
+            // 
+            lblTipoClave.AutoSize = true;
+            lblTipoClave.Font = new Font("Segoe UI", 9F);
+            lblTipoClave.Location = new Point(15, 95);
+            lblTipoClave.Name = "lblTipoClave";
+            lblTipoClave.Size = new Size(33, 15);
+            lblTipoClave.TabIndex = 5;
+            lblTipoClave.Text = "Tipo:";
+            // 
+            // cboTipoClave
+            // 
+            cboTipoClave.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboTipoClave.FormattingEnabled = true;
+            cboTipoClave.Location = new Point(60, 92);
+            cboTipoClave.Name = "cboTipoClave";
+            cboTipoClave.Size = new Size(100, 23);
+            cboTipoClave.TabIndex = 6;
             // 
             // lblFechaInicio
             // 
             lblFechaInicio.AutoSize = true;
             lblFechaInicio.Font = new Font("Segoe UI", 9F);
-            lblFechaInicio.Location = new Point(495, 50);
+            lblFechaInicio.Location = new Point(504, 22);
             lblFechaInicio.Name = "lblFechaInicio";
             lblFechaInicio.Size = new Size(73, 15);
-            lblFechaInicio.TabIndex = 5;
+            lblFechaInicio.TabIndex = 7;
             lblFechaInicio.Text = "Fecha Inicio:";
             // 
             // dtpFechaInicio
             // 
             dtpFechaInicio.Format = DateTimePickerFormat.Short;
-            dtpFechaInicio.Location = new Point(495, 70);
+            dtpFechaInicio.Location = new Point(504, 42);
             dtpFechaInicio.Name = "dtpFechaInicio";
             dtpFechaInicio.Size = new Size(120, 23);
-            dtpFechaInicio.TabIndex = 6;
+            dtpFechaInicio.TabIndex = 8;
             // 
             // lblFechaFin
             // 
             lblFechaFin.AutoSize = true;
             lblFechaFin.Font = new Font("Segoe UI", 9F);
-            lblFechaFin.Location = new Point(630, 50);
+            lblFechaFin.Location = new Point(639, 22);
             lblFechaFin.Name = "lblFechaFin";
             lblFechaFin.Size = new Size(60, 15);
             lblFechaFin.TabIndex = 7;
@@ -147,7 +170,7 @@ namespace Retorno360Tacna.FORMS
             // dtpFechaFin
             // 
             dtpFechaFin.Format = DateTimePickerFormat.Short;
-            dtpFechaFin.Location = new Point(630, 70);
+            dtpFechaFin.Location = new Point(639, 42);
             dtpFechaFin.Name = "dtpFechaFin";
             dtpFechaFin.Size = new Size(120, 23);
             dtpFechaFin.TabIndex = 8;
@@ -196,7 +219,7 @@ namespace Retorno360Tacna.FORMS
             lblTotalPartes.AutoSize = true;
             lblTotalPartes.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblTotalPartes.ForeColor = Color.FromArgb(41, 128, 185);
-            lblTotalPartes.Location = new Point(409, 96);
+            lblTotalPartes.Location = new Point(808, 93);
             lblTotalPartes.Name = "lblTotalPartes";
             lblTotalPartes.Size = new Size(125, 19);
             lblTotalPartes.TabIndex = 10;
@@ -328,5 +351,7 @@ namespace Retorno360Tacna.FORMS
         private Panel panelCargando;
         private Label lblCargando;
         private ProgressBar progressBarCargando;
+        private Label lblTipoClave;
+        private ComboBox cboTipoClave;
     }
 }

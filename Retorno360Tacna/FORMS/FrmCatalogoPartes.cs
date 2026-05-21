@@ -34,7 +34,19 @@ namespace Retorno360Tacna.FORMS
         private void FrmCatalogoPartes_Load(object sender, EventArgs e)
         {
             CargarRazonesSociales();
+            CargarTiposClave();
             lblTotalPartes.Text = "Total de partes: 0";
+        }
+
+        private void CargarTiposClave()
+        {
+            cboTipoClave.Items.Clear();
+            cboTipoClave.Items.Add("MP");
+            cboTipoClave.Items.Add("EQ");
+            cboTipoClave.Items.Add("MAQ");
+            cboTipoClave.Items.Add("SUB");
+            cboTipoClave.Items.Add("RT");
+            cboTipoClave.SelectedIndex = 0;
         }
 
         private void CargarRazonesSociales()
@@ -138,7 +150,15 @@ namespace Retorno360Tacna.FORMS
                 return;
             }
 
+            if (cboTipoClave.SelectedItem == null)
+            {
+                MessageBox.Show("Por favor seleccione un tipo de clave.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             string baseDatos = cboBaseDatos.SelectedItem.ToString();
+            string tipoClave = cboTipoClave.SelectedItem.ToString();
             DateTime fechaInicio = dtpFechaInicio.Value;
             DateTime fechaFin = dtpFechaFin.Value;
 
@@ -149,10 +169,10 @@ namespace Retorno360Tacna.FORMS
                 return;
             }
 
-            await ConsultarMateriaPrimaAsync(baseDatos, fechaInicio, fechaFin);
+            await ConsultarMateriaPrimaAsync(baseDatos, tipoClave, fechaInicio, fechaFin);
         }
 
-        private async Task ConsultarMateriaPrimaAsync(string baseDatos, DateTime fechaInicio, DateTime fechaFin)
+        private async Task ConsultarMateriaPrimaAsync(string baseDatos, string tipoClave, DateTime fechaInicio, DateTime fechaFin)
         {
             try
             {
@@ -163,7 +183,7 @@ namespace Retorno360Tacna.FORMS
                 await Task.Delay(50);
 
                 var resultado = await Task.Run(() =>
-                    catalogoService.ObtenerMateriaPrimaBOM(baseDatos, fechaInicio, fechaFin));
+                    catalogoService.ObtenerMateriaPrimaBOM(baseDatos, tipoClave, fechaInicio, fechaFin));
 
                 // Guardar los datos consultados para exportar
                 datosConsultados = resultado;

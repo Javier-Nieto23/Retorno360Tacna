@@ -129,7 +129,7 @@ namespace Retorno360Tacna.SERVICES
             return conexionExterna;
         }
 
-        public List<MateriaPrimaBOM> ObtenerMateriaPrimaBOM(string nombreBaseDatos, DateTime fechaInicio, DateTime fechaFin)
+        public List<MateriaPrimaBOM> ObtenerMateriaPrimaBOM(string nombreBaseDatos, string tipoClave, DateTime fechaInicio, DateTime fechaFin)
         {
             var materiaPrima = new List<MateriaPrimaBOM>();
 
@@ -161,7 +161,7 @@ namespace Retorno360Tacna.SERVICES
                     END AS EstatusComponente
                 FROM Ca_Parte AS cp WITH (NOLOCK)
                 WHERE 
-                    cp.Tim_Clave = 'MP'
+                    cp.Tim_Clave = @TipoClave
                     AND cp.Par_InsercionFecha BETWEEN @FechaInicio AND @FechaFin
                 ORDER BY 
                     cp.Par_InsercionFecha,
@@ -202,7 +202,8 @@ namespace Retorno360Tacna.SERVICES
                     {
                         cmd.CommandTimeout = 300;
 
-                        // Agregar parámetros de fecha
+                        // Agregar parámetros
+                        cmd.Parameters.AddWithValue("@TipoClave", tipoClave);
                         cmd.Parameters.AddWithValue("@ParamFechaInicio", fechaInicio.Date);
                         cmd.Parameters.AddWithValue("@ParamFechaFin", fechaFin.Date);
 
