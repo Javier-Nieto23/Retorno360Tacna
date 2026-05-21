@@ -10,10 +10,8 @@ namespace Retorno360Tacna.MODELS
         public DateTime? Bom_FechaInicio { get; set; }
         public DateTime? Bom_FechaFin { get; set; }
         public int TotalComponentes { get; set; }
-        public int TotalSUB { get; set; }
-        public int TotalEQ { get; set; }
-        public int TotalRT { get; set; }
-        public int TotalOtros { get; set; }
+        public int ComponentesVigentes { get; set; }
+        public int ComponentesNoVigentes { get; set; }
         public string EstatusBOM { get; set; } = string.Empty;
     }
 }

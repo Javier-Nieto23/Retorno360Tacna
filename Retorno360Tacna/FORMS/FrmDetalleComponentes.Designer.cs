@@ -25,9 +25,17 @@ namespace Retorno360Tacna.FORMS
             txtBuscar = new TextBox();
             lblBuscar = new Label();
             panelBorder = new Panel();
+            panelPaginacion = new Panel();
+            btnPrimeraPagina = new Button();
+            btnPaginaAnterior = new Button();
+            lblPaginaInfo = new Label();
+            btnPaginaSiguiente = new Button();
+            btnUltimaPagina = new Button();
+            lblTotalRegistros = new Label();
             ((System.ComponentModel.ISupportInitialize)dgvDetalles).BeginInit();
             panelHeader.SuspendLayout();
             panelBorder.SuspendLayout();
+            panelPaginacion.SuspendLayout();
             SuspendLayout();
             // 
             // lblTitulo
@@ -56,7 +64,7 @@ namespace Retorno360Tacna.FORMS
             dgvDetalles.ReadOnly = true;
             dgvDetalles.RowHeadersVisible = false;
             dgvDetalles.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvDetalles.Size = new Size(1176, 480);
+            dgvDetalles.Size = new Size(1176, 420);
             dgvDetalles.TabIndex = 1;
             // 
             // panelHeader
@@ -122,6 +130,7 @@ namespace Retorno360Tacna.FORMS
             // panelBorder
             // 
             panelBorder.BackColor = Color.FromArgb(41, 128, 185);
+            panelBorder.Controls.Add(panelPaginacion);
             panelBorder.Controls.Add(lblResumen);
             panelBorder.Controls.Add(lblBuscar);
             panelBorder.Controls.Add(txtBuscar);
@@ -133,6 +142,109 @@ namespace Retorno360Tacna.FORMS
             panelBorder.Padding = new Padding(2);
             panelBorder.Size = new Size(1200, 620);
             panelBorder.TabIndex = 6;
+            // 
+            // panelPaginacion
+            // 
+            panelPaginacion.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            panelPaginacion.BackColor = Color.FromArgb(236, 240, 241);
+            panelPaginacion.Controls.Add(lblTotalRegistros);
+            panelPaginacion.Controls.Add(btnPrimeraPagina);
+            panelPaginacion.Controls.Add(btnPaginaAnterior);
+            panelPaginacion.Controls.Add(lblPaginaInfo);
+            panelPaginacion.Controls.Add(btnPaginaSiguiente);
+            panelPaginacion.Controls.Add(btnUltimaPagina);
+            panelPaginacion.Location = new Point(12, 555);
+            panelPaginacion.Name = "panelPaginacion";
+            panelPaginacion.Size = new Size(1176, 55);
+            panelPaginacion.TabIndex = 7;
+            panelPaginacion.Visible = false;
+            // 
+            // btnPrimeraPagina
+            // 
+            btnPrimeraPagina.BackColor = Color.FromArgb(52, 152, 219);
+            btnPrimeraPagina.Cursor = Cursors.Hand;
+            btnPrimeraPagina.FlatAppearance.BorderSize = 0;
+            btnPrimeraPagina.FlatStyle = FlatStyle.Flat;
+            btnPrimeraPagina.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnPrimeraPagina.ForeColor = Color.White;
+            btnPrimeraPagina.Location = new Point(250, 10);
+            btnPrimeraPagina.Name = "btnPrimeraPagina";
+            btnPrimeraPagina.Size = new Size(80, 35);
+            btnPrimeraPagina.TabIndex = 0;
+            btnPrimeraPagina.Text = "⏮ Primera";
+            btnPrimeraPagina.UseVisualStyleBackColor = false;
+            btnPrimeraPagina.Click += btnPrimeraPagina_Click;
+            // 
+            // btnPaginaAnterior
+            // 
+            btnPaginaAnterior.BackColor = Color.FromArgb(52, 152, 219);
+            btnPaginaAnterior.Cursor = Cursors.Hand;
+            btnPaginaAnterior.FlatAppearance.BorderSize = 0;
+            btnPaginaAnterior.FlatStyle = FlatStyle.Flat;
+            btnPaginaAnterior.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnPaginaAnterior.ForeColor = Color.White;
+            btnPaginaAnterior.Location = new Point(340, 10);
+            btnPaginaAnterior.Name = "btnPaginaAnterior";
+            btnPaginaAnterior.Size = new Size(100, 35);
+            btnPaginaAnterior.TabIndex = 1;
+            btnPaginaAnterior.Text = "◀ Anterior";
+            btnPaginaAnterior.UseVisualStyleBackColor = false;
+            btnPaginaAnterior.Click += btnPaginaAnterior_Click;
+            // 
+            // lblPaginaInfo
+            // 
+            lblPaginaInfo.AutoSize = true;
+            lblPaginaInfo.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblPaginaInfo.ForeColor = Color.FromArgb(52, 73, 94);
+            lblPaginaInfo.Location = new Point(450, 17);
+            lblPaginaInfo.Name = "lblPaginaInfo";
+            lblPaginaInfo.Size = new Size(200, 19);
+            lblPaginaInfo.TabIndex = 2;
+            lblPaginaInfo.Text = "Página 1 de 1";
+            lblPaginaInfo.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // btnPaginaSiguiente
+            // 
+            btnPaginaSiguiente.BackColor = Color.FromArgb(52, 152, 219);
+            btnPaginaSiguiente.Cursor = Cursors.Hand;
+            btnPaginaSiguiente.FlatAppearance.BorderSize = 0;
+            btnPaginaSiguiente.FlatStyle = FlatStyle.Flat;
+            btnPaginaSiguiente.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnPaginaSiguiente.ForeColor = Color.White;
+            btnPaginaSiguiente.Location = new Point(660, 10);
+            btnPaginaSiguiente.Name = "btnPaginaSiguiente";
+            btnPaginaSiguiente.Size = new Size(100, 35);
+            btnPaginaSiguiente.TabIndex = 3;
+            btnPaginaSiguiente.Text = "Siguiente ▶";
+            btnPaginaSiguiente.UseVisualStyleBackColor = false;
+            btnPaginaSiguiente.Click += btnPaginaSiguiente_Click;
+            // 
+            // btnUltimaPagina
+            // 
+            btnUltimaPagina.BackColor = Color.FromArgb(52, 152, 219);
+            btnUltimaPagina.Cursor = Cursors.Hand;
+            btnUltimaPagina.FlatAppearance.BorderSize = 0;
+            btnUltimaPagina.FlatStyle = FlatStyle.Flat;
+            btnUltimaPagina.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnUltimaPagina.ForeColor = Color.White;
+            btnUltimaPagina.Location = new Point(770, 10);
+            btnUltimaPagina.Name = "btnUltimaPagina";
+            btnUltimaPagina.Size = new Size(80, 35);
+            btnUltimaPagina.TabIndex = 4;
+            btnUltimaPagina.Text = "Última ⏭";
+            btnUltimaPagina.UseVisualStyleBackColor = false;
+            btnUltimaPagina.Click += btnUltimaPagina_Click;
+            // 
+            // lblTotalRegistros
+            // 
+            lblTotalRegistros.AutoSize = true;
+            lblTotalRegistros.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+            lblTotalRegistros.ForeColor = Color.FromArgb(52, 73, 94);
+            lblTotalRegistros.Location = new Point(10, 20);
+            lblTotalRegistros.Name = "lblTotalRegistros";
+            lblTotalRegistros.Size = new Size(150, 15);
+            lblTotalRegistros.TabIndex = 5;
+            lblTotalRegistros.Text = "Total de registros: 0";
             // 
             // FrmDetalleComponentes
             // 
@@ -152,6 +264,8 @@ namespace Retorno360Tacna.FORMS
             ((System.ComponentModel.ISupportInitialize)dgvDetalles).EndInit();
             panelHeader.ResumeLayout(false);
             panelHeader.PerformLayout();
+            panelPaginacion.ResumeLayout(false);
+            panelPaginacion.PerformLayout();
             panelBorder.ResumeLayout(false);
             panelBorder.PerformLayout();
             ResumeLayout(false);
@@ -167,5 +281,12 @@ namespace Retorno360Tacna.FORMS
         private TextBox txtBuscar;
         private Label lblBuscar;
         private Panel panelBorder;
+        private Panel panelPaginacion;
+        private Button btnPrimeraPagina;
+        private Button btnPaginaAnterior;
+        private Label lblPaginaInfo;
+        private Button btnPaginaSiguiente;
+        private Button btnUltimaPagina;
+        private Label lblTotalRegistros;
     }
 }

@@ -13,7 +13,7 @@ namespace Retorno360Tacna.CNX
 
         public Conexion(string servidor, string usuarioSQL, string passwordSQL, string baseDatos = "master")
         {
-            connectionString = $"Server={servidor};Database={baseDatos};User Id={usuarioSQL};Password={passwordSQL};TrustServerCertificate=True;";
+            connectionString = $"Server={servidor};Database={baseDatos};User Id={usuarioSQL};Password={passwordSQL};TrustServerCertificate=True;Connection Timeout=120;";
         }
 
         public SqlConnection ObtenerConexion()

@@ -1,0 +1,484 @@
+using Retorno360Tacna.CNX;
+using Retorno360Tacna.SERVICES;
+using System;
+using System.Windows.Forms;
+
+namespace Retorno360Tacna.FORMS
+{
+    public partial class FrmCatalogoPartes : Form
+    {
+        private readonly ConexionInfo conexionActual;
+        private CatalogoPartesService catalogoService;
+
+        public FrmCatalogoPartes(ConexionInfo conexion)
+        {
+            InitializeComponent();
+            conexionActual = conexion;
+            catalogoService = new CatalogoPartesService(conexion);
+        }
+
+        private void FrmCatalogoPartes_Load(object sender, EventArgs e)
+        {
+            CargarRazonesSociales();
+            // No configurar valores por defecto en los DateTimePicker
+        }
+
+        private void CargarRazonesSociales()
+        {
+            try
+            {
+                var razones = catalogoService.ObtenerRazonesSociales();
+
+                cboRazonSocial.DataSource = razones;
+                cboRazonSocial.DisplayMember = "NombreRazon";
+                cboRazonSocial.ValueMember = "IdRazon";
+
+                if (razones.Any())
+                {
+                    cboRazonSocial.SelectedIndex = -1;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar razones sociales: {ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void cboRazonSocial_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cboRazonSocial.SelectedValue != null && cboRazonSocial.SelectedValue is int idRazon)
+            {
+                CargarBasesDatos(idRazon);
+            }
+        }
+
+        private void CargarBasesDatos(int idRazon)
+        {
+            try
+            {
+                List<string> basesDatos = catalogoService.ObtenerBasesDatosRazon(idRazon);
+
+                if (basesDatos.Count > 0)
+                {
+                    cboBaseDatos.DataSource = basesDatos;
+                    cboBaseDatos.Enabled = true;
+                    cboBaseDatos.SelectedIndex = -1;
+                }
+                else
+                {
+                    cboBaseDatos.DataSource = null;
+                    cboBaseDatos.Enabled = false;
+                    MessageBox.Show("No se encontraron bases de datos asociadas a esta razón social.",
+                        "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar bases de datos: {ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                cboBaseDatos.DataSource = null;
+                cboBaseDatos.Enabled = false;
+            }
+        }
+
+        private async void btnConsultar_Click(object sender, EventArgs e)
+        {
+            if (cboRazonSocial.SelectedValue == null)
+            {
+                MessageBox.Show("Por favor seleccione una razón social",
+                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (cboBaseDatos.SelectedValue == null)
+            {
+                MessageBox.Show("Por favor seleccione una base de datos",
+                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await GenerarCatalogoAsync();
+        }
+
+        private async Task GenerarCatalogoAsync()
+        {
+            try
+            {
+                Cursor = Cursors.WaitCursor;
+                btnConsultar.Enabled = false;
+                btnExportar.Enabled = false;
+                btnVerDetalle.Enabled = false;
+
+                // Mostrar panel de carga
+                MostrarPanelCargando(true);
+
+                baseDatosActual = cboBaseDatos.SelectedValue.ToString();
+                fechaInicio = dtpFechaInicio.Value.Date;
+                fechaFin = dtpFechaFin.Value.Date;
+                fechaActual = fechaFin.Date;
+
+                // Verificar qué pestaña está seleccionada
+                if (tabControlCatalogo.SelectedTab == tabPagePT)
+                {
+                    await ConsultarProductoTerminadoAsync();
+                }
+                else if (tabControlCatalogo.SelectedTab == tabPageMP)
+                {
+                    await ConsultarMateriaPrimaAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al generar catálogo: {ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Ocultar panel de carga
+                MostrarPanelCargando(false);
+
+                Cursor = Cursors.Default;
+                btnConsultar.Enabled = true;
+            }
+        }
+
+        private async Task ConsultarProductoTerminadoAsync()
+        {
+            // Actualizar mensaje de carga para bases de datos grandes
+            if (baseDatosActual.Contains("SEERT_Jlo", StringComparison.OrdinalIgnoreCase))
+            {
+                lblCargando.Text = "Consultando base de datos grande...\r\nEsto puede tardar varios minutos";
+            }
+            else
+            {
+                lblCargando.Text = "Consultando catálogo BOM...\r\nPor favor espere";
+            }
+
+            // Forzar actualización de la UI antes de la operación pesada
+            await Task.Delay(50);
+
+            // Cargar catálogo BOM usando la fecha actual en un hilo separado
+            await Task.Run(() =>
+            {
+                catalogoCompleto = catalogoService.ObtenerCatalogoBOMCompleto(baseDatosActual, fechaActual, fechaActual);
+                componentesDetalle = catalogoService.ObtenerComponentesBOM(baseDatosActual, fechaActual);
+            });
+
+            if (catalogoCompleto.Any())
+            {
+                MostrarGraficoBOMCompleto();
+                btnExportar.Enabled = true;
+                btnVerDetalle.Enabled = true;
+            }
+            else
+            {
+                chartCatalogo.Series = Array.Empty<ISeries>();
+                lblTotalPartes.Text = "Total de Partes: 0";
+                lblTotalConBOM.Text = "Con BOM: 0";
+                lblTotalSinBOM.Text = "Sin BOM: 0";
+
+                MessageBox.Show($"No se encontraron partes vigentes para la fecha {fechaActual:dd/MM/yyyy}",
+                    "Sin resultados", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private async Task ConsultarMateriaPrimaAsync()
+        {
+            // Actualizar mensaje de carga
+            if (baseDatosActual.Contains("SEERT_Jlo", StringComparison.OrdinalIgnoreCase))
+            {
+                lblCargando.Text = "Consultando materia prima...\r\nEsto puede tardar varios minutos";
+            }
+            else
+            {
+                lblCargando.Text = "Consultando materia prima...\r\nPor favor espere";
+            }
+
+            // Forzar actualización de la UI antes de la operación pesada
+            await Task.Delay(50);
+
+            // Cargar materia prima en un hilo separado
+            await Task.Run(() =>
+            {
+                materiaPrimaLista = catalogoService.ObtenerMateriaPrimaBOM(baseDatosActual, fechaInicio, fechaFin);
+            });
+
+            if (materiaPrimaLista.Any())
+            {
+                MostrarMateriaPrima();
+                btnExportar.Enabled = true;
+                btnVerDetalle.Enabled = false; // El detalle solo aplica para PT
+            }
+            else
+            {
+                dgvMateriaPrima.DataSource = null;
+                lblTotalPartes.Text = "Total de Materia Prima: 0";
+                lblTotalConBOM.Text = "";
+                lblTotalSinBOM.Text = "";
+
+                MessageBox.Show($"No se encontró materia prima para el rango de fechas {fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}",
+                    "Sin resultados", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void MostrarMateriaPrima()
+        {
+            dgvMateriaPrima.DataSource = null;
+            dgvMateriaPrima.DataSource = materiaPrimaLista;
+
+            // Actualizar estadísticas con información del rango de fechas
+            int totalMP = materiaPrimaLista.Count;
+            int vigentesEnBOM = materiaPrimaLista.Count(m => m.EstatusComponente == "VIGENTE EN BOM");
+            int noEnBOM = materiaPrimaLista.Count(m => m.EstatusComponente == "NO ESTA EN BOM");
+
+            lblTotalPartes.Text = $"Total de Materia Prima: {totalMP:N0} | Rango: {fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}";
+            lblTotalConBOM.Text = $"Vigente en BOM: {vigentesEnBOM:N0}";
+            lblTotalSinBOM.Text = $"No está en BOM: {noEnBOM:N0}";
+
+            // Colorear las filas según el estatus
+            foreach (DataGridViewRow row in dgvMateriaPrima.Rows)
+            {
+                if (row.Cells["EstatusComponente"].Value?.ToString() == "VIGENTE EN BOM")
+                {
+                    row.Cells["EstatusComponente"].Style.ForeColor = Color.FromArgb(39, 174, 96);
+                    row.Cells["EstatusComponente"].Style.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                }
+                else
+                {
+                    row.Cells["EstatusComponente"].Style.ForeColor = Color.FromArgb(231, 76, 60);
+                    row.Cells["EstatusComponente"].Style.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                }
+            }
+        }
+
+        private void MostrarGraficoBOMCompleto()
+        {
+            if (!catalogoCompleto.Any())
+            {
+                chartCatalogo.Series = Array.Empty<ISeries>();
+                lblTotalPartes.Text = "Total de Partes: 0";
+                lblTotalConBOM.Text = "Total Componentes: 0";
+                lblTotalSinBOM.Text = "";
+                return;
+            }
+
+            // Contar el total de componentes vigentes y no vigentes
+            int totalComponentesVigentes = catalogoCompleto.Sum(p => p.ComponentesVigentes);
+            int totalComponentesNoVigentes = catalogoCompleto.Sum(p => p.ComponentesNoVigentes);
+
+            // Siempre mostrar ambas categorías
+            var categorias = new List<string> { "Vigente en BOM", "No Vigente en BOM" };
+            var valores = new List<int> { totalComponentesVigentes, totalComponentesNoVigentes };
+
+            // Crear serie de barras
+            var series = new ISeries[]
+            {
+                new LiveChartsCore.SkiaSharpView.ColumnSeries<int>
+                {
+                    Name = "Componentes (BOM)",
+                    Values = valores,
+                    Fill = new SolidColorPaint(new SKColor(41, 128, 185)),
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
+                    DataLabelsSize = 14,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.End,
+                    DataLabelsFormatter = point => $"{point.Model:N0}",
+                    MaxBarWidth = 100
+                }
+            };
+
+            chartCatalogo.Series = series;
+
+            // Configurar ejes
+            chartCatalogo.XAxes = new[]
+            {
+                new Axis
+                {
+                    Labels = categorias,
+                    LabelsRotation = 0,
+                    TextSize = 14,
+                    LabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
+                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200)) { StrokeThickness = 1 }
+                }
+            };
+
+            chartCatalogo.YAxes = new[]
+            {
+                new Axis
+                {
+                    Name = "Cantidad de Componentes",
+                    NameTextSize = 14,
+                    NamePaint = new SolidColorPaint(new SKColor(50, 50, 50)),
+                    TextSize = 12,
+                    LabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
+                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200)) { StrokeThickness = 1 },
+                    MinLimit = 0
+                }
+            };
+
+            // Actualizar resumen
+            int totalPartes = catalogoCompleto.Count;
+            int totalComponentes = totalComponentesVigentes + totalComponentesNoVigentes;
+            int partesVigentes = catalogoCompleto.Count(p => p.EstatusBOM == "VIGENTE EN BOM");
+            int partesNoVigentes = catalogoCompleto.Count(p => p.EstatusBOM == "NO VIGENTE EN BOM");
+
+            lblTotalPartes.Text = $"Total de Partes Padre: {totalPartes:N0} | Total Componentes: {totalComponentes:N0}";
+            lblTotalConBOM.Text = $"Vigente en BOM: {partesVigentes:N0} | No Vigente: {partesNoVigentes:N0}";
+            lblTotalSinBOM.Text = $"Componentes Vigentes: {totalComponentesVigentes:N0} | No Vigentes: {totalComponentesNoVigentes:N0}";
+        }
+
+        private void btnExportar_Click(object sender, EventArgs e)
+        {
+            if (!catalogoCompleto.Any())
+            {
+                MessageBox.Show("No hay datos para exportar",
+                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                string nombreArchivo = $"CatalogoBOMCompleto_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+                SaveFileDialog saveDialog = new SaveFileDialog
+                {
+                    Filter = "Archivo Excel|*.xlsx",
+                    Title = "Exportar Catálogo BOM",
+                    FileName = nombreArchivo
+                };
+
+                if (saveDialog.ShowDialog() == DialogResult.OK)
+                {
+                    ExportarBOMCompletoAExcel(saveDialog.FileName);
+
+                    MessageBox.Show("Catálogo BOM exportado exitosamente",
+                        "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al exportar: {ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ExportarBOMCompletoAExcel(string rutaArchivo)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Catálogo BOM Completo");
+
+                // Encabezados
+                worksheet.Cell(1, 1).Value = "NO PARTE PADRE";
+                worksheet.Cell(1, 2).Value = "TOTAL COMP.";
+                worksheet.Cell(1, 3).Value = "VIGENTES";
+                worksheet.Cell(1, 4).Value = "NO VIGENTES";
+                worksheet.Cell(1, 5).Value = "ESTATUS BOM";
+
+                // Estilo de encabezados
+                var headerRange = worksheet.Range(1, 1, 1, 5);
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(41, 128, 185);
+                headerRange.Style.Font.FontColor = XLColor.White;
+                headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+                // Datos
+                int fila = 2;
+                foreach (var parte in catalogoCompleto)
+                {
+                    worksheet.Cell(fila, 1).Value = parte.NoPartePadre;
+                    worksheet.Cell(fila, 2).Value = parte.TotalComponentes;
+                    worksheet.Cell(fila, 3).Value = parte.ComponentesVigentes;
+                    worksheet.Cell(fila, 4).Value = parte.ComponentesNoVigentes;
+                    worksheet.Cell(fila, 5).Value = parte.EstatusBOM;
+
+                    worksheet.Cell(fila, 2).Value = parte.TotalComponentes;
+                    worksheet.Cell(fila, 3).Value = parte.ComponentesVigentes;
+                    worksheet.Cell(fila, 4).Value = parte.ComponentesNoVigentes;
+                    worksheet.Cell(fila, 5).Value = parte.EstatusBOM;
+
+                    // Estilo de filas alternas
+                    if (fila % 2 == 0)
+                    {
+                        worksheet.Range(fila, 1, fila, 5).Style.Fill.BackgroundColor = XLColor.FromArgb(245, 246, 250);
+                    }
+
+                    // Colorear según estatus BOM
+                    if (parte.EstatusBOM == "VIGENTE EN BOM")
+                    {
+                        worksheet.Cell(fila, 5).Style.Font.FontColor = XLColor.FromArgb(39, 174, 96);
+                        worksheet.Cell(fila, 5).Style.Font.Bold = true;
+                    }
+                    else
+                    {
+                        worksheet.Cell(fila, 5).Style.Font.FontColor = XLColor.FromArgb(231, 76, 60);
+                        worksheet.Cell(fila, 5).Style.Font.Bold = true;
+                    }
+
+                    fila++;
+                }
+
+                // Centrar columnas numéricas
+                for (int col = 2; col <= 4; col++)
+                {
+                    worksheet.Column(col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                }
+
+                // Centrar columna de estatus
+                worksheet.Column(5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                // Bordes para todos los datos
+                var dataRange = worksheet.Range(1, 1, fila - 1, 5);
+                dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+                // Ajustar ancho de columnas
+                worksheet.Column(1).Width = 25;
+                worksheet.Column(2).Width = 15;
+                worksheet.Column(3).Width = 15;
+                worksheet.Column(4).Width = 15;
+                worksheet.Column(5).Width = 20;
+
+                // Congelar panel de encabezados
+                worksheet.SheetView.FreezeRows(1);
+
+                workbook.SaveAs(rutaArchivo);
+            }
+        }
+
+        private void btnVerDetalle_Click(object sender, EventArgs e)
+        {
+            if (!componentesDetalle.Any())
+            {
+                MessageBox.Show("No hay componentes para mostrar. Por favor ejecute la consulta primero.",
+                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                FrmDetalleComponentes frmDetalle = new FrmDetalleComponentes(componentesDetalle, baseDatosActual, fechaActual);
+                frmDetalle.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir detalle: {ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void MostrarPanelCargando(bool mostrar)
+        {
+            panelCargando.Visible = mostrar;
+            if (mostrar)
+            {
+                // Centrar el panel en el formulario
+                panelCargando.Left = (this.ClientSize.Width - panelCargando.Width) / 2;
+                panelCargando.Top = (this.ClientSize.Height - panelCargando.Height) / 2;
+                panelCargando.BringToFront();
+            }
+        }
+    }
+}

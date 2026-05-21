@@ -130,7 +130,7 @@ namespace Retorno360Tacna.FORMS
             btnReportes.ForeColor = Color.White;
             btnReportes.Image = Properties.Resources.Sales_report_25411;
             btnReportes.ImageAlign = ContentAlignment.MiddleRight;
-            btnReportes.Location = new Point(0, 648);
+            btnReportes.Location = new Point(0, 646);
             btnReportes.Name = "btnReportes";
             btnReportes.Padding = new Padding(20, 0, 0, 0);
             btnReportes.Size = new Size(250, 60);
@@ -147,7 +147,7 @@ namespace Retorno360Tacna.FORMS
             panelSubMenuInventarios.BackColor = Color.FromArgb(35, 42, 50);
             panelSubMenuInventarios.Controls.Add(btnCatalogoPartes);
             panelSubMenuInventarios.Dock = DockStyle.Top;
-            panelSubMenuInventarios.Location = new Point(0, 588);
+            panelSubMenuInventarios.Location = new Point(0, 586);
             panelSubMenuInventarios.Name = "panelSubMenuInventarios";
             panelSubMenuInventarios.Size = new Size(250, 60);
             panelSubMenuInventarios.TabIndex = 9;
@@ -185,7 +185,7 @@ namespace Retorno360Tacna.FORMS
             btnInventarios.ForeColor = Color.White;
             btnInventarios.Image = Properties.Resources.business_inventory_maintenance_product_box_boxes_2326;
             btnInventarios.ImageAlign = ContentAlignment.MiddleRight;
-            btnInventarios.Location = new Point(0, 528);
+            btnInventarios.Location = new Point(0, 526);
             btnInventarios.Name = "btnInventarios";
             btnInventarios.Padding = new Padding(20, 0, 0, 0);
             btnInventarios.Size = new Size(250, 60);
@@ -203,7 +203,7 @@ namespace Retorno360Tacna.FORMS
             panelSubMenuAdmin.Controls.Add(btnSubMenuReporteIGI);
             panelSubMenuAdmin.Controls.Add(btnSubMenuPorcentaje);
             panelSubMenuAdmin.Dock = DockStyle.Top;
-            panelSubMenuAdmin.Location = new Point(0, 408);
+            panelSubMenuAdmin.Location = new Point(0, 406);
             panelSubMenuAdmin.Name = "panelSubMenuAdmin";
             panelSubMenuAdmin.Size = new Size(250, 120);
             panelSubMenuAdmin.TabIndex = 6;
@@ -263,7 +263,7 @@ namespace Retorno360Tacna.FORMS
             btnAdministracion.ForeColor = Color.White;
             btnAdministracion.Image = Properties.Resources.Teachers_35749;
             btnAdministracion.ImageAlign = ContentAlignment.MiddleRight;
-            btnAdministracion.Location = new Point(0, 348);
+            btnAdministracion.Location = new Point(0, 346);
             btnAdministracion.Name = "btnAdministracion";
             btnAdministracion.Padding = new Padding(20, 0, 0, 0);
             btnAdministracion.Size = new Size(250, 60);
@@ -285,7 +285,7 @@ namespace Retorno360Tacna.FORMS
             btnDiagramas.ForeColor = Color.White;
             btnDiagramas.Image = Properties.Resources.home256_24783;
             btnDiagramas.ImageAlign = ContentAlignment.MiddleRight;
-            btnDiagramas.Location = new Point(0, 278);
+            btnDiagramas.Location = new Point(0, 276);
             btnDiagramas.Name = "btnDiagramas";
             btnDiagramas.Padding = new Padding(20, 0, 0, 0);
             btnDiagramas.Size = new Size(250, 70);
@@ -303,7 +303,7 @@ namespace Retorno360Tacna.FORMS
             pictureBoxLogo.Image = Properties.Resources.ChatGPT_Image_Apr_21__2026__12_48_04_PM;
             pictureBoxLogo.Location = new Point(0, 74);
             pictureBoxLogo.Name = "pictureBoxLogo";
-            pictureBoxLogo.Size = new Size(250, 204);
+            pictureBoxLogo.Size = new Size(250, 202);
             pictureBoxLogo.SizeMode = PictureBoxSizeMode.StretchImage;
             pictureBoxLogo.TabIndex = 0;
             pictureBoxLogo.TabStop = false;

@@ -3,16 +3,17 @@ using Retorno360Tacna.MODELS;
 using Retorno360Tacna.SERVICES;
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
-using ClosedXML.Excel;
-using LiveChartsCore.SkiaSharpView.VisualElements;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace Retorno360Tacna.FORMS
 {
@@ -20,34 +21,20 @@ namespace Retorno360Tacna.FORMS
     {
         private readonly ConexionInfo conexionActual;
         private CatalogoPartesService catalogoService;
-        private List<ParteBOM> catalogoActual = new List<ParteBOM>();
-        private List<ParteBOMCompleto> catalogoCompleto = new List<ParteBOMCompleto>();
-        private int graficoActual = 0; // 0 = MP, 1 = BOM Completo
+        private List<MateriaPrimaBOM> datosConsultados;
 
         public FrmCatalogoPartes(ConexionInfo conexion)
         {
             InitializeComponent();
             conexionActual = conexion;
             catalogoService = new CatalogoPartesService(conexion);
+            datosConsultados = new List<MateriaPrimaBOM>();
         }
 
         private void FrmCatalogoPartes_Load(object sender, EventArgs e)
         {
-            ConfigurarGraficoBarras();
             CargarRazonesSociales();
-
-            // Configurar fechas por defecto (último mes)
-            dtpFechaFin.Value = DateTime.Now;
-            dtpFechaInicio.Value = DateTime.Now.AddMonths(-1);
-
-            ActualizarIndicadorGrafico();
-        }
-
-        private void ConfigurarGraficoBarras()
-        {
-            chartCatalogo.LegendPosition = LiveChartsCore.Measure.LegendPosition.Right;
-            chartCatalogo.LegendTextSize = 14;
-            chartCatalogo.LegendTextPaint = new SolidColorPaint(new SKColor(50, 50, 50));
+            lblTotalPartes.Text = "Total de partes: 0";
         }
 
         private void CargarRazonesSociales()
@@ -109,600 +96,454 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
-        private void btnConsultar_Click(object sender, EventArgs e)
+        private void MostrarPanelCargando(bool mostrar)
         {
-            if (cboRazonSocial.SelectedValue == null)
+            if (panelCargando.InvokeRequired)
             {
-                MessageBox.Show("Por favor seleccione una razón social",
-                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                panelCargando.Invoke(new Action(() => MostrarPanelCargando(mostrar)));
                 return;
             }
 
-            if (cboBaseDatos.SelectedValue == null)
+            if (mostrar)
             {
-                MessageBox.Show("Por favor seleccione una base de datos",
-                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                // Centrar el panel de carga en el formulario
+                panelCargando.Location = new Point(
+                    (this.ClientSize.Width - panelCargando.Width) / 2,
+                    (this.ClientSize.Height - panelCargando.Height) / 2
+                );
+                panelCargando.BringToFront();
+                panelCargando.Visible = true;
+
+                // Asegurar que la animación del progress bar esté activa
+                if (progressBarCargando.Style != ProgressBarStyle.Marquee)
+                {
+                    progressBarCargando.Style = ProgressBarStyle.Marquee;
+                }
+            }
+            else
+            {
+                panelCargando.Visible = false;
             }
 
-            if (dtpFechaInicio.Value > dtpFechaFin.Value)
-            {
-                MessageBox.Show("La fecha de inicio no puede ser mayor a la fecha fin",
-                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            GenerarCatalogo();
+            // Refrescar la UI
+            Application.DoEvents();
         }
 
-        private void GenerarCatalogo()
+        private async void btnConsultar_Click(object sender, EventArgs e)
+        {
+            if (cboBaseDatos.SelectedItem == null)
+            {
+                MessageBox.Show("Por favor seleccione una base de datos.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string baseDatos = cboBaseDatos.SelectedItem.ToString();
+            DateTime fechaInicio = dtpFechaInicio.Value;
+            DateTime fechaFin = dtpFechaFin.Value;
+
+            if (fechaInicio > fechaFin)
+            {
+                MessageBox.Show("La fecha de inicio no puede ser mayor que la fecha fin.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await ConsultarMateriaPrimaAsync(baseDatos, fechaInicio, fechaFin);
+        }
+
+        private async Task ConsultarMateriaPrimaAsync(string baseDatos, DateTime fechaInicio, DateTime fechaFin)
         {
             try
             {
-                Cursor = Cursors.WaitCursor;
+                MostrarPanelCargando(true);
                 btnConsultar.Enabled = false;
 
-                string baseDatos = cboBaseDatos.SelectedValue.ToString();
-                DateTime fechaInicio = dtpFechaInicio.Value.Date;
-                DateTime fechaFin = dtpFechaFin.Value.Date.AddHours(23).AddMinutes(59).AddSeconds(59);
+                // Pequeño delay para asegurar que la UI se actualice
+                await Task.Delay(50);
 
-                // Cargar ambos catálogos
-                catalogoActual = catalogoService.ObtenerCatalogoPartes(baseDatos, fechaInicio, fechaFin);
-                catalogoCompleto = catalogoService.ObtenerCatalogoBOMCompleto(baseDatos, fechaInicio, fechaFin);
+                var resultado = await Task.Run(() =>
+                    catalogoService.ObtenerMateriaPrimaBOM(baseDatos, fechaInicio, fechaFin));
 
-                if (catalogoActual.Any() || catalogoCompleto.Any())
+                // Guardar los datos consultados para exportar
+                datosConsultados = resultado;
+
+                dgvMateriaPrima.DataSource = resultado;
+
+                if (dgvMateriaPrima.Columns.Count > 0)
                 {
-                    MostrarGraficoActual();
-                }
-                else
-                {
-                    chartCatalogo.Series = Array.Empty<ISeries>();
-                    lblTotalPartes.Text = "Total de Partes: 0";
-                    lblTotalConBOM.Text = "Con BOM: 0";
-                    lblTotalSinBOM.Text = "Sin BOM: 0";
+                    dgvMateriaPrima.Columns["Par_NoParte"].HeaderText = "Número de Parte";
+                    dgvMateriaPrima.Columns["Par_DescripcionEsp"].HeaderText = "Descripción";
+                    dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
+                    dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
 
-                    MessageBox.Show("No se encontraron partes en el rango de fechas seleccionado",
-                        "Sin resultados", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // Ocultar la columna Clave
+                    dgvMateriaPrima.Columns["Clave"].Visible = false;
+
+                    dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
                 }
+
+                ActualizarGrafico(resultado);
+
+                // Actualizar el total de partes
+                lblTotalPartes.Text = $"Total de partes: {resultado.Count:N0}";
+
+                // Habilitar el botón de exportar PDF
+                btnExportarPdf.Enabled = resultado.Count > 0;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al generar catálogo: {ex.Message}",
+                MessageBox.Show($"Error al consultar materia prima:\n{ex.Message}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
-                Cursor = Cursors.Default;
+                MostrarPanelCargando(false);
                 btnConsultar.Enabled = true;
             }
         }
 
-        private void MostrarGraficoActual()
+        private void ActualizarGrafico(List<MateriaPrimaBOM> datos)
         {
-            if (graficoActual == 0)
+            var vigentes = datos.Count(d => d.EstatusComponente == "VIGENTE EN BOM");
+            var noVigentes = datos.Count(d => d.EstatusComponente == "NO ESTA EN BOM");
+
+            var serieVigentes = new PieSeries<int>
             {
-                MostrarGraficoMP();
-            }
-            else
+                Values = new[] { vigentes },
+                Name = $"Vigentes en BOM: {vigentes}",
+                Fill = new SolidColorPaint(SKColor.Parse("#2ecc71")),
+                DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                DataLabelsSize = 16,
+                DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                DataLabelsFormatter = point => $"{vigentes}"
+            };
+
+            var serieNoVigentes = new PieSeries<int>
             {
-                MostrarGraficoBOMCompleto();
-            }
-            ActualizarIndicadorGrafico();
+                Values = new[] { noVigentes },
+                Name = $"No vigentes en BOM: {noVigentes}",
+                Fill = new SolidColorPaint(SKColor.Parse("#e74c3c")),
+                DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                DataLabelsSize = 16,
+                DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                DataLabelsFormatter = point => $"{noVigentes}"
+            };
+
+            chartEstatus.Series = new ISeries[] { serieVigentes, serieNoVigentes };
+
+            chartEstatus.Title = new LiveChartsCore.SkiaSharpView.VisualElements.LabelVisual
+            {
+                Text = "Estatus de Componentes en BOM",
+                TextSize = 16,
+                Padding = new LiveChartsCore.Drawing.Padding(15),
+                Paint = new SolidColorPaint(SKColor.Parse("#2c3e50"))
+            };
+
+            chartEstatus.LegendPosition = LiveChartsCore.Measure.LegendPosition.Bottom;
+
+            // Ocultar tooltip para evitar duplicación
+            chartEstatus.TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Hidden;
         }
 
-        private void MostrarGraficoMP()
+        private void btnExportarPdf_Click(object sender, EventArgs e)
         {
-            if (!catalogoActual.Any())
+            if (datosConsultados == null || datosConsultados.Count == 0)
             {
-                chartCatalogo.Series = Array.Empty<ISeries>();
-                lblTotalPartes.Text = "Total de Partes MP: 0";
-                lblTotalConBOM.Text = "En BOM: 0";
-                lblTotalSinBOM.Text = "No en BOM: 0";
-                return;
-            }
-
-            // Contar partes que están en BOM y las que no
-            int enBOM = catalogoActual.Count(p => p.ExisteEnBOM == "SI");
-            int noEnBOM = catalogoActual.Count(p => p.ExisteEnBOM == "NO");
-
-            // Crear serie de barras
-            var series = new ISeries[]
-            {
-                new LiveChartsCore.SkiaSharpView.ColumnSeries<int>
-                {
-                    Name = "Partes MP",
-                    Values = new int[] { enBOM, noEnBOM },
-                    Fill = new SolidColorPaint(new SKColor(46, 204, 113)),
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    DataLabelsSize = 14,
-                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.End,
-                    DataLabelsFormatter = point => $"{point.Model:N0}",
-                    MaxBarWidth = 100
-                }
-            };
-
-            chartCatalogo.Series = series;
-
-            // Configurar ejes
-            chartCatalogo.XAxes = new[]
-            {
-                new Axis
-                {
-                    Labels = new[] { "En BOM", "No en BOM" },
-                    LabelsRotation = 0,
-                    TextSize = 14,
-                    LabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200)) { StrokeThickness = 1 }
-                }
-            };
-
-            chartCatalogo.YAxes = new[]
-            {
-                new Axis
-                {
-                    Name = "Cantidad de Partes",
-                    NameTextSize = 14,
-                    NamePaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    TextSize = 12,
-                    LabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200)) { StrokeThickness = 1 },
-                    MinLimit = 0
-                }
-            };
-
-            // Actualizar resumen
-            int totalPartes = catalogoActual.Count;
-            lblTotalPartes.Text = $"Total de Partes MP: {totalPartes:N0}";
-            lblTotalConBOM.Text = $"En BOM: {enBOM:N0}";
-            lblTotalSinBOM.Text = $"No en BOM: {noEnBOM:N0}";
-        }
-
-        private void MostrarGraficoBOMCompleto()
-        {
-            if (!catalogoCompleto.Any())
-            {
-                chartCatalogo.Series = Array.Empty<ISeries>();
-                lblTotalPartes.Text = "Total de Partes: 0";
-                lblTotalConBOM.Text = "Total Componentes: 0";
-                lblTotalSinBOM.Text = "";
-                return;
-            }
-
-            // Calcular totales por tipo
-            int totalSUB = catalogoCompleto.Sum(p => p.TotalSUB);
-            int totalEQ = catalogoCompleto.Sum(p => p.TotalEQ);
-            int totalRT = catalogoCompleto.Sum(p => p.TotalRT);
-            int totalOtros = catalogoCompleto.Sum(p => p.TotalOtros);
-
-            // Crear listas para categorías con datos
-            var categorias = new List<string>();
-            var valores = new List<int>();
-
-            if (totalSUB > 0)
-            {
-                categorias.Add("SUB");
-                valores.Add(totalSUB);
-            }
-
-            if (totalEQ > 0)
-            {
-                categorias.Add("EQ");
-                valores.Add(totalEQ);
-            }
-
-            if (totalRT > 0)
-            {
-                categorias.Add("RT");
-                valores.Add(totalRT);
-            }
-
-            if (totalOtros > 0)
-            {
-                categorias.Add("Otros");
-                valores.Add(totalOtros);
-            }
-
-            if (valores.Count == 0)
-            {
-                chartCatalogo.Series = Array.Empty<ISeries>();
-                return;
-            }
-
-            // Crear serie de barras
-            var series = new ISeries[]
-            {
-                new LiveChartsCore.SkiaSharpView.ColumnSeries<int>
-                {
-                    Name = "Componentes BOM",
-                    Values = valores,
-                    Fill = new SolidColorPaint(new SKColor(41, 128, 185)),
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    DataLabelsSize = 14,
-                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.End,
-                    DataLabelsFormatter = point => $"{point.Model:N0}",
-                    MaxBarWidth = 80
-                }
-            };
-
-            chartCatalogo.Series = series;
-
-            // Configurar ejes
-            chartCatalogo.XAxes = new[]
-            {
-                new Axis
-                {
-                    Labels = categorias,
-                    LabelsRotation = 0,
-                    TextSize = 14,
-                    LabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200)) { StrokeThickness = 1 }
-                }
-            };
-
-            chartCatalogo.YAxes = new[]
-            {
-                new Axis
-                {
-                    Name = "Cantidad de Componentes",
-                    NameTextSize = 14,
-                    NamePaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    TextSize = 12,
-                    LabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200)) { StrokeThickness = 1 },
-                    MinLimit = 0
-                }
-            };
-
-            // Actualizar resumen
-            int totalPartes = catalogoCompleto.Count;
-            int conBOM = catalogoCompleto.Count(p => p.EstatusBOM == "SI TIENE COMPONENTES");
-            int sinBOM = catalogoCompleto.Count(p => p.EstatusBOM == "NO TIENE COMPONENTES");
-            int totalComponentes = totalSUB + totalEQ + totalRT + totalOtros;
-
-            lblTotalPartes.Text = $"Total de Partes: {totalPartes:N0} | Total Componentes: {totalComponentes:N0}";
-            lblTotalConBOM.Text = $"Con BOM: {conBOM:N0} | Sin BOM: {sinBOM:N0}";
-            lblTotalSinBOM.Text = $"SUB: {totalSUB:N0} | EQ: {totalEQ:N0} | RT: {totalRT:N0} | Otros: {totalOtros:N0}";
-        }
-
-        private void MostrarResultados()
-        {
-            // Contar partes que están en BOM y las que no
-            int enBOM = catalogoActual.Count(p => p.ExisteEnBOM == "SI");
-            int noEnBOM = catalogoActual.Count(p => p.ExisteEnBOM == "NO");
-
-            if (enBOM == 0 && noEnBOM == 0)
-            {
-                chartCatalogo.Series = Array.Empty<ISeries>();
-                return;
-            }
-
-            // Crear serie de barras
-            var series = new ISeries[]
-            {
-                new LiveChartsCore.SkiaSharpView.ColumnSeries<int>
-                {
-                    Name = "Partes MP",
-                    Values = new int[] { enBOM, noEnBOM },
-                    Fill = new SolidColorPaint(new SKColor(46, 204, 113)),
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    DataLabelsSize = 14,
-                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.End,
-                    DataLabelsFormatter = point => $"{point.Model:N0}",
-                    MaxBarWidth = 100
-                }
-            };
-
-            chartCatalogo.Series = series;
-
-            // Configurar ejes
-            chartCatalogo.XAxes = new[]
-            {
-                new Axis
-                {
-                    Labels = new[] { "En BOM", "No en BOM" },
-                    LabelsRotation = 0,
-                    TextSize = 14,
-                    LabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200)) { StrokeThickness = 1 }
-                }
-            };
-
-            chartCatalogo.YAxes = new[]
-            {
-                new Axis
-                {
-                    Name = "Cantidad de Partes",
-                    NameTextSize = 14,
-                    NamePaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    TextSize = 12,
-                    LabelsPaint = new SolidColorPaint(new SKColor(50, 50, 50)),
-                    SeparatorsPaint = new SolidColorPaint(new SKColor(200, 200, 200)) { StrokeThickness = 1 },
-                    MinLimit = 0
-                }
-            };
-        }
-
-        private void ActualizarIndicadorGrafico()
-        {
-            if (graficoActual == 0)
-            {
-                lblIndicadorGrafico.Text = "Gráfico: Partes MP (1 de 2)";
-            }
-            else
-            {
-                lblIndicadorGrafico.Text = "Gráfico: BOM Completo (2 de 2)";
-            }
-        }
-
-        private void btnGraficoAnterior_Click(object sender, EventArgs e)
-        {
-            if (graficoActual > 0)
-            {
-                graficoActual--;
-                MostrarGraficoActual();
-            }
-        }
-
-        private void btnGraficoSiguiente_Click(object sender, EventArgs e)
-        {
-            if (graficoActual < 1)
-            {
-                graficoActual++;
-                MostrarGraficoActual();
-            }
-        }
-
-        private void btnExportar_Click(object sender, EventArgs e)
-        {
-            bool tieneDatos = (graficoActual == 0 && catalogoActual.Any()) || (graficoActual == 1 && catalogoCompleto.Any());
-
-            if (!tieneDatos)
-            {
-                MessageBox.Show("No hay datos para exportar",
-                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("No hay datos para exportar. Por favor realice una consulta primero.",
+                    "Sin datos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             try
             {
-                string nombreArchivo = graficoActual == 0 
-                    ? $"CatalogoPartesMP_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
-                    : $"CatalogoBOMCompleto_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-
-                SaveFileDialog saveDialog = new SaveFileDialog
+                using (SaveFileDialog saveDialog = new SaveFileDialog())
                 {
-                    Filter = "Archivo Excel|*.xlsx",
-                    Title = "Exportar Catálogo de Partes",
-                    FileName = nombreArchivo
-                };
+                    saveDialog.Filter = "PDF files (*.pdf)|*.pdf";
+                    saveDialog.Title = "Guardar Catálogo de Partes";
+                    saveDialog.FileName = $"CatalogoPartes_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
 
-                if (saveDialog.ShowDialog() == DialogResult.OK)
-                {
-                    if (graficoActual == 0)
+                    if (saveDialog.ShowDialog() == DialogResult.OK)
                     {
-                        ExportarMPAExcel(saveDialog.FileName);
-                    }
-                    else
-                    {
-                        ExportarBOMCompletoAExcel(saveDialog.FileName);
-                    }
+                        MostrarPanelCargando(true);
+                        btnExportarPdf.Enabled = false;
 
-                    MessageBox.Show("Catálogo exportado exitosamente",
-                        "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        GenerarPdfCatalogo(saveDialog.FileName);
+
+                        MostrarPanelCargando(false);
+                        btnExportarPdf.Enabled = true;
+
+                        MessageBox.Show($"PDF generado exitosamente en:\n{saveDialog.FileName}",
+                            "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                        // Preguntar si desea abrir el archivo
+                        if (MessageBox.Show("¿Desea abrir el archivo PDF?", "Abrir archivo",
+                            MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = saveDialog.FileName,
+                                UseShellExecute = true
+                            });
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al exportar: {ex.Message}",
+                MostrarPanelCargando(false);
+                btnExportarPdf.Enabled = true;
+                MessageBox.Show($"Error al generar el PDF:\n{ex.Message}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void ExportarMPAExcel(string rutaArchivo)
+        private void GenerarPdfCatalogo(string rutaArchivo)
         {
-            using (var workbook = new XLWorkbook())
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var vigentes = datosConsultados.Count(d => d.EstatusComponente == "VIGENTE EN BOM");
+            var noVigentes = datosConsultados.Count(d => d.EstatusComponente == "NO ESTA EN BOM");
+
+            // Generar imagen del gráfico
+            byte[] imagenGrafico = GenerarImagenGrafico(vigentes, noVigentes);
+
+            Document.Create(container =>
             {
-                var worksheet = workbook.Worksheets.Add("Catálogo de Partes MP");
-
-                // Encabezados
-                worksheet.Cell(1, 1).Value = "NO PARTE";
-                worksheet.Cell(1, 2).Value = "DESCRIPCIÓN";
-                worksheet.Cell(1, 3).Value = "FECHA INSERCIÓN";
-                worksheet.Cell(1, 4).Value = "EXISTE EN BOM";
-
-                // Estilo de encabezados
-                var headerRange = worksheet.Range(1, 1, 1, 4);
-                headerRange.Style.Font.Bold = true;
-                headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(46, 204, 113);
-                headerRange.Style.Font.FontColor = XLColor.White;
-                headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-
-                // Datos
-                int fila = 2;
-                foreach (var parte in catalogoActual)
+                container.Page(page =>
                 {
-                    worksheet.Cell(fila, 1).Value = parte.Par_NoParte;
-                    worksheet.Cell(fila, 2).Value = parte.Par_DescripcionEsp;
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(1.5f, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Segoe UI"));
 
-                    if (parte.Par_InsercionFecha.HasValue)
-                        worksheet.Cell(fila, 3).Value = parte.Par_InsercionFecha.Value;
-
-                    worksheet.Cell(fila, 4).Value = parte.ExisteEnBOM;
-
-                    // Estilo de filas alternas
-                    if (fila % 2 == 0)
+                    // Header
+                    page.Header().Column(column =>
                     {
-                        worksheet.Range(fila, 1, fila, 4).Style.Fill.BackgroundColor = XLColor.FromArgb(245, 246, 250);
-                    }
+                        column.Item().Text("Catálogo de Materia Prima")
+                            .FontSize(18)
+                            .Bold()
+                            .FontColor(Colors.Blue.Darken2);
 
-                    // Colorear según estatus BOM
-                    if (parte.ExisteEnBOM == "SI")
+                        column.Item().PaddingTop(5).Row(row =>
+                        {
+                            row.RelativeItem().Text(txt =>
+                            {
+                                txt.Span("Base de Datos: ").Bold();
+                                txt.Span(cboBaseDatos.SelectedItem?.ToString() ?? "N/A");
+                            });
+
+                            row.RelativeItem().AlignRight().Text(txt =>
+                            {
+                                txt.Span("Fecha de Generación: ").Bold();
+                                txt.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
+                            });
+                        });
+
+                        column.Item().Row(row =>
+                        {
+                            row.RelativeItem().Text(txt =>
+                            {
+                                txt.Span("Rango de Fechas: ").Bold();
+                                txt.Span($"{dtpFechaInicio.Value:dd/MM/yyyy} - {dtpFechaFin.Value:dd/MM/yyyy}");
+                            });
+
+                            row.RelativeItem().AlignRight().Text(txt =>
+                            {
+                                txt.Span("Total de Partes: ").Bold();
+                                txt.Span(datosConsultados.Count.ToString("N0"));
+                            });
+                        });
+
+                        column.Item().PaddingTop(5).Row(row =>
+                        {
+                            row.RelativeItem().Text(txt =>
+                            {
+                                txt.Span("Vigentes en BOM: ").Bold().FontColor(Colors.Green.Darken2);
+                                txt.Span($"{vigentes:N0}");
+                            });
+
+                            row.RelativeItem().Text(txt =>
+                            {
+                                txt.Span("No vigentes en BOM: ").Bold().FontColor(Colors.Red.Darken2);
+                                txt.Span($"{noVigentes:N0}");
+                            });
+                        });
+
+                        column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                    });
+
+                    // Content
+                    page.Content().PaddingTop(10).Column(column =>
                     {
-                        worksheet.Cell(fila, 4).Style.Font.FontColor = XLColor.FromArgb(39, 174, 96);
-                        worksheet.Cell(fila, 4).Style.Font.Bold = true;
-                    }
-                    else
+                        // Gráfico
+                        column.Item().PaddingBottom(15).Row(row =>
+                        {
+                            row.RelativeItem(1).Column(col =>
+                            {
+                                col.Item().AlignCenter().Text("Estatus de Componentes en BOM")
+                                    .FontSize(12)
+                                    .Bold()
+                                    .FontColor(Colors.Grey.Darken3);
+
+                                col.Item().PaddingTop(5).AlignCenter().Image(imagenGrafico).FitWidth();
+                            });
+
+                            row.RelativeItem(2); // Espacio para la tabla
+                        });
+
+                        // Tabla
+                        column.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(2);  // Número de Parte
+                                columns.RelativeColumn(4);  // Descripción
+                                columns.RelativeColumn(1.5f);  // Fecha Inserción
+                                columns.RelativeColumn(1.5f);  // Estatus
+                            });
+
+                            // Header
+                            table.Header(header =>
+                            {
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte").FontColor(Colors.White).Bold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
+                            });
+
+                            // Data rows
+                            foreach (var item in datosConsultados)
+                            {
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_NoParte);
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp);
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A");
+
+                                var estatusColor = item.EstatusComponente == "VIGENTE EN BOM" 
+                                    ? Colors.Green.Darken2 
+                                    : Colors.Red.Darken2;
+
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                                    .Text(item.EstatusComponente).FontColor(estatusColor).Bold();
+                            }
+                        });
+                    });
+
+                    // Footer
+                    page.Footer().AlignCenter().Text(txt =>
                     {
-                        worksheet.Cell(fila, 4).Style.Font.FontColor = XLColor.FromArgb(231, 76, 60);
-                        worksheet.Cell(fila, 4).Style.Font.Bold = true;
-                    }
-
-                    fila++;
-                }
-
-                // Formato de fechas
-                worksheet.Column(3).Style.DateFormat.Format = "dd/MM/yyyy";
-
-                // Centrar columna de estatus
-                worksheet.Column(4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                // Bordes para todos los datos
-                var dataRange = worksheet.Range(1, 1, fila - 1, 4);
-                dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-
-                // Ajustar ancho de columnas
-                worksheet.Column(1).Width = 18;
-                worksheet.Column(2).Width = 50;
-                worksheet.Column(3).Width = 18;
-                worksheet.Column(4).Width = 15;
-
-                // Congelar panel de encabezados
-                worksheet.SheetView.FreezeRows(1);
-
-                workbook.SaveAs(rutaArchivo);
-            }
+                        txt.Span("Página ");
+                        txt.CurrentPageNumber();
+                        txt.Span(" de ");
+                        txt.TotalPages();
+                    });
+                });
+            }).GeneratePdf(rutaArchivo);
         }
 
-        private void ExportarBOMCompletoAExcel(string rutaArchivo)
+        private byte[] GenerarImagenGrafico(int vigentes, int noVigentes)
         {
-            using (var workbook = new XLWorkbook())
+            int width = 350;
+            int height = 350;
+
+            var surface = SKSurface.Create(new SKImageInfo(width, height));
+            var canvas = surface.Canvas;
+
+            canvas.Clear(SKColors.White);
+
+            float centerX = width / 2;
+            float centerY = height / 2.2f;
+            float radius = Math.Min(width, height) / 3.2f;
+
+            int total = vigentes + noVigentes;
+            if (total == 0) total = 1;
+
+            float vigentesPorcentaje = (float)vigentes / total;
+            float noVigentesPorcentaje = (float)noVigentes / total;
+
+            SKColor colorVigentes = SKColor.Parse("#2ecc71");
+            SKColor colorNoVigentes = SKColor.Parse("#e74c3c");
+
+            float startAngle = -90;
+            float sweepAngleVigentes = 360 * vigentesPorcentaje;
+
+            // Dibujar sector de vigentes
+            using (var paint = new SKPaint { Color = colorVigentes, Style = SKPaintStyle.Fill, IsAntialias = true })
             {
-                var worksheet = workbook.Worksheets.Add("Catálogo BOM Completo");
-
-                // Encabezados
-                worksheet.Cell(1, 1).Value = "NO PARTE";
-                worksheet.Cell(1, 2).Value = "DESCRIPCIÓN";
-                worksheet.Cell(1, 3).Value = "FECHA INSERCIÓN";
-                worksheet.Cell(1, 4).Value = "BOM INICIO";
-                worksheet.Cell(1, 5).Value = "BOM FIN";
-                worksheet.Cell(1, 6).Value = "TOTAL COMP.";
-                worksheet.Cell(1, 7).Value = "SUB";
-                worksheet.Cell(1, 8).Value = "EQ";
-                worksheet.Cell(1, 9).Value = "RT";
-                worksheet.Cell(1, 10).Value = "OTROS";
-                worksheet.Cell(1, 11).Value = "ESTATUS BOM";
-
-                // Estilo de encabezados
-                var headerRange = worksheet.Range(1, 1, 1, 11);
-                headerRange.Style.Font.Bold = true;
-                headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(41, 128, 185);
-                headerRange.Style.Font.FontColor = XLColor.White;
-                headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-
-                // Datos
-                int fila = 2;
-                foreach (var parte in catalogoCompleto)
+                using (var path = new SKPath())
                 {
-                    worksheet.Cell(fila, 1).Value = parte.NoPartePadre;
-                    worksheet.Cell(fila, 2).Value = parte.Par_DescripcionEsp;
+                    path.MoveTo(centerX, centerY);
+                    path.ArcTo(new SKRect(centerX - radius, centerY - radius, centerX + radius, centerY + radius),
+                              startAngle, sweepAngleVigentes, false);
+                    path.Close();
+                    canvas.DrawPath(path, paint);
+                }
+            }
 
-                    if (parte.Par_InsercionFecha.HasValue)
-                        worksheet.Cell(fila, 3).Value = parte.Par_InsercionFecha.Value;
+            // Dibujar sector de no vigentes
+            float sweepAngleNoVigentes = 360 * noVigentesPorcentaje;
+            using (var paint = new SKPaint { Color = colorNoVigentes, Style = SKPaintStyle.Fill, IsAntialias = true })
+            {
+                using (var path = new SKPath())
+                {
+                    path.MoveTo(centerX, centerY);
+                    path.ArcTo(new SKRect(centerX - radius, centerY - radius, centerX + radius, centerY + radius),
+                              startAngle + sweepAngleVigentes, sweepAngleNoVigentes, false);
+                    path.Close();
+                    canvas.DrawPath(path, paint);
+                }
+            }
 
-                    if (parte.Bom_FechaInicio.HasValue)
-                        worksheet.Cell(fila, 4).Value = parte.Bom_FechaInicio.Value;
-
-                    if (parte.Bom_FechaFin.HasValue)
-                        worksheet.Cell(fila, 5).Value = parte.Bom_FechaFin.Value;
-
-                    worksheet.Cell(fila, 6).Value = parte.TotalComponentes;
-                    worksheet.Cell(fila, 7).Value = parte.TotalSUB;
-                    worksheet.Cell(fila, 8).Value = parte.TotalEQ;
-                    worksheet.Cell(fila, 9).Value = parte.TotalRT;
-                    worksheet.Cell(fila, 10).Value = parte.TotalOtros;
-                    worksheet.Cell(fila, 11).Value = parte.EstatusBOM;
-
-                    // Estilo de filas alternas
-                    if (fila % 2 == 0)
-                    {
-                        worksheet.Range(fila, 1, fila, 11).Style.Fill.BackgroundColor = XLColor.FromArgb(245, 246, 250);
-                    }
-
-                    fila++;
+            // Dibujar etiquetas de valores
+            using (var textPaint = new SKPaint { Color = SKColors.White, TextSize = 16, TextAlign = SKTextAlign.Center, IsAntialias = true, FakeBoldText = true })
+            {
+                if (vigentes > 0)
+                {
+                    float angle1 = (startAngle + sweepAngleVigentes / 2) * (float)Math.PI / 180;
+                    float labelX1 = centerX + (radius * 0.6f) * (float)Math.Cos(angle1);
+                    float labelY1 = centerY + (radius * 0.6f) * (float)Math.Sin(angle1);
+                    canvas.DrawText($"{vigentes}", labelX1, labelY1, textPaint);
                 }
 
-                // Formato de fechas
-                worksheet.Column(3).Style.DateFormat.Format = "dd/MM/yyyy";
-                worksheet.Column(4).Style.DateFormat.Format = "dd/MM/yyyy";
-                worksheet.Column(5).Style.DateFormat.Format = "dd/MM/yyyy";
-
-                // Centrar columnas numéricas
-                for (int col = 6; col <= 10; col++)
+                if (noVigentes > 0)
                 {
-                    worksheet.Column(col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    float angle2 = (startAngle + sweepAngleVigentes + sweepAngleNoVigentes / 2) * (float)Math.PI / 180;
+                    float labelX2 = centerX + (radius * 0.6f) * (float)Math.Cos(angle2);
+                    float labelY2 = centerY + (radius * 0.6f) * (float)Math.Sin(angle2);
+                    canvas.DrawText($"{noVigentes}", labelX2, labelY2, textPaint);
                 }
-
-                // Centrar columna de estatus
-                worksheet.Column(11).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                // Bordes para todos los datos
-                var dataRange = worksheet.Range(1, 1, fila - 1, 11);
-                dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-
-                // Ajustar ancho de columnas
-                worksheet.Column(1).Width = 18;
-                worksheet.Column(2).Width = 40;
-                worksheet.Column(3).Width = 15;
-                worksheet.Column(4).Width = 15;
-                worksheet.Column(5).Width = 15;
-                worksheet.Column(6).Width = 12;
-                worksheet.Column(7).Width = 10;
-                worksheet.Column(8).Width = 10;
-                worksheet.Column(9).Width = 10;
-                worksheet.Column(10).Width = 10;
-                worksheet.Column(11).Width = 20;
-
-                // Congelar panel de encabezados
-                worksheet.SheetView.FreezeRows(1);
-
-                workbook.SaveAs(rutaArchivo);
-            }
-        }
-
-        private void btnVerDetalle_Click(object sender, EventArgs e)
-        {
-            if (cboBaseDatos.SelectedItem == null)
-            {
-                MessageBox.Show("Por favor seleccione una base de datos",
-                    "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
             }
 
-            try
+            // Dibujar leyenda
+            float legendY = height - 60;
+            float legendX = 50;
+            float boxSize = 15;
+
+            using (var paint = new SKPaint { Color = colorVigentes, Style = SKPaintStyle.Fill, IsAntialias = true })
             {
-                string baseDatos = cboBaseDatos.SelectedItem.ToString() ?? string.Empty;
-                DateTime fechaInicio = dtpFechaInicio.Value;
-                DateTime fechaFin = dtpFechaFin.Value;
-
-                FrmDetalleComponentes frmDetalle = new FrmDetalleComponentes(
-                    catalogoService,
-                    baseDatos,
-                    fechaInicio,
-                    fechaFin
-                );
-
-                frmDetalle.ShowDialog();
+                canvas.DrawRect(legendX, legendY, boxSize, boxSize, paint);
             }
-            catch (Exception ex)
+
+            using (var textPaint = new SKPaint { Color = SKColors.Black, TextSize = 12, IsAntialias = true })
             {
-                MessageBox.Show($"Error al abrir detalle: {ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                canvas.DrawText($"Vigentes en BOM: {vigentes:N0}", legendX + boxSize + 10, legendY + 12, textPaint);
+            }
+
+            legendY += 25;
+            using (var paint = new SKPaint { Color = colorNoVigentes, Style = SKPaintStyle.Fill, IsAntialias = true })
+            {
+                canvas.DrawRect(legendX, legendY, boxSize, boxSize, paint);
+            }
+
+            using (var textPaint = new SKPaint { Color = SKColors.Black, TextSize = 12, IsAntialias = true })
+            {
+                canvas.DrawText($"No vigentes en BOM: {noVigentes:N0}", legendX + boxSize + 10, legendY + 12, textPaint);
+            }
+
+            using (var image = surface.Snapshot())
+            using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+            {
+                return data.ToArray();
             }
         }
     }

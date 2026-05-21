@@ -37,19 +37,6 @@ namespace Retorno360Tacna.FORMS
             panelSubMenuInventarios.Height = 0;
         }
 
-        private void MostrarSubMenu(Panel subMenu)
-        {
-            // Ocultar todos los submenús
-            panelSubMenuAdmin.Visible = false;
-            panelSubMenuAdmin.Height = 0;
-            panelSubMenuInventarios.Visible = false;
-            panelSubMenuInventarios.Height = 0;
-
-            // Mostrar el submenú solicitado
-            subMenu.Visible = true;
-            subMenu.Height = 60; // 1 botón x 60px (ajustar según número de botones)
-        }
-
         private void MainMenu_Load(object sender, EventArgs e)
         {
             // Aplicar escalado de UI
@@ -351,55 +338,6 @@ namespace Retorno360Tacna.FORMS
             {
                 MessageBox.Show("No hay información de conexión disponible.",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private MODELS.ConfiguracionUsuario CargarConfiguracion()
-        {
-            try
-            {
-                string rutaConfig = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "Retorno360Tacna",
-                    "config.txt");
-
-                if (File.Exists(rutaConfig))
-                {
-                    var config = new MODELS.ConfiguracionUsuario();
-                    var lineas = File.ReadAllLines(rutaConfig);
-
-                    foreach (var linea in lineas)
-                    {
-                        var partes = linea.Split('=');
-                        if (partes.Length == 2)
-                        {
-                            string clave = partes[0].Trim();
-                            string valor = partes[1].Trim();
-
-                            if (clave == "EscalaUI" && decimal.TryParse(valor, out decimal escala))
-                            {
-                                config.EscalaUI = escala;
-                            }
-                        }
-                    }
-
-                    return config;
-                }
-                else
-                {
-                    // Configuración por defecto
-                    return new MODELS.ConfiguracionUsuario
-                    {
-                        EscalaUI = 1.0m
-                    };
-                }
-            }
-            catch
-            {
-                return new MODELS.ConfiguracionUsuario
-                {
-                    EscalaUI = 1.0m
-                };
             }
         }
 

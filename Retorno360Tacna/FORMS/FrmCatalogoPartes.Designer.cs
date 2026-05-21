@@ -28,20 +28,20 @@ namespace Retorno360Tacna.FORMS
             lblFechaFin = new Label();
             dtpFechaFin = new DateTimePicker();
             btnConsultar = new Button();
-            btnExportar = new Button();
-            btnVerDetalle = new Button();
-            panelResumen = new Panel();
+            btnExportarPdf = new Button();
             lblTotalPartes = new Label();
-            lblTotalConBOM = new Label();
-            lblTotalSinBOM = new Label();
-            panelNavegacionGrafico = new Panel();
-            btnGraficoAnterior = new Button();
-            lblIndicadorGrafico = new Label();
-            btnGraficoSiguiente = new Button();
-            chartCatalogo = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart();
+            panelContenido = new Panel();
+            dgvMateriaPrima = new DataGridView();
+            panelGrafico = new Panel();
+            chartEstatus = new LiveChartsCore.SkiaSharpView.WinForms.PieChart();
+            panelCargando = new Panel();
+            lblCargando = new Label();
+            progressBarCargando = new ProgressBar();
             panelFiltros.SuspendLayout();
-            panelResumen.SuspendLayout();
-            panelNavegacionGrafico.SuspendLayout();
+            panelContenido.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dgvMateriaPrima).BeginInit();
+            panelGrafico.SuspendLayout();
+            panelCargando.SuspendLayout();
             SuspendLayout();
             // 
             // panelFiltros
@@ -57,8 +57,8 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.Controls.Add(lblFechaFin);
             panelFiltros.Controls.Add(dtpFechaFin);
             panelFiltros.Controls.Add(btnConsultar);
-            panelFiltros.Controls.Add(btnExportar);
-            panelFiltros.Controls.Add(btnVerDetalle);
+            panelFiltros.Controls.Add(btnExportarPdf);
+            panelFiltros.Controls.Add(lblTotalPartes);
             panelFiltros.Dock = DockStyle.Top;
             panelFiltros.Location = new Point(0, 0);
             panelFiltros.Name = "panelFiltros";
@@ -89,7 +89,6 @@ namespace Retorno360Tacna.FORMS
             // cboRazonSocial
             // 
             cboRazonSocial.DropDownStyle = ComboBoxStyle.DropDownList;
-            cboRazonSocial.Font = new Font("Segoe UI", 9F);
             cboRazonSocial.FormattingEnabled = true;
             cboRazonSocial.Location = new Point(15, 70);
             cboRazonSocial.Name = "cboRazonSocial";
@@ -111,7 +110,6 @@ namespace Retorno360Tacna.FORMS
             // 
             cboBaseDatos.DropDownStyle = ComboBoxStyle.DropDownList;
             cboBaseDatos.Enabled = false;
-            cboBaseDatos.Font = new Font("Segoe UI", 9F);
             cboBaseDatos.FormattingEnabled = true;
             cboBaseDatos.Location = new Point(280, 70);
             cboBaseDatos.Name = "cboBaseDatos";
@@ -130,7 +128,6 @@ namespace Retorno360Tacna.FORMS
             // 
             // dtpFechaInicio
             // 
-            dtpFechaInicio.Font = new Font("Segoe UI", 9F);
             dtpFechaInicio.Format = DateTimePickerFormat.Short;
             dtpFechaInicio.Location = new Point(495, 70);
             dtpFechaInicio.Name = "dtpFechaInicio";
@@ -149,7 +146,6 @@ namespace Retorno360Tacna.FORMS
             // 
             // dtpFechaFin
             // 
-            dtpFechaFin.Font = new Font("Segoe UI", 9F);
             dtpFechaFin.Format = DateTimePickerFormat.Short;
             dtpFechaFin.Location = new Point(630, 70);
             dtpFechaFin.Name = "dtpFechaFin";
@@ -158,209 +154,179 @@ namespace Retorno360Tacna.FORMS
             // 
             // btnConsultar
             // 
-            btnConsultar.BackColor = Color.FromArgb(79, 129, 189);
+            btnConsultar.BackColor = Color.FromArgb(41, 128, 185);
+            btnConsultar.Cursor = Cursors.Hand;
+            btnConsultar.FlatAppearance.BorderSize = 0;
             btnConsultar.FlatStyle = FlatStyle.Flat;
-            btnConsultar.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btnConsultar.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btnConsultar.ForeColor = Color.White;
             btnConsultar.Image = Properties.Resources.search_magnifying_glass_icon_1926311;
             btnConsultar.ImageAlign = ContentAlignment.MiddleRight;
-            btnConsultar.Location = new Point(760, 50);
+            btnConsultar.Location = new Point(796, 31);
             btnConsultar.Name = "btnConsultar";
-            btnConsultar.Size = new Size(136, 51);
+            btnConsultar.Size = new Size(151, 50);
             btnConsultar.TabIndex = 9;
             btnConsultar.Text = "Consultar";
             btnConsultar.TextAlign = ContentAlignment.MiddleLeft;
             btnConsultar.UseVisualStyleBackColor = false;
             btnConsultar.Click += btnConsultar_Click;
             // 
-            // btnExportar
+            // btnExportarPdf
             // 
-            btnExportar.BackColor = Color.FromArgb(46, 204, 113);
-            btnExportar.FlatStyle = FlatStyle.Flat;
-            btnExportar.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            btnExportar.ForeColor = Color.White;
-            btnExportar.Image = Properties.Resources.gdform_1036941;
-            btnExportar.ImageAlign = ContentAlignment.MiddleRight;
-            btnExportar.Location = new Point(902, 50);
-            btnExportar.Name = "btnExportar";
-            btnExportar.Size = new Size(136, 51);
-            btnExportar.TabIndex = 10;
-            btnExportar.Text = "Exportar Excel";
-            btnExportar.TextAlign = ContentAlignment.MiddleLeft;
-            btnExportar.UseVisualStyleBackColor = false;
-            btnExportar.Click += btnExportar_Click;
-            // 
-            // btnVerDetalle
-            // 
-            btnVerDetalle.BackColor = Color.FromArgb(155, 89, 182);
-            btnVerDetalle.FlatStyle = FlatStyle.Flat;
-            btnVerDetalle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            btnVerDetalle.ForeColor = Color.White;
-            btnVerDetalle.Image = Properties.Resources.Surveys_37105;
-            btnVerDetalle.ImageAlign = ContentAlignment.MiddleRight;
-            btnVerDetalle.Location = new Point(1044, 50);
-            btnVerDetalle.Name = "btnVerDetalle";
-            btnVerDetalle.Size = new Size(136, 51);
-            btnVerDetalle.TabIndex = 11;
-            btnVerDetalle.Text = "Ver Detalle";
-            btnVerDetalle.TextAlign = ContentAlignment.MiddleLeft;
-            btnVerDetalle.UseVisualStyleBackColor = false;
-            btnVerDetalle.Click += btnVerDetalle_Click;
-            // 
-            // panelResumen
-            // 
-            panelResumen.BackColor = Color.White;
-            panelResumen.Controls.Add(lblTotalPartes);
-            panelResumen.Controls.Add(lblTotalConBOM);
-            panelResumen.Controls.Add(lblTotalSinBOM);
-            panelResumen.Dock = DockStyle.Bottom;
-            panelResumen.Location = new Point(0, 570);
-            panelResumen.Name = "panelResumen";
-            panelResumen.Size = new Size(1231, 50);
-            panelResumen.TabIndex = 1;
+            btnExportarPdf.BackColor = Color.FromArgb(231, 76, 60);
+            btnExportarPdf.Cursor = Cursors.Hand;
+            btnExportarPdf.Enabled = false;
+            btnExportarPdf.FlatAppearance.BorderSize = 0;
+            btnExportarPdf.FlatStyle = FlatStyle.Flat;
+            btnExportarPdf.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnExportarPdf.ForeColor = Color.White;
+            btnExportarPdf.Image = Properties.Resources.applicationpdf_1036141;
+            btnExportarPdf.ImageAlign = ContentAlignment.MiddleRight;
+            btnExportarPdf.Location = new Point(953, 31);
+            btnExportarPdf.Name = "btnExportarPdf";
+            btnExportarPdf.Size = new Size(151, 50);
+            btnExportarPdf.TabIndex = 11;
+            btnExportarPdf.Text = "Exportar PDF";
+            btnExportarPdf.TextAlign = ContentAlignment.MiddleLeft;
+            btnExportarPdf.UseVisualStyleBackColor = false;
+            btnExportarPdf.Click += btnExportarPdf_Click;
             // 
             // lblTotalPartes
             // 
             lblTotalPartes.AutoSize = true;
             lblTotalPartes.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblTotalPartes.Location = new Point(15, 15);
+            lblTotalPartes.ForeColor = Color.FromArgb(41, 128, 185);
+            lblTotalPartes.Location = new Point(409, 96);
             lblTotalPartes.Name = "lblTotalPartes";
             lblTotalPartes.Size = new Size(125, 19);
-            lblTotalPartes.TabIndex = 0;
-            lblTotalPartes.Text = "Total de Partes: 0";
+            lblTotalPartes.TabIndex = 10;
+            lblTotalPartes.Text = "Total de partes: 0";
             // 
-            // lblTotalConBOM
+            // panelContenido
             // 
-            lblTotalConBOM.AutoSize = true;
-            lblTotalConBOM.Font = new Font("Segoe UI", 10F);
-            lblTotalConBOM.ForeColor = Color.Green;
-            lblTotalConBOM.Location = new Point(417, 15);
-            lblTotalConBOM.Name = "lblTotalConBOM";
-            lblTotalConBOM.Size = new Size(85, 19);
-            lblTotalConBOM.TabIndex = 1;
-            lblTotalConBOM.Text = "Con BOM: 0";
+            panelContenido.Controls.Add(dgvMateriaPrima);
+            panelContenido.Controls.Add(panelGrafico);
+            panelContenido.Dock = DockStyle.Fill;
+            panelContenido.Location = new Point(0, 120);
+            panelContenido.Name = "panelContenido";
+            panelContenido.Size = new Size(1231, 541);
+            panelContenido.TabIndex = 2;
             // 
-            // lblTotalSinBOM
+            // dgvMateriaPrima
             // 
-            lblTotalSinBOM.AutoSize = true;
-            lblTotalSinBOM.Font = new Font("Segoe UI", 10F);
-            lblTotalSinBOM.ForeColor = Color.Red;
-            lblTotalSinBOM.Location = new Point(672, 15);
-            lblTotalSinBOM.Name = "lblTotalSinBOM";
-            lblTotalSinBOM.Size = new Size(78, 19);
-            lblTotalSinBOM.TabIndex = 2;
-            lblTotalSinBOM.Text = "Sin BOM: 0";
+            dgvMateriaPrima.AllowUserToAddRows = false;
+            dgvMateriaPrima.AllowUserToDeleteRows = false;
+            dgvMateriaPrima.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvMateriaPrima.BackgroundColor = Color.White;
+            dgvMateriaPrima.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvMateriaPrima.Dock = DockStyle.Fill;
+            dgvMateriaPrima.Location = new Point(400, 0);
+            dgvMateriaPrima.Name = "dgvMateriaPrima";
+            dgvMateriaPrima.ReadOnly = true;
+            dgvMateriaPrima.RowHeadersWidth = 51;
+            dgvMateriaPrima.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvMateriaPrima.Size = new Size(831, 541);
+            dgvMateriaPrima.TabIndex = 1;
             // 
-            // panelNavegacionGrafico
+            // panelGrafico
             // 
-            panelNavegacionGrafico.BackColor = Color.White;
-            panelNavegacionGrafico.Controls.Add(btnGraficoAnterior);
-            panelNavegacionGrafico.Controls.Add(lblIndicadorGrafico);
-            panelNavegacionGrafico.Controls.Add(btnGraficoSiguiente);
-            panelNavegacionGrafico.Dock = DockStyle.Top;
-            panelNavegacionGrafico.Location = new Point(0, 170);
-            panelNavegacionGrafico.Name = "panelNavegacionGrafico";
-            panelNavegacionGrafico.Size = new Size(1231, 50);
-            panelNavegacionGrafico.TabIndex = 3;
+            panelGrafico.BackColor = Color.White;
+            panelGrafico.BorderStyle = BorderStyle.FixedSingle;
+            panelGrafico.Controls.Add(chartEstatus);
+            panelGrafico.Dock = DockStyle.Left;
+            panelGrafico.Location = new Point(0, 0);
+            panelGrafico.Name = "panelGrafico";
+            panelGrafico.Padding = new Padding(10);
+            panelGrafico.Size = new Size(400, 541);
+            panelGrafico.TabIndex = 0;
             // 
-            // btnGraficoAnterior
+            // chartEstatus
             // 
-            btnGraficoAnterior.BackColor = Color.FromArgb(52, 152, 219);
-            btnGraficoAnterior.Cursor = Cursors.Hand;
-            btnGraficoAnterior.FlatAppearance.BorderSize = 0;
-            btnGraficoAnterior.FlatStyle = FlatStyle.Flat;
-            btnGraficoAnterior.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
-            btnGraficoAnterior.ForeColor = Color.White;
-            btnGraficoAnterior.Location = new Point(450, 8);
-            btnGraficoAnterior.Name = "btnGraficoAnterior";
-            btnGraficoAnterior.Size = new Size(50, 35);
-            btnGraficoAnterior.TabIndex = 0;
-            btnGraficoAnterior.Text = "◀";
-            btnGraficoAnterior.UseVisualStyleBackColor = false;
-            btnGraficoAnterior.Click += btnGraficoAnterior_Click;
+            chartEstatus.Dock = DockStyle.Fill;
+            chartEstatus.InitialRotation = 0D;
+            chartEstatus.IsClockwise = true;
+            chartEstatus.Location = new Point(10, 10);
+            chartEstatus.MaxAngle = 360D;
+            chartEstatus.MaxValue = null;
+            chartEstatus.MinValue = 0D;
+            chartEstatus.Name = "chartEstatus";
+            chartEstatus.Size = new Size(378, 519);
+            chartEstatus.TabIndex = 0;
             // 
-            // lblIndicadorGrafico
+            // panelCargando
             // 
-            lblIndicadorGrafico.AutoSize = true;
-            lblIndicadorGrafico.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            lblIndicadorGrafico.ForeColor = Color.FromArgb(52, 73, 94);
-            lblIndicadorGrafico.Location = new Point(510, 15);
-            lblIndicadorGrafico.Name = "lblIndicadorGrafico";
-            lblIndicadorGrafico.Size = new Size(210, 20);
-            lblIndicadorGrafico.TabIndex = 1;
-            lblIndicadorGrafico.Text = "Gráfico: Partes MP (1 de 2)";
+            panelCargando.BackColor = Color.FromArgb(250, 250, 250);
+            panelCargando.BorderStyle = BorderStyle.FixedSingle;
+            panelCargando.Controls.Add(lblCargando);
+            panelCargando.Controls.Add(progressBarCargando);
+            panelCargando.Location = new Point(450, 300);
+            panelCargando.Name = "panelCargando";
+            panelCargando.Size = new Size(350, 120);
+            panelCargando.TabIndex = 1;
+            panelCargando.Visible = false;
             // 
-            // btnGraficoSiguiente
+            // lblCargando
             // 
-            btnGraficoSiguiente.BackColor = Color.FromArgb(52, 152, 219);
-            btnGraficoSiguiente.Cursor = Cursors.Hand;
-            btnGraficoSiguiente.FlatAppearance.BorderSize = 0;
-            btnGraficoSiguiente.FlatStyle = FlatStyle.Flat;
-            btnGraficoSiguiente.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
-            btnGraficoSiguiente.ForeColor = Color.White;
-            btnGraficoSiguiente.Location = new Point(730, 8);
-            btnGraficoSiguiente.Name = "btnGraficoSiguiente";
-            btnGraficoSiguiente.Size = new Size(50, 35);
-            btnGraficoSiguiente.TabIndex = 2;
-            btnGraficoSiguiente.Text = "▶";
-            btnGraficoSiguiente.UseVisualStyleBackColor = false;
-            btnGraficoSiguiente.Click += btnGraficoSiguiente_Click;
+            lblCargando.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblCargando.ForeColor = Color.FromArgb(41, 128, 185);
+            lblCargando.Location = new Point(20, 20);
+            lblCargando.Name = "lblCargando";
+            lblCargando.Size = new Size(310, 40);
+            lblCargando.TabIndex = 0;
+            lblCargando.Text = "Cargando...\r\nPor favor espere";
+            lblCargando.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            // chartCatalogo
+            // progressBarCargando
             // 
-            chartCatalogo.Dock = DockStyle.Fill;
-            chartCatalogo.Location = new Point(0, 220);
-            chartCatalogo.Name = "chartCatalogo";
-            chartCatalogo.Size = new Size(1231, 400);
-            chartCatalogo.TabIndex = 4;
+            progressBarCargando.Location = new Point(20, 70);
+            progressBarCargando.MarqueeAnimationSpeed = 30;
+            progressBarCargando.Name = "progressBarCargando";
+            progressBarCargando.Size = new Size(310, 23);
+            progressBarCargando.Style = ProgressBarStyle.Marquee;
+            progressBarCargando.TabIndex = 1;
             // 
             // FrmCatalogoPartes
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1231, 620);
-            ControlBox = false;
-            Controls.Add(chartCatalogo);
-            Controls.Add(panelNavegacionGrafico);
-            Controls.Add(panelResumen);
+            ClientSize = new Size(1231, 661);
+            Controls.Add(panelContenido);
+            Controls.Add(panelCargando);
             Controls.Add(panelFiltros);
-            Font = new Font("Segoe UI", 9F);
-            FormScreenCaptureMode = ScreenCaptureMode.HideWindow;
+            FormBorderStyle = FormBorderStyle.None;
             Name = "FrmCatalogoPartes";
-            Text = "Catálogo de Partes - BOM";
+            Text = "Catálogo de Partes";
             Load += FrmCatalogoPartes_Load;
             panelFiltros.ResumeLayout(false);
             panelFiltros.PerformLayout();
-            panelResumen.ResumeLayout(false);
-            panelResumen.PerformLayout();
-            panelNavegacionGrafico.ResumeLayout(false);
-            panelNavegacionGrafico.PerformLayout();
+            panelContenido.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dgvMateriaPrima).EndInit();
+            panelGrafico.ResumeLayout(false);
+            panelCargando.ResumeLayout(false);
             ResumeLayout(false);
         }
 
         #endregion
 
-        private System.Windows.Forms.Panel panelFiltros;
-        private System.Windows.Forms.Label lblTitulo;
-        private System.Windows.Forms.Label lblRazonSocial;
-        private System.Windows.Forms.ComboBox cboRazonSocial;
-        private System.Windows.Forms.Label lblBaseDatos;
-        private System.Windows.Forms.ComboBox cboBaseDatos;
-        private System.Windows.Forms.Label lblFechaInicio;
-        private System.Windows.Forms.DateTimePicker dtpFechaInicio;
-        private System.Windows.Forms.Label lblFechaFin;
-        private System.Windows.Forms.DateTimePicker dtpFechaFin;
-        private System.Windows.Forms.Button btnConsultar;
-        private System.Windows.Forms.Button btnExportar;
-        private System.Windows.Forms.Button btnVerDetalle;
-        private System.Windows.Forms.Panel panelResumen;
-        private System.Windows.Forms.Label lblTotalPartes;
-        private System.Windows.Forms.Label lblTotalConBOM;
-        private System.Windows.Forms.Label lblTotalSinBOM;
-        private System.Windows.Forms.Panel panelNavegacionGrafico;
-        private System.Windows.Forms.Button btnGraficoAnterior;
-        private System.Windows.Forms.Label lblIndicadorGrafico;
-        private System.Windows.Forms.Button btnGraficoSiguiente;
-        private LiveChartsCore.SkiaSharpView.WinForms.CartesianChart chartCatalogo;
+        private Panel panelFiltros;
+        private Label lblTitulo;
+        private Label lblRazonSocial;
+        private ComboBox cboRazonSocial;
+        private Label lblBaseDatos;
+        private ComboBox cboBaseDatos;
+        private Label lblFechaInicio;
+        private DateTimePicker dtpFechaInicio;
+        private Label lblFechaFin;
+        private DateTimePicker dtpFechaFin;
+        private Button btnConsultar;
+        private Button btnExportarPdf;
+        private Label lblTotalPartes;
+        private Panel panelContenido;
+        private DataGridView dgvMateriaPrima;
+        private Panel panelGrafico;
+        private LiveChartsCore.SkiaSharpView.WinForms.PieChart chartEstatus;
+        private Panel panelCargando;
+        private Label lblCargando;
+        private ProgressBar progressBarCargando;
     }
 }

@@ -7,18 +7,11 @@ using System.Net;
 
 namespace Retorno360Tacna.SERVICES
 {
-    public class RetornoService
+    public class RetornoService : ReporteServiceBase
     {
-        private readonly ConexionInfo conexionInfo;
-        // Cache de conexiones externas por base de datos
-        private readonly Dictionary<string, ConexionExternaInfo> cacheConexionesExternas;
-
-        public RetornoService(ConexionInfo conexion)
+        public RetornoService(ConexionInfo conexion) : base(conexion)
         {
-            conexionInfo = conexion;
-            cacheConexionesExternas = new Dictionary<string, ConexionExternaInfo>(StringComparer.OrdinalIgnoreCase);
         }
-
 
         /// <summary>
         /// Obtiene la información de conexión externa para una base de datos específica
@@ -26,8 +19,7 @@ namespace Retorno360Tacna.SERVICES
         /// </summary>
         private ConexionExternaInfo ObtenerConexionExterna(string baseDatos)
         {
-            // Verificar cache primero
-            if (cacheConexionesExternas.TryGetValue(baseDatos, out var conexionCacheada))
+            if (cacheConexiones.TryGetValue(baseDatos, out var conexionCacheada))
             {
                 return conexionCacheada;
             }
@@ -37,9 +29,10 @@ namespace Retorno360Tacna.SERVICES
             try
             {
                 Conexion conexion = new Conexion(
-                    conexionInfo.Servidor ?? string.Empty,
-                    conexionInfo.UsuarioSQL ?? string.Empty,
-                    conexionInfo.PasswordSQL ?? string.Empty,
+                    conexionPrincipal.Servidor ?? string.Empty,
+                    conexionPrincipal.UsuarioSQL ?? string.Empty,
+
+                    conexionPrincipal.PasswordSQL ?? string.Empty,
                     "RetornoMaster"
                 );
 
@@ -174,8 +167,7 @@ namespace Retorno360Tacna.SERVICES
                     #endif
                 }
 
-                // Guardar en cache
-                cacheConexionesExternas[baseDatos] = conexionExterna;
+                cacheConexiones[baseDatos] = conexionExterna;
             }
             catch (Exception ex)
             {
@@ -195,7 +187,7 @@ namespace Retorno360Tacna.SERVICES
         {
             // Verificar cache primero (usar clave diferente para NOM_TABLARAZON)
             string cacheKey = $"NOM_{baseDatos}";
-            if (cacheConexionesExternas.TryGetValue(cacheKey, out var conexionCacheada))
+            if (cacheConexiones.TryGetValue(cacheKey, out var conexionCacheada))
             {
                 return conexionCacheada;
             }
@@ -205,9 +197,9 @@ namespace Retorno360Tacna.SERVICES
             try
             {
                 Conexion conexion = new Conexion(
-                    conexionInfo.Servidor ?? string.Empty,
-                    conexionInfo.UsuarioSQL ?? string.Empty,
-                    conexionInfo.PasswordSQL ?? string.Empty,
+                    conexionPrincipal.Servidor ?? string.Empty,
+                    conexionPrincipal.UsuarioSQL ?? string.Empty,
+                    conexionPrincipal.PasswordSQL ?? string.Empty,
                     "RetornoMaster"
                 );
 
@@ -280,7 +272,7 @@ namespace Retorno360Tacna.SERVICES
                 }
 
                 // Guardar en cache
-                cacheConexionesExternas[cacheKey] = conexionExterna;
+                cacheConexiones[cacheKey] = conexionExterna;
             }
             catch (Exception ex)
             {
@@ -310,9 +302,9 @@ namespace Retorno360Tacna.SERVICES
             {
                 // Usar conexión principal
                 Conexion conexion = new Conexion(
-                    conexionInfo.Servidor ?? string.Empty,
-                    conexionInfo.UsuarioSQL ?? string.Empty,
-                    conexionInfo.PasswordSQL ?? string.Empty,
+                    conexionPrincipal.Servidor ?? string.Empty,
+                    conexionPrincipal.UsuarioSQL ?? string.Empty,
+                    conexionPrincipal.PasswordSQL ?? string.Empty,
                     baseDatos
                 );
                 return conexion.ObtenerConexion();
@@ -351,7 +343,7 @@ namespace Retorno360Tacna.SERVICES
 
             if (conexionExt.UsarConexionPrincipal)
             {
-                return conexionInfo.Servidor ?? "Servidor Principal";
+                return conexionPrincipal.Servidor ?? "Servidor Principal";
             }
             else
             {
@@ -401,7 +393,7 @@ namespace Retorno360Tacna.SERVICES
         /// </summary>
         public void LimpiarCacheConexiones()
         {
-            cacheConexionesExternas.Clear();
+            cacheConexiones.Clear();
         }
 
 
@@ -707,8 +699,8 @@ namespace Retorno360Tacna.SERVICES
                 System.Diagnostics.Debug.WriteLine($"   ═══════════════════════════════════════════════════════════");
                 System.Diagnostics.Debug.WriteLine($"   • Conexión externa: {(conexionBase.TieneConexionExterna ? "Sí" : "No")}");
                 System.Diagnostics.Debug.WriteLine($"   • IdConexion: {conexionBase.IdConexion?.ToString() ?? "NULL (usa servidor principal)"}");
-                System.Diagnostics.Debug.WriteLine($"   • Servidor: {conexionBase.Servidor ?? conexionInfo.Servidor ?? "Principal"}");
-                System.Diagnostics.Debug.WriteLine($"   • Usuario: {conexionBase.UsuarioSQL ?? conexionInfo.UsuarioSQL ?? "N/A"}");
+                System.Diagnostics.Debug.WriteLine($"   • Servidor: {conexionBase.Servidor ?? conexionPrincipal.Servidor ?? "Principal"}");
+                System.Diagnostics.Debug.WriteLine($"   • Usuario: {conexionBase.UsuarioSQL ?? conexionPrincipal.UsuarioSQL ?? "N/A"}");
                 System.Diagnostics.Debug.WriteLine($"   ═══════════════════════════════════════════════════════════\n");
                 #endif
 
@@ -759,126 +751,6 @@ namespace Retorno360Tacna.SERVICES
             }
         }
 
-
-
-        public List<RazonSocial> ObtenerRazonesSociales()
-        {
-            try
-            {
-                Conexion conexion = new Conexion(
-                    conexionInfo.Servidor ?? string.Empty,
-                    conexionInfo.UsuarioSQL ?? string.Empty,
-                    conexionInfo.PasswordSQL ?? string.Empty,
-                    "RetornoMaster"
-                );
-
-                string sql = "SELECT IdRazon, NOMBRE_RAZON, DB FROM RAZONXTABLA ORDER BY NOMBRE_RAZON";
-                List<RazonSocial> razones = new List<RazonSocial>();
-
-                using (SqlConnection cn = conexion.ObtenerConexion())
-                using (SqlCommand cmd = new SqlCommand(sql, cn))
-                {
-                    cn.Open();
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            razones.Add(new RazonSocial
-                            {
-                                IdRazon = reader.GetInt32(0),
-                                NombreRazon = reader.GetString(1),
-                                BaseDatosOrigen = reader.GetString(2)
-                            });
-                        }
-                    }
-                }
-
-                return razones;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error al obtener razones sociales: {ex.Message}", ex);
-            }
-        }
-
-        public List<string> ObtenerBasesDatosRazon(int idRazon)
-        {
-            try
-            {
-                Conexion conexion = new Conexion(
-                    conexionInfo.Servidor ?? string.Empty,
-                    conexionInfo.UsuarioSQL ?? string.Empty,
-                    conexionInfo.PasswordSQL ?? string.Empty,
-                    "RetornoMaster"
-                );
-
-                string sql = "SELECT NOMBRE_TABLA FROM NOM_TABLARAZON WHERE IdRazon = @IdRazon ORDER BY NOMBRE_TABLA";
-                List<string> basesDatos = new List<string>();
-
-                using (SqlConnection cn = conexion.ObtenerConexion())
-                using (SqlCommand cmd = new SqlCommand(sql, cn))
-                {
-                    cmd.Parameters.AddWithValue("@IdRazon", idRazon);
-                    cn.Open();
-
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            basesDatos.Add(reader.GetString(0));
-                        }
-                    }
-                }
-
-                return basesDatos;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error al obtener bases de datos de la razón: {ex.Message}", ex);
-            }
-        }
-
-        private RazonSocial ObtenerRazonSocial(int idRazon)
-        {
-            try
-            {
-                Conexion conexion = new Conexion(
-                    conexionInfo.Servidor ?? string.Empty,
-                    conexionInfo.UsuarioSQL ?? string.Empty,
-                    conexionInfo.PasswordSQL ?? string.Empty,
-                    "RetornoMaster"
-                );
-
-                string sql = "SELECT IdRazon, NOMBRE_RAZON, DB FROM RAZONXTABLA WHERE IdRazon = @IdRazon";
-
-                using (SqlConnection cn = conexion.ObtenerConexion())
-                using (SqlCommand cmd = new SqlCommand(sql, cn))
-                {
-                    cmd.Parameters.AddWithValue("@IdRazon", idRazon);
-                    cn.Open();
-
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            return new RazonSocial
-                            {
-                                IdRazon = reader.GetInt32(0),
-                                NombreRazon = reader.GetString(1),
-                                BaseDatosOrigen = reader.GetString(2)
-                            };
-                        }
-                    }
-                }
-
-                throw new Exception("Razón social no encontrada");
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error al obtener razón social: {ex.Message}", ex);
-            }
-        }
-
         private List<PedimentoComparacion> ValidarPedimentosCruzados(
             string baseDatosSeleccionada,
             string baseDatosOrigen,
@@ -889,11 +761,11 @@ namespace Retorno360Tacna.SERVICES
             {
                 // 🔍 PASO 1: Obtener información de conexión de la BASE SELECCIONADA (desde NOM_TABLARAZON)
                 var conexionBaseSeleccionada = ObtenerConexionDesdeNomTablaRazon(baseDatosSeleccionada);
-                string servidorSeleccionada = conexionBaseSeleccionada.Servidor ?? conexionInfo.Servidor ?? "Servidor Principal";
+                string servidorSeleccionada = conexionBaseSeleccionada.Servidor ?? conexionPrincipal.Servidor ?? "Servidor Principal";
 
                 // 🔍 PASO 2: Obtener información de conexión de la BASE ORIGEN/GLOSA (desde RAZONXTABLA)
                 var conexionBaseOrigen = ObtenerConexionExterna(baseDatosOrigen);
-                string servidorOrigen = conexionBaseOrigen.Servidor ?? conexionInfo.Servidor ?? "Servidor Principal";
+                string servidorOrigen = conexionBaseOrigen.Servidor ?? conexionPrincipal.Servidor ?? "Servidor Principal";
 
                 System.Diagnostics.Debug.WriteLine($"\n🔍 VALIDAR PEDIMENTOS CRUZADOS");
                 System.Diagnostics.Debug.WriteLine($"   ═══════════════════════════════════════════════════════════");
@@ -904,7 +776,7 @@ namespace Retorno360Tacna.SERVICES
                 System.Diagnostics.Debug.WriteLine($"      • IdConexion: {conexionBaseSeleccionada.IdConexion?.ToString() ?? "NULL (usa servidor principal)"}");
                 System.Diagnostics.Debug.WriteLine($"      • Servidor resuelto: {conexionBaseSeleccionada.Servidor ?? "NULL"}");
                 System.Diagnostics.Debug.WriteLine($"      • Servidor final: {servidorSeleccionada}");
-                System.Diagnostics.Debug.WriteLine($"      • Usuario: {conexionBaseSeleccionada.UsuarioSQL ?? conexionInfo.UsuarioSQL ?? "N/A"}");
+                System.Diagnostics.Debug.WriteLine($"      • Usuario: {conexionBaseSeleccionada.UsuarioSQL ?? conexionPrincipal.UsuarioSQL ?? "N/A"}");
                 System.Diagnostics.Debug.WriteLine($"   ");
                 System.Diagnostics.Debug.WriteLine($"   📊 BASE ORIGEN/GLOSA (TR_Glosa):");
                 System.Diagnostics.Debug.WriteLine($"      • Nombre: {baseDatosOrigen}");
@@ -913,7 +785,7 @@ namespace Retorno360Tacna.SERVICES
                 System.Diagnostics.Debug.WriteLine($"      • IdConexion: {conexionBaseOrigen.IdConexion?.ToString() ?? "NULL (usa servidor principal)"}");
                 System.Diagnostics.Debug.WriteLine($"      • Servidor resuelto: {conexionBaseOrigen.Servidor ?? "NULL"}");
                 System.Diagnostics.Debug.WriteLine($"      • Servidor final: {servidorOrigen}");
-                System.Diagnostics.Debug.WriteLine($"      • Usuario: {conexionBaseOrigen.UsuarioSQL ?? conexionInfo.UsuarioSQL ?? "N/A"}");
+                System.Diagnostics.Debug.WriteLine($"      • Usuario: {conexionBaseOrigen.UsuarioSQL ?? conexionPrincipal.UsuarioSQL ?? "N/A"}");
                 System.Diagnostics.Debug.WriteLine($"   ═══════════════════════════════════════════════════════════");
 
                 // ⚠️ VALIDACIÓN: Si están en servidores diferentes, usar estrategia alternativa
@@ -936,8 +808,8 @@ namespace Retorno360Tacna.SERVICES
                 bool mismoServidor = SonMismoServidor(servidorSeleccionada, servidorOrigen);
 
                 // VALIDACIÓN 3: Comparar credenciales (usuario SQL)
-                string usuarioSeleccionada = conexionBaseSeleccionada.UsuarioSQL ?? conexionInfo.UsuarioSQL ?? "";
-                string usuarioOrigen = conexionBaseOrigen.UsuarioSQL ?? conexionInfo.UsuarioSQL ?? "";
+                string usuarioSeleccionada = conexionBaseSeleccionada.UsuarioSQL ?? conexionPrincipal.UsuarioSQL ?? "";
+                string usuarioOrigen = conexionBaseOrigen.UsuarioSQL ?? conexionPrincipal.UsuarioSQL ?? "";
                 bool mismoUsuario = usuarioSeleccionada.Equals(usuarioOrigen, StringComparison.OrdinalIgnoreCase);
 
                 // DECISIÓN FINAL: Son el mismo servidor Y misma conexión SOLO si TODAS las validaciones lo confirman
@@ -1372,153 +1244,6 @@ namespace Retorno360Tacna.SERVICES
             }
         }
 
-    /*
-
-        /// <summary>
-        /// Obtiene pedimentos de Di_Pedimento y De_Pedimento de una base de datos específica
-        /// </summary>
-        private List<PedimentoComparacion> ObtenerPedimentosDeBaseDatos(
-            string baseDatos,
-            ConexionExternaInfo conexionExternaInfo,
-            DateTime fechaInicio,
-            DateTime fechaFin)
-        {
-            var pedimentos = new List<PedimentoComparacion>();
-
-            string sql = $@"
-                SELECT
-                    'IMPORTACION' AS Tipo,
-                    Adu_AduanaSecc AS Aduana,
-                    AgP_Patente AS Patente,
-                    Pim_Folio AS Pedimento,
-                    Pim_FechaPago AS FechaPago
-                FROM [{baseDatos}].dbo.Di_Pedimento
-                WHERE Pim_FechaPago >= @FechaInicio
-                  AND Pim_FechaPago <= @FechaFin
-
-                UNION ALL
-
-                SELECT
-                    'EXPORTACION' AS Tipo,
-                    Adu_AduanaSecc AS Aduana,
-                    AgP_Patente AS Patente,
-                    Pex_Folio AS Pedimento,
-                    Pex_FechaPago AS FechaPago
-                FROM [{baseDatos}].dbo.De_Pedimento
-                WHERE Pex_FechaPago >= @FechaInicio
-                  AND Pex_FechaPago <= @FechaFin";
-
-            try
-            {
-                using (SqlConnection cn = ObtenerConexionParaBaseDatos(baseDatos, conexionExternaInfo))
-                using (SqlCommand cmd = new SqlCommand(sql, cn))
-                {
-                    cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
-                    cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
-                    cmd.CommandTimeout = 120;
-
-                    cn.Open();
-
-                    System.Diagnostics.Debug.WriteLine($"   🔌 Conexión abierta para {baseDatos}");
-                    System.Diagnostics.Debug.WriteLine($"      Servidor: {cn.DataSource}");
-                    System.Diagnostics.Debug.WriteLine($"      Base de datos: {cn.Database}");
-
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            pedimentos.Add(new PedimentoComparacion
-                            {
-                                Tipo = reader.GetString(0),
-                                Aduana = reader.GetString(1),
-                                Patente = reader.GetString(2),
-                                Pedimento = reader.GetString(3),
-                                FechaPago = reader.GetDateTime(4),
-                                ExisteEnGlosa = false
-                            });
-                        }
-                    }
-                }
-            }
-            catch (SqlException sqlEx)
-            {
-                var conexionInfo = ObtenerConexionExterna(baseDatos);
-                throw new Exception(
-                    $"Error al obtener pedimentos de {baseDatos}:\n" +
-                    $"Mensaje SQL: {sqlEx.Message}\n\n" +
-                    $"Configuración detectada:\n" +
-                    $"  • Base de datos: {baseDatos}\n" +
-                    $"  • Tiene conexión externa: {conexionInfo.TieneConexionExterna}\n" +
-                    $"  • IdConexion: {conexionInfo.IdConexion?.ToString() ?? "NULL"}\n" +
-                    $"  • Servidor configurado: {conexionInfo.Servidor ?? "Servidor principal"}\n\n" +
-                    $"SOLUCIÓN:\n" +
-                    $"Verifica que la base de datos '{baseDatos}' tenga configurado correctamente:\n" +
-                    $"1. ConnExterna = 'S' en NOM_TABLARAZON\n" +
-                    $"2. IdConexion con el servidor correcto en NOM_TABLARAZON\n" +
-                    $"3. Usuario/contraseña correctos en la tabla Conexiones",
-                    sqlEx
-                );
-            }
-
-            return pedimentos;
-        }
-
-        /// <summary>
-        /// Obtiene pedimentos de TR_Glosa de una base de datos específica
-        /// </summary>
-        private List<PedimentoComparacion> ObtenerPedimentosDeGlosa(
-            string baseDatos,
-            ConexionExternaInfo conexionExternaInfo,
-            DateTime fechaInicio,
-            DateTime fechaFin)
-        {
-            var pedimentos = new List<PedimentoComparacion>();
-
-            string sql = $@"
-                SELECT DISTINCT
-                    CASE 
-                        WHEN Gl_TOper = 1 THEN 'IMPORTACION'
-                        WHEN Gl_TOper = 2 THEN 'EXPORTACION'
-                        ELSE 'OTRO'
-                    END AS Tipo,
-                    Gl_Aduana AS Aduana,
-                    Gl_Patente AS Patente,
-                    Gl_Pedimento AS Pedimento,
-                    Gl_FecPagoReal AS FechaPago
-                FROM [{baseDatos}].dbo.TR_Glosa
-                WHERE Gl_TOper IN (1, 2)
-                  AND CONVERT(DATE, Gl_FecPagoReal, 101) BETWEEN @FechaInicio AND @FechaFin
-                  AND Gl_OrigenZipGlosa = 'S'";
-
-            using (SqlConnection cn = ObtenerConexionParaBaseDatos(baseDatos, conexionExternaInfo))
-            using (SqlCommand cmd = new SqlCommand(sql, cn))
-            {
-                cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
-                cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
-                cmd.CommandTimeout = 120;
-
-                cn.Open();
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        pedimentos.Add(new PedimentoComparacion
-                        {
-                            Tipo = reader.GetString(0),
-                            Aduana = reader.GetString(1),
-                            Patente = reader.GetString(2),
-                            Pedimento = reader.GetString(3),
-                            FechaPago = reader.GetDateTime(4),
-                            ExisteEnGlosa = true
-                        });
-                    }
-                }
-            }
-
-            return pedimentos;
-        }
-
-*/
         private decimal ObtenerImportacionesValidadas(
             string baseDatosOrigen,
             List<PedimentoComparacion> pedimentosValidos,
@@ -1698,9 +1423,9 @@ namespace Retorno360Tacna.SERVICES
             try
             {
                 Conexion conexion = new Conexion(
-                    conexionInfo.Servidor ?? string.Empty,
-                    conexionInfo.UsuarioSQL ?? string.Empty,
-                    conexionInfo.PasswordSQL ?? string.Empty,
+                    conexionPrincipal.Servidor ?? string.Empty,
+                    conexionPrincipal.UsuarioSQL ?? string.Empty,
+                    conexionPrincipal.PasswordSQL ?? string.Empty,
                     "RetornoMaster"
                 );
 

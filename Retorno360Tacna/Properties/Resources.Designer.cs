@@ -93,6 +93,16 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap applicationpdf_1036141 {
+            get {
+                object obj = ResourceManager.GetObject("applicationpdf_1036141", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap business_inventory_maintenance_product_box_boxes_2326 {
             get {
                 object obj = ResourceManager.GetObject("business_inventory_maintenance_product_box_boxes_2326", resourceCulture);
