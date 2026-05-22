@@ -259,15 +259,16 @@ namespace Retorno360Tacna.FORMS
             // 
             btnGraficaTodos.BackColor = Color.FromArgb(41, 128, 185);
             btnGraficaTodos.Cursor = Cursors.Hand;
+            btnGraficaTodos.Enabled = false;
             btnGraficaTodos.FlatAppearance.BorderSize = 0;
             btnGraficaTodos.FlatStyle = FlatStyle.Flat;
-            btnGraficaTodos.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btnGraficaTodos.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
             btnGraficaTodos.ForeColor = Color.White;
             btnGraficaTodos.Location = new Point(200, 5);
             btnGraficaTodos.Name = "btnGraficaTodos";
-            btnGraficaTodos.Size = new Size(170, 30);
+            btnGraficaTodos.Size = new Size(40, 30);
             btnGraficaTodos.TabIndex = 1;
-            btnGraficaTodos.Text = "EQ, MAQ, SUB, RT";
+            btnGraficaTodos.Text = "▶";
             btnGraficaTodos.UseVisualStyleBackColor = false;
             btnGraficaTodos.Click += btnGraficaTodos_Click;
             // 
@@ -275,15 +276,16 @@ namespace Retorno360Tacna.FORMS
             // 
             btnGraficaIndividual.BackColor = Color.FromArgb(52, 152, 219);
             btnGraficaIndividual.Cursor = Cursors.Hand;
+            btnGraficaIndividual.Enabled = false;
             btnGraficaIndividual.FlatAppearance.BorderSize = 0;
             btnGraficaIndividual.FlatStyle = FlatStyle.Flat;
-            btnGraficaIndividual.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btnGraficaIndividual.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
             btnGraficaIndividual.ForeColor = Color.White;
-            btnGraficaIndividual.Location = new Point(10, 5);
+            btnGraficaIndividual.Location = new Point(158, 5);
             btnGraficaIndividual.Name = "btnGraficaIndividual";
-            btnGraficaIndividual.Size = new Size(180, 30);
+            btnGraficaIndividual.Size = new Size(40, 30);
             btnGraficaIndividual.TabIndex = 0;
-            btnGraficaIndividual.Text = "Materia Prima (MP)";
+            btnGraficaIndividual.Text = "◀";
             btnGraficaIndividual.UseVisualStyleBackColor = false;
             btnGraficaIndividual.Click += btnGraficaIndividual_Click;
             // 

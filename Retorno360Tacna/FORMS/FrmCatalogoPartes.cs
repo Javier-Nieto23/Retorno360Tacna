@@ -21,14 +21,19 @@ namespace Retorno360Tacna.FORMS
     {
         private readonly ConexionInfo conexionActual;
         private CatalogoPartesService catalogoService;
-        private List<MateriaPrimaBOM> datosConsultados;
+        private List<MateriaPrimaBOM> datosConsultadosMP;
+        private List<MateriaPrimaBOM> datosConsultadosOtros;
+        private Control chartControl; // Control genérico para manejar ambos tipos de gráficas
+        private int vistaActual = 0; // 0 = MP, 1 = Otros tipos
 
         public FrmCatalogoPartes(ConexionInfo conexion)
         {
             InitializeComponent();
             conexionActual = conexion;
             catalogoService = new CatalogoPartesService(conexion);
-            datosConsultados = new List<MateriaPrimaBOM>();
+            datosConsultadosMP = new List<MateriaPrimaBOM>();
+            datosConsultadosOtros = new List<MateriaPrimaBOM>();
+            chartControl = chartEstatus; // Inicialmente es PieChart
         }
 
         private void FrmCatalogoPartes_Load(object sender, EventArgs e)
@@ -149,11 +154,6 @@ namespace Retorno360Tacna.FORMS
                 return;
             }
 
-            await ConsultarMateriaPrimaAsync(baseDatos, "MP", fechaInicio, fechaFin);
-        }
-
-        private async Task ConsultarMateriaPrimaAsync(string baseDatos, string tipoClave, DateTime fechaInicio, DateTime fechaFin)
-        {
             try
             {
                 MostrarPanelCargando(true);
@@ -162,38 +162,30 @@ namespace Retorno360Tacna.FORMS
                 // Pequeño delay para asegurar que la UI se actualice
                 await Task.Delay(50);
 
-                var resultado = await Task.Run(() =>
-                    catalogoService.ObtenerMateriaPrimaBOM(baseDatos, tipoClave, fechaInicio, fechaFin));
+                // Ejecutar ambas consultas en paralelo
+                var tareaMP = Task.Run(() =>
+                    catalogoService.ObtenerMateriaPrimaBOM(baseDatos, "MP", fechaInicio, fechaFin));
 
-                // Guardar los datos consultados para exportar
-                datosConsultados = resultado;
+                var tareaOtros = Task.Run(() =>
+                    catalogoService.ObtenerMateriaPrimaBOMMultiple(baseDatos, fechaInicio, fechaFin));
 
-                dgvMateriaPrima.DataSource = resultado;
+                await Task.WhenAll(tareaMP, tareaOtros);
 
-                if (dgvMateriaPrima.Columns.Count > 0)
-                {
-                    dgvMateriaPrima.Columns["Par_NoParte"].HeaderText = "Número de Parte";
-                    dgvMateriaPrima.Columns["Par_DescripcionEsp"].HeaderText = "Descripción";
-                    dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
-                    dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
+                datosConsultadosMP = tareaMP.Result;
+                datosConsultadosOtros = tareaOtros.Result;
 
-                    // Ocultar la columna Clave
-                    dgvMateriaPrima.Columns["Clave"].Visible = false;
+                // Mostrar vista de MP por defecto
+                vistaActual = 0;
+                MostrarVistaMP();
 
-                    dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
-                }
-
-                ActualizarGrafico(resultado);
-
-                // Actualizar el total de partes
-                lblTotalPartes.Text = $"Total de partes: {resultado.Count:N0}";
-
-                // Habilitar el botón de exportar PDF
-                btnExportarPdf.Enabled = resultado.Count > 0;
+                // Habilitar botones de navegación
+                btnGraficaIndividual.Enabled = true;
+                btnGraficaTodos.Enabled = true;
+                btnExportarPdf.Enabled = datosConsultadosMP.Count > 0 || datosConsultadosOtros.Count > 0;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al consultar materia prima:\n{ex.Message}",
+                MessageBox.Show($"Error al consultar datos:\n{ex.Message}",
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
@@ -201,6 +193,80 @@ namespace Retorno360Tacna.FORMS
                 MostrarPanelCargando(false);
                 btnConsultar.Enabled = true;
             }
+        }
+
+        private void MostrarVistaMP()
+        {
+            vistaActual = 0;
+
+            // Restaurar gráfica de pie
+            if (chartControl != chartEstatus)
+            {
+                panelGrafico.Controls.Remove(chartControl);
+                chartControl = chartEstatus;
+                panelGrafico.Controls.Add(chartEstatus);
+                chartEstatus.Dock = DockStyle.Fill;
+                chartEstatus.BringToFront();
+            }
+
+            // Actualizar grid
+            dgvMateriaPrima.DataSource = datosConsultadosMP;
+
+            if (dgvMateriaPrima.Columns.Count > 0)
+            {
+                dgvMateriaPrima.Columns["Par_NoParte"].HeaderText = "Número de Parte";
+                dgvMateriaPrima.Columns["Par_DescripcionEsp"].HeaderText = "Descripción";
+                dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
+                dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
+                dgvMateriaPrima.Columns["Clave"].Visible = false;
+                dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
+            }
+
+            // Actualizar gráfico
+            ActualizarGrafico(datosConsultadosMP);
+
+            // Actualizar total
+            lblTotalPartes.Text = $"Total de partes MP: {datosConsultadosMP.Count:N0}";
+        }
+
+        private void MostrarVistaOtros()
+        {
+            vistaActual = 1;
+
+            // Cambiar a gráfica de barras si es necesario
+            if (chartControl == chartEstatus)
+            {
+                panelGrafico.Controls.Remove(chartEstatus);
+
+                var cartesianChart = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart
+                {
+                    Dock = DockStyle.Fill
+                };
+
+                panelGrafico.Controls.Add(cartesianChart);
+                chartControl = cartesianChart;
+                cartesianChart.BringToFront();
+            }
+
+            // Actualizar grid
+            dgvMateriaPrima.DataSource = datosConsultadosOtros;
+
+            if (dgvMateriaPrima.Columns.Count > 0)
+            {
+                dgvMateriaPrima.Columns["Par_NoParte"].HeaderText = "Número de Parte";
+                dgvMateriaPrima.Columns["Par_DescripcionEsp"].HeaderText = "Descripción";
+                dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
+                dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
+                dgvMateriaPrima.Columns["Clave"].Visible = true; // Mostrar columna de tipo
+                dgvMateriaPrima.Columns["Clave"].HeaderText = "Tipo";
+                dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
+            }
+
+            // Actualizar gráfico de barras
+            ActualizarGraficoBarras(datosConsultadosOtros);
+
+            // Actualizar total
+            lblTotalPartes.Text = $"Total de partes (EQ, MAQ, SUB, RT): {datosConsultadosOtros.Count:N0}";
         }
 
         private void ActualizarGrafico(List<MateriaPrimaBOM> datos)
@@ -246,55 +312,140 @@ namespace Retorno360Tacna.FORMS
             chartEstatus.TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Hidden;
         }
 
-        private void btnExportarPdf_Click(object sender, EventArgs e)
+        private void ActualizarGraficoBarras(List<MateriaPrimaBOM> datos)
         {
-            if (datosConsultados == null || datosConsultados.Count == 0)
+            // Agrupar por tipo de clave y contar
+            var agrupado = datos.GroupBy(d => d.Clave)
+                                .Select(g => new { Tipo = g.Key, Total = g.Count() })
+                                .OrderBy(x => x.Tipo)
+                                .ToList();
+
+            // Remover el chart actual si existe
+            if (chartControl != null)
             {
-                MessageBox.Show("No hay datos para exportar. Por favor realice una consulta primero.",
-                    "Sin datos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                panelGrafico.Controls.Remove(chartControl);
             }
 
-            try
+            // Crear nuevo CartesianChart para gráfica de barras
+            var cartesianChart = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart
             {
-                using (SaveFileDialog saveDialog = new SaveFileDialog())
+                Dock = DockStyle.Fill,
+                Name = "chartEstatus"
+            };
+
+            // Crear series de barras con colores diferentes para cada tipo
+            var colors = new[] { "#9b59b6", "#e74c3c", "#3498db", "#2ecc71", "#f39c12" }; // Morado, Rojo, Azul, Verde, Naranja
+            var series = new List<ISeries>();
+
+            for (int i = 0; i < agrupado.Count; i++)
+            {
+                var item = agrupado[i];
+                var color = colors[i % colors.Length];
+
+                series.Add(new ColumnSeries<int>
                 {
-                    saveDialog.Filter = "PDF files (*.pdf)|*.pdf";
-                    saveDialog.Title = "Guardar Catálogo de Partes";
-                    saveDialog.FileName = $"CatalogoPartes_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                    Name = item.Tipo,
+                    Values = new[] { item.Total },
+                    Fill = new SolidColorPaint(SKColor.Parse(color)),
+                    DataLabelsPaint = new SolidColorPaint(SKColors.Black),
+                    DataLabelsSize = 14,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                    DataLabelsFormatter = point => $"{item.Total}",
+                    MaxBarWidth = 50
+                });
+            }
 
-                    if (saveDialog.ShowDialog() == DialogResult.OK)
-                    {
-                        MostrarPanelCargando(true);
-                        btnExportarPdf.Enabled = false;
+            cartesianChart.Series = series;
 
-                        GenerarPdfCatalogo(saveDialog.FileName);
+            // Configurar ejes X
+            cartesianChart.XAxes = new LiveChartsCore.SkiaSharpView.Axis[]
+            {
+                new LiveChartsCore.SkiaSharpView.Axis
+                {
+                    Labels = agrupado.Select(x => x.Tipo).ToArray(),
+                    LabelsRotation = 0,
+                    TextSize = 12,
+                    SeparatorsPaint = new SolidColorPaint(SKColors.LightGray)
+                }
+            };
 
-                        MostrarPanelCargando(false);
-                        btnExportarPdf.Enabled = true;
+            // Configurar ejes Y
+            cartesianChart.YAxes = new LiveChartsCore.SkiaSharpView.Axis[]
+            {
+                new LiveChartsCore.SkiaSharpView.Axis
+                {
+                    MinLimit = 0,
+                    TextSize = 12,
+                    SeparatorsPaint = new SolidColorPaint(SKColors.LightGray)
+                }
+            };
 
-                        MessageBox.Show($"PDF generado exitosamente en:\n{saveDialog.FileName}",
-                            "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            cartesianChart.Title = new LiveChartsCore.SkiaSharpView.VisualElements.LabelVisual
+            {
+                Text = "Total de Partes por Tipo de Clave",
+                TextSize = 16,
+                Padding = new LiveChartsCore.Drawing.Padding(15),
+                Paint = new SolidColorPaint(SKColor.Parse("#2c3e50"))
+            };
 
-                        // Preguntar si desea abrir el archivo
-                        if (MessageBox.Show("¿Desea abrir el archivo PDF?", "Abrir archivo",
-                            MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = saveDialog.FileName,
-                                UseShellExecute = true
-                            });
-                        }
-                    }
+            cartesianChart.LegendPosition = LiveChartsCore.Measure.LegendPosition.Bottom;
+            cartesianChart.TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Hidden;
+
+            // Agregar al panel
+            panelGrafico.Controls.Add(cartesianChart);
+            panelGrafico.Controls.SetChildIndex(cartesianChart, 0);
+            chartControl = cartesianChart;
+        }
+
+        private async void btnExportarPdf_Click(object sender, EventArgs e)
+        {
+            if (datosConsultadosMP == null || datosConsultadosMP.Count == 0)
+            {
+                if (datosConsultadosOtros == null || datosConsultadosOtros.Count == 0)
+                {
+                    MessageBox.Show("No hay datos para exportar.",
+                        "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
                 }
             }
-            catch (Exception ex)
+
+            SaveFileDialog saveDialog = new SaveFileDialog
             {
-                MostrarPanelCargando(false);
-                btnExportarPdf.Enabled = true;
-                MessageBox.Show($"Error al generar el PDF:\n{ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Filter = "PDF Files|*.pdf",
+                Title = "Guardar Catálogo como PDF",
+                FileName = $"Catalogo_Partes_{DateTime.Now:yyyyMMdd_HHmmss}.pdf"
+            };
+
+            if (saveDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    btnExportarPdf.Enabled = false;
+                    GenerarPdfCatalogo(saveDialog.FileName);
+
+                    var result = MessageBox.Show("PDF generado correctamente.\n¿Desea abrirlo ahora?",
+                        "Exportación Exitosa",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Information);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = saveDialog.FileName,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al generar el PDF:\n{ex.Message}",
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    btnExportarPdf.Enabled = true;
+                }
             }
         }
 
@@ -302,11 +453,16 @@ namespace Retorno360Tacna.FORMS
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            var vigentes = datosConsultados.Count(d => d.EstatusComponente == "VIGENTE EN BOM");
-            var noVigentes = datosConsultados.Count(d => d.EstatusComponente == "NO ESTA EN BOM");
+            // Generar imágenes de ambos gráficos
+            var vigentesMP = datosConsultadosMP.Count(d => d.EstatusComponente == "VIGENTE EN BOM");
+            var noVigentesMP = datosConsultadosMP.Count(d => d.EstatusComponente == "NO ESTA EN BOM");
+            byte[] imagenGraficoMP = GenerarImagenGrafico(vigentesMP, noVigentesMP);
+            byte[] imagenGraficoBarras = GenerarImagenGraficoBarras(datosConsultadosOtros);
 
-            // Generar imagen del gráfico
-            byte[] imagenGrafico = GenerarImagenGrafico(vigentes, noVigentes);
+            var agrupado = datosConsultadosOtros.GroupBy(d => d.Clave)
+                                      .Select(g => new { Tipo = g.Key, Total = g.Count() })
+                                      .OrderBy(x => x.Tipo)
+                                      .ToList();
 
             Document.Create(container =>
             {
@@ -320,7 +476,7 @@ namespace Retorno360Tacna.FORMS
                     // Header
                     page.Header().Column(column =>
                     {
-                        column.Item().Text("Catálogo de Materia Prima")
+                        column.Item().Text("Catálogo de Partes - Reporte Completo")
                             .FontSize(18)
                             .Bold()
                             .FontColor(Colors.Blue.Darken2);
@@ -350,82 +506,100 @@ namespace Retorno360Tacna.FORMS
 
                             row.RelativeItem().AlignRight().Text(txt =>
                             {
-                                txt.Span("Total de Partes: ").Bold();
-                                txt.Span(datosConsultados.Count.ToString("N0"));
-                            });
-                        });
-
-                        column.Item().PaddingTop(5).Row(row =>
-                        {
-                            row.RelativeItem().Text(txt =>
-                            {
-                                txt.Span("Vigentes en BOM: ").Bold().FontColor(Colors.Green.Darken2);
-                                txt.Span($"{vigentes:N0}");
-                            });
-
-                            row.RelativeItem().Text(txt =>
-                            {
-                                txt.Span("No vigentes en BOM: ").Bold().FontColor(Colors.Red.Darken2);
-                                txt.Span($"{noVigentes:N0}");
+                                txt.Span("Total General: ").Bold();
+                                txt.Span((datosConsultadosMP.Count + datosConsultadosOtros.Count).ToString("N0"));
                             });
                         });
 
                         column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
                     });
 
-                    // Content
-                    page.Content().PaddingTop(10).Column(column =>
+                    // Content - PRIMERA PÁGINA CON AMBOS GRÁFICOS
+                    page.Content().PaddingTop(5).Column(column =>
                     {
-                        // Gráfico
-                        column.Item().PaddingBottom(15).Row(row =>
+                        // AMBOS GRÁFICOS EN LA MISMA PÁGINA - LADO A LADO
+                        column.Item().Row(row =>
                         {
-                            row.RelativeItem(1).Column(col =>
+                            // Sección Materia Prima - Izquierda
+                            row.RelativeItem().Padding(3).Column(seccionMP =>
                             {
-                                col.Item().AlignCenter().Text("Estatus de Componentes en BOM")
-                                    .FontSize(12)
+                                seccionMP.Item().Text("MATERIA PRIMA (MP)")
+                                    .FontSize(10)
                                     .Bold()
-                                    .FontColor(Colors.Grey.Darken3);
+                                    .FontColor(Colors.Blue.Darken3)
+                                    .AlignCenter();
 
-                                col.Item().PaddingTop(5).AlignCenter().Image(imagenGrafico).FitWidth();
+                                seccionMP.Item().PaddingTop(2).PaddingBottom(2).Row(statsRow =>
+                                {
+                                    statsRow.RelativeItem().AlignCenter().Text(txt =>
+                                    {
+                                        txt.Span("Total: ").Bold().FontSize(8);
+                                        txt.Span($"{datosConsultadosMP.Count:N0}").FontSize(8);
+                                    });
+
+                                    statsRow.RelativeItem().AlignCenter().Text(txt =>
+                                    {
+                                        txt.Span("Vigentes: ").Bold().FontColor(Colors.Green.Darken2).FontSize(8);
+                                        txt.Span($"{vigentesMP:N0}").FontSize(8);
+                                    });
+
+                                    statsRow.RelativeItem().AlignCenter().Text(txt =>
+                                    {
+                                        txt.Span("No vigentes: ").Bold().FontColor(Colors.Red.Darken2).FontSize(8);
+                                        txt.Span($"{noVigentesMP:N0}").FontSize(8);
+                                    });
+                                });
+
+                                // Gráfico MP - tamaño fijo reducido
+                                seccionMP.Item().PaddingTop(3).AlignCenter().Width(280).Image(imagenGraficoMP);
                             });
 
-                            row.RelativeItem(2); // Espacio para la tabla
-                        });
-
-                        // Tabla
-                        column.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(columns =>
+                            // Sección Otros Tipos - Derecha
+                            row.RelativeItem().Padding(3).Column(seccionOtros =>
                             {
-                                columns.RelativeColumn(2);  // Número de Parte
-                                columns.RelativeColumn(4);  // Descripción
-                                columns.RelativeColumn(1.5f);  // Fecha Inserción
-                                columns.RelativeColumn(1.5f);  // Estatus
+                                seccionOtros.Item().Text("OTROS TIPOS (EQ, MAQ, SUB, RT)")
+                                    .FontSize(10)
+                                    .Bold()
+                                    .FontColor(Colors.Blue.Darken3)
+                                    .AlignCenter();
+
+                                seccionOtros.Item().PaddingTop(2).PaddingBottom(2).Row(statsRow =>
+                                {
+                                    statsRow.RelativeItem().AlignCenter().Text(txt =>
+                                    {
+                                        txt.Span("Total: ").Bold().FontSize(8);
+                                        txt.Span($"{datosConsultadosOtros.Count:N0}").FontSize(8);
+                                    });
+
+                                    foreach (var grupo in agrupado.Take(3))
+                                    {
+                                        statsRow.RelativeItem().AlignCenter().Text(txt =>
+                                        {
+                                            txt.Span($"{grupo.Tipo}: ").Bold().FontColor(Colors.Blue.Darken1).FontSize(8);
+                                            txt.Span($"{grupo.Total:N0}").FontSize(8);
+                                        });
+                                    }
+                                });
+
+                                // Segunda fila de estadísticas si hay más de 3 tipos
+                                if (agrupado.Count > 3)
+                                {
+                                    seccionOtros.Item().PaddingBottom(2).Row(statsRow2 =>
+                                    {
+                                        foreach (var grupo in agrupado.Skip(3))
+                                        {
+                                            statsRow2.RelativeItem().AlignCenter().Text(txt =>
+                                            {
+                                                txt.Span($"{grupo.Tipo}: ").Bold().FontColor(Colors.Blue.Darken1).FontSize(8);
+                                                txt.Span($"{grupo.Total:N0}").FontSize(8);
+                                            });
+                                        }
+                                    });
+                                }
+
+                                // Gráfico Barras - tamaño fijo reducido
+                                seccionOtros.Item().PaddingTop(3).AlignCenter().Width(280).Image(imagenGraficoBarras);
                             });
-
-                            // Header
-                            table.Header(header =>
-                            {
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
-                            });
-
-                            // Data rows
-                            foreach (var item in datosConsultados)
-                            {
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_NoParte);
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp);
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A");
-
-                                var estatusColor = item.EstatusComponente == "VIGENTE EN BOM" 
-                                    ? Colors.Green.Darken2 
-                                    : Colors.Red.Darken2;
-
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                    .Text(item.EstatusComponente).FontColor(estatusColor).Bold();
-                            }
                         });
                     });
 
@@ -438,6 +612,181 @@ namespace Retorno360Tacna.FORMS
                         txt.TotalPages();
                     });
                 });
+
+                // SEGUNDA PÁGINA - TABLA DE MATERIA PRIMA
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(1.5f, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Segoe UI"));
+
+                    // Header
+                    page.Header().Column(column =>
+                    {
+                        column.Item().Text("MATERIA PRIMA (MP) - Detalle")
+                            .FontSize(16)
+                            .Bold()
+                            .FontColor(Colors.Blue.Darken3);
+
+                        column.Item().PaddingTop(5).Row(row =>
+                        {
+                            row.RelativeItem().Text(txt =>
+                            {
+                                txt.Span("Total: ").Bold();
+                                txt.Span($"{datosConsultadosMP.Count:N0}");
+                            });
+
+                            row.RelativeItem().Text(txt =>
+                            {
+                                txt.Span("Vigentes: ").Bold().FontColor(Colors.Green.Darken2);
+                                txt.Span($"{vigentesMP:N0}");
+                            });
+
+                            row.RelativeItem().Text(txt =>
+                            {
+                                txt.Span("No vigentes: ").Bold().FontColor(Colors.Red.Darken2);
+                                txt.Span($"{noVigentesMP:N0}");
+                            });
+                        });
+
+                        column.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                    });
+
+                    // Content - Tabla MP
+                    page.Content().PaddingTop(10).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(2);  // Número de Parte
+                            columns.RelativeColumn(4);  // Descripción
+                            columns.RelativeColumn(1.5f);  // Fecha Inserción
+                            columns.RelativeColumn(1.5f);  // Estatus
+                        });
+
+                        // Header
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte").FontColor(Colors.White).Bold();
+                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
+                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
+                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
+                        });
+
+                        // Data rows - Ordenados por Número de Parte
+                        foreach (var item in datosConsultadosMP.OrderBy(x => x.Par_NoParte))
+                        {
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_NoParte).FontSize(8);
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp).FontSize(8);
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A").FontSize(8);
+
+                            var estatusColor = item.EstatusComponente == "VIGENTE EN BOM" 
+                                ? Colors.Green.Darken2 
+                                : Colors.Red.Darken2;
+
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                                .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
+                        }
+                    });
+
+                    // Footer
+                    page.Footer().AlignCenter().Text(txt =>
+                    {
+                        txt.Span("Página ");
+                        txt.CurrentPageNumber();
+                        txt.Span(" de ");
+                        txt.TotalPages();
+                    });
+                });
+
+                // TERCERA PÁGINA (o más) - TABLA DE OTROS TIPOS
+                if (datosConsultadosOtros.Count > 0)
+                {
+                    container.Page(page =>
+                    {
+                        page.Size(PageSizes.A4.Landscape());
+                        page.Margin(1.5f, Unit.Centimetre);
+                        page.PageColor(Colors.White);
+                        page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Segoe UI"));
+
+                        // Header
+                        page.Header().Column(column =>
+                        {
+                            column.Item().Text("OTROS TIPOS (EQ, MAQ, SUB, RT) - Detalle")
+                                .FontSize(16)
+                                .Bold()
+                                .FontColor(Colors.Blue.Darken3);
+
+                            column.Item().PaddingTop(5).Row(row =>
+                            {
+                                row.RelativeItem().Text(txt =>
+                                {
+                                    txt.Span("Total: ").Bold();
+                                    txt.Span($"{datosConsultadosOtros.Count:N0}");
+                                });
+
+                                foreach (var grupo in agrupado)
+                                {
+                                    row.RelativeItem().Text(txt =>
+                                    {
+                                        txt.Span($"{grupo.Tipo}: ").Bold().FontColor(Colors.Blue.Darken1);
+                                        txt.Span($"{grupo.Total:N0}");
+                                    });
+                                }
+                            });
+
+                            column.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                        });
+
+                        // Content - Tabla Otros
+                        page.Content().PaddingTop(10).Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(1.5f);  // Tipo
+                                columns.RelativeColumn(2);     // Número de Parte
+                                columns.RelativeColumn(3.5f);  // Descripción
+                                columns.RelativeColumn(1.5f);  // Fecha Inserción
+                                columns.RelativeColumn(1.5f);  // Estatus
+                            });
+
+                            // Header
+                            table.Header(header =>
+                            {
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Tipo").FontColor(Colors.White).Bold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte").FontColor(Colors.White).Bold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
+                            });
+
+                            // Data rows - Ordenados por Tipo y luego por Número de Parte
+                            foreach (var item in datosConsultadosOtros.OrderBy(x => x.Clave).ThenBy(x => x.Par_NoParte))
+                            {
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Clave).Bold().FontSize(8);
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_NoParte).FontSize(8);
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp).FontSize(8);
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A").FontSize(8);
+
+                                var estatusColor = item.EstatusComponente == "VIGENTE EN BOM" 
+                                    ? Colors.Green.Darken2 
+                                    : Colors.Red.Darken2;
+
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                                    .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
+                            }
+                        });
+
+                        // Footer
+                        page.Footer().AlignCenter().Text(txt =>
+                        {
+                            txt.Span("Página ");
+                            txt.CurrentPageNumber();
+                            txt.Span(" de ");
+                            txt.TotalPages();
+                        });
+                    });
+                }
             }).GeneratePdf(rutaArchivo);
         }
 
@@ -547,106 +896,140 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
-        private async void btnGraficaIndividual_Click(object sender, EventArgs e)
+        private byte[] GenerarImagenGraficoBarras(List<MateriaPrimaBOM> datos)
         {
-            if (cboBaseDatos.SelectedItem == null)
+            int width = 400;
+            int height = 350;
+
+            var surface = SKSurface.Create(new SKImageInfo(width, height));
+            var canvas = surface.Canvas;
+
+            canvas.Clear(SKColors.White);
+
+            // Agrupar por tipo
+            var agrupado = datos.GroupBy(d => d.Clave)
+                               .Select(g => new { Tipo = g.Key, Total = g.Count() })
+                               .OrderBy(x => x.Tipo)
+                               .ToList();
+
+            if (agrupado.Count == 0)
             {
-                MessageBox.Show("Por favor seleccione una base de datos primero.",
-                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            string baseDatos = cboBaseDatos.SelectedItem.ToString();
-            DateTime fechaInicio = dtpFechaInicio.Value;
-            DateTime fechaFin = dtpFechaFin.Value;
-
-            if (fechaInicio > fechaFin)
-            {
-                MessageBox.Show("La fecha de inicio no puede ser mayor que la fecha fin.",
-                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            await ConsultarMateriaPrimaAsync(baseDatos, "MP", fechaInicio, fechaFin);
-        }
-
-        private async void btnGraficaTodos_Click(object sender, EventArgs e)
-        {
-            if (cboBaseDatos.SelectedItem == null)
-            {
-                MessageBox.Show("Por favor seleccione una base de datos primero.",
-                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            string baseDatos = cboBaseDatos.SelectedItem.ToString();
-            DateTime fechaInicio = dtpFechaInicio.Value;
-            DateTime fechaFin = dtpFechaFin.Value;
-
-            if (fechaInicio > fechaFin)
-            {
-                MessageBox.Show("La fecha de inicio no puede ser mayor que la fecha fin.",
-                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            await ConsultarMateriaPrimaMultipleAsync(baseDatos, fechaInicio, fechaFin);
-        }
-
-        private async Task ConsultarMateriaPrimaMultipleAsync(string baseDatos, DateTime fechaInicio, DateTime fechaFin)
-        {
-            try
-            {
-                MostrarPanelCargando(true);
-                btnConsultar.Enabled = false;
-                btnGraficaTodos.Enabled = false;
-                btnGraficaIndividual.Enabled = false;
-
-                // Pequeño delay para asegurar que la UI se actualice
-                await Task.Delay(50);
-
-                var resultado = await Task.Run(() =>
-                    catalogoService.ObtenerMateriaPrimaBOMMultiple(baseDatos, fechaInicio, fechaFin));
-
-                // Guardar los datos consultados para exportar
-                datosConsultados = resultado;
-
-                dgvMateriaPrima.DataSource = resultado;
-
-                if (dgvMateriaPrima.Columns.Count > 0)
+                using (var textPaint = new SKPaint { Color = SKColors.Black, TextSize = 14, TextAlign = SKTextAlign.Center, IsAntialias = true })
                 {
-                    dgvMateriaPrima.Columns["Par_NoParte"].HeaderText = "Número de Parte";
-                    dgvMateriaPrima.Columns["Par_DescripcionEsp"].HeaderText = "Descripción";
-                    dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
-                    dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
-
-                    // Mostrar la columna Clave para este caso
-                    dgvMateriaPrima.Columns["Clave"].Visible = true;
-                    dgvMateriaPrima.Columns["Clave"].HeaderText = "Tipo";
-
-                    dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
+                    canvas.DrawText("Sin datos", width / 2, height / 2, textPaint);
                 }
 
-                ActualizarGrafico(resultado);
+                using (var image = surface.Snapshot())
+                using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+                {
+                    return data.ToArray();
+                }
+            }
 
-                // Actualizar el total de partes
-                lblTotalPartes.Text = $"Total de partes: {resultado.Count:N0}";
+            // Colores para cada tipo
+            SKColor[] colores = new SKColor[]
+            {
+                SKColor.Parse("#3498db"), // Azul
+                SKColor.Parse("#2ecc71"), // Verde
+                SKColor.Parse("#e74c3c"), // Rojo
+                SKColor.Parse("#f39c12"), // Naranja
+                SKColor.Parse("#9b59b6")  // Púrpura
+            };
 
-                // Habilitar el botón de exportar PDF
-                btnExportarPdf.Enabled = resultado.Count > 0;
-            }
-            catch (Exception ex)
+            // Configuración del gráfico
+            float marginLeft = 60;
+            float marginRight = 30;
+            float marginTop = 40;
+            float marginBottom = 80;
+
+            float chartWidth = width - marginLeft - marginRight;
+            float chartHeight = height - marginTop - marginBottom;
+
+            // Encontrar valor máximo
+            int maxValue = agrupado.Max(x => x.Total);
+
+            // Dibujar ejes
+            using (var axisPaint = new SKPaint { Color = SKColors.Black, StrokeWidth = 2, IsAntialias = true })
             {
-                MessageBox.Show($"Error al consultar partes:\n{ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Eje Y
+                canvas.DrawLine(marginLeft, marginTop, marginLeft, marginTop + chartHeight, axisPaint);
+                // Eje X
+                canvas.DrawLine(marginLeft, marginTop + chartHeight, marginLeft + chartWidth, marginTop + chartHeight, axisPaint);
             }
-            finally
+
+            // Calcular ancho de barras
+            float barWidth = chartWidth / agrupado.Count * 0.7f;
+            float barSpacing = chartWidth / agrupado.Count;
+
+            // Dibujar barras
+            for (int i = 0; i < agrupado.Count; i++)
             {
-                MostrarPanelCargando(false);
-                btnConsultar.Enabled = true;
-                btnGraficaTodos.Enabled = true;
-                btnGraficaIndividual.Enabled = true;
+                var item = agrupado[i];
+                float barHeight = (float)item.Total / maxValue * chartHeight;
+                float x = marginLeft + (i * barSpacing) + (barSpacing - barWidth) / 2;
+                float y = marginTop + chartHeight - barHeight;
+
+                SKColor barColor = colores[i % colores.Length];
+
+                using (var barPaint = new SKPaint { Color = barColor, Style = SKPaintStyle.Fill, IsAntialias = true })
+                {
+                    canvas.DrawRect(x, y, barWidth, barHeight, barPaint);
+                }
+
+                // Dibujar valor encima de la barra
+                using (var textPaint = new SKPaint { Color = SKColors.Black, TextSize = 12, TextAlign = SKTextAlign.Center, IsAntialias = true, FakeBoldText = true })
+                {
+                    canvas.DrawText(item.Total.ToString(), x + barWidth / 2, y - 5, textPaint);
+                }
+
+                // Dibujar etiqueta del tipo
+                using (var labelPaint = new SKPaint { Color = SKColors.Black, TextSize = 11, TextAlign = SKTextAlign.Center, IsAntialias = true })
+                {
+                    canvas.DrawText(item.Tipo, x + barWidth / 2, marginTop + chartHeight + 20, labelPaint);
+                }
             }
+
+            // Dibujar escala del eje Y
+            using (var textPaint = new SKPaint { Color = SKColors.Black, TextSize = 10, TextAlign = SKTextAlign.Right, IsAntialias = true })
+            {
+                int steps = 5;
+                for (int i = 0; i <= steps; i++)
+                {
+                    int value = (maxValue / steps) * i;
+                    float y = marginTop + chartHeight - (chartHeight / steps * i);
+                    canvas.DrawText(value.ToString(), marginLeft - 10, y + 4, textPaint);
+                }
+            }
+
+            using (var image = surface.Snapshot())
+            using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+            {
+                return data.ToArray();
+            }
+        }
+
+        private void btnGraficaIndividual_Click(object sender, EventArgs e)
+        {
+            if (datosConsultadosMP == null || datosConsultadosMP.Count == 0)
+            {
+                MessageBox.Show("Primero debe realizar una consulta.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MostrarVistaMP();
+        }
+
+        private void btnGraficaTodos_Click(object sender, EventArgs e)
+        {
+            if (datosConsultadosOtros == null || datosConsultadosOtros.Count == 0)
+            {
+                MessageBox.Show("Primero debe realizar una consulta.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MostrarVistaOtros();
         }
     }
 }
