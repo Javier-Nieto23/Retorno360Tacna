@@ -266,7 +266,7 @@ namespace Retorno360Tacna.FORMS
             ActualizarGraficoBarras(datosConsultadosOtros);
 
             // Actualizar total
-            lblTotalPartes.Text = $"Total de partes (EQ, MAQ, SUB, RT): {datosConsultadosOtros.Count:N0}";
+            lblTotalPartes.Text = $"Total de partes (EQ, MAQ, SUB, RT, AUX, PT): {datosConsultadosOtros.Count:N0}";
         }
 
         private void ActualizarGrafico(List<MateriaPrimaBOM> datos)
@@ -557,7 +557,7 @@ namespace Retorno360Tacna.FORMS
                             // Sección Otros Tipos - Derecha
                             row.RelativeItem().Padding(3).Column(seccionOtros =>
                             {
-                                seccionOtros.Item().Text("OTROS TIPOS (EQ, MAQ, SUB, RT)")
+                                seccionOtros.Item().Text("OTROS TIPOS (EQ, MAQ, SUB, RT, AUX, PT)")
                                     .FontSize(10)
                                     .Bold()
                                     .FontColor(Colors.Blue.Darken3)
@@ -712,7 +712,7 @@ namespace Retorno360Tacna.FORMS
                         // Header
                         page.Header().Column(column =>
                         {
-                            column.Item().Text("OTROS TIPOS (EQ, MAQ, SUB, RT) - Detalle")
+                            column.Item().Text("OTROS TIPOS (EQ, MAQ, SUB, RT, AUX, PT) - Detalle")
                                 .FontSize(16)
                                 .Bold()
                                 .FontColor(Colors.Blue.Darken3);

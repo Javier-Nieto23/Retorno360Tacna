@@ -277,7 +277,7 @@ namespace Retorno360Tacna.SERVICES
                     END AS EstatusComponente
                 FROM Ca_Parte AS cp WITH (NOLOCK)
                 WHERE 
-                    cp.Tim_Clave IN ('MP','EQ','MAQ','SUB','RT')
+                    cp.Tim_Clave IN ('MP','EQ','MAQ','SUB','RT','AUX','PT')
                     AND cp.Par_InsercionFecha BETWEEN @FechaInicio AND @FechaFin
                 ORDER BY 
                     cp.Par_InsercionFecha,
