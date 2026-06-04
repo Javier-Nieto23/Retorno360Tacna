@@ -1,4 +1,7 @@
 using Retorno360Tacna.MODELS;
+using System.Globalization;
+using System.Linq;
+using System;
 
 namespace Retorno360Tacna.FORMS
 {
@@ -8,6 +11,10 @@ namespace Retorno360Tacna.FORMS
         private readonly string mesSeleccionado;
         private readonly string formaPago;
         private readonly string tipoReporte;
+
+        // Filtro para mostrar solo pedimentos posiblemente RT (IGI_Pagado == 0 && IGI_Calculado == 0)
+        private bool filtrarRT = false;
+        private Button? btnFiltrarRT;
 
         private string currentValue = "0";
         private string operation = "";
@@ -35,6 +42,58 @@ namespace Retorno360Tacna.FORMS
             CargarDatos();
             ActualizarTitulo();
             ConfigurarCalculadora();
+
+            // Crear botón de filtro RT dinámicamente solo para IGI y formas de pago 0 o 5
+            if (tipoReporte == "IGI")
+            {
+                var formaPagoNorm = (formaPago ?? string.Empty).Trim();
+                if ((formaPagoNorm == "0" || formaPagoNorm == "5") && btnFiltrarRT == null)
+                {
+                    btnFiltrarRT = new Button();
+                    // Slightly wider visual button for better visibility
+                    // Texto inicial: 'No RT' (al hacer click se ocultarán los RT); cuando el filtro esté activo mostrar 'Agregar RT'
+                    btnFiltrarRT.Text = "No RT";
+                    btnFiltrarRT.Size = new Size(90, 40);
+                    btnFiltrarRT.TextAlign = ContentAlignment.MiddleCenter;
+                    btnFiltrarRT.Padding = new Padding(0);
+                    btnFiltrarRT.TabStop = false;
+                    btnFiltrarRT.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+                    btnFiltrarRT.Click += BtnFiltrarRT_Click;
+                    // Estética consistente con otros botones de cabecera
+                    btnFiltrarRT.BackColor = Color.FromArgb(39, 174, 96);
+                    btnFiltrarRT.Cursor = Cursors.Hand;
+                    btnFiltrarRT.FlatAppearance.BorderSize = 0;
+                    btnFiltrarRT.FlatStyle = FlatStyle.Flat;
+                    btnFiltrarRT.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                    btnFiltrarRT.ForeColor = Color.White;
+                    btnFiltrarRT.FlatAppearance.MouseOverBackColor = Color.FromArgb(33, 150, 83);
+                    btnFiltrarRT.FlatAppearance.MouseDownBackColor = Color.FromArgb(30, 130, 75);
+
+                    // Posicionar dentro del panelHeader junto a los botones existentes (btnCalculadora/btnCerrar)
+                    try
+                    {
+                        if (btnCalculadora != null)
+                        {
+                            int x = btnCalculadora.Left - btnFiltrarRT.Width - 12; // más espacio entre botones
+                            int y = Math.Max(0, (panelHeader.Height - btnFiltrarRT.Height) / 2);
+                            btnFiltrarRT.Location = new Point(x, y);
+                        }
+                        else
+                        {
+                            // Fallback al borde derecho del panel
+                            int x = Math.Max(10, panelHeader.Width - btnFiltrarRT.Width - 110);
+                            int y = Math.Max(0, (panelHeader.Height - btnFiltrarRT.Height) / 2);
+                            btnFiltrarRT.Location = new Point(x, y);
+                        }
+                    }
+                    catch
+                    {
+                        btnFiltrarRT.Location = new Point(Math.Max(10, this.ClientSize.Width - btnFiltrarRT.Width - 20), 10);
+                    }
+
+                    panelHeader.Controls.Add(btnFiltrarRT);
+                }
+            }
         }
 
         private void ConfigurarGrid()
@@ -71,22 +130,51 @@ namespace Retorno360Tacna.FORMS
                 dt.Columns.Add("DIFERENCIA", typeof(decimal));
                 dt.Columns.Add("FORMA DE PAGO", typeof(string));
 
+                // Extraer año y mes del mesSeleccionado intentando varias culturas
+                DateTime mesDt;
+                bool mesValido = DateTime.TryParseExact(mesSeleccionado, "MMMM yyyy", CultureInfo.CurrentCulture, DateTimeStyles.None, out mesDt)
+                    || DateTime.TryParseExact(mesSeleccionado, "MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out mesDt)
+                    || DateTime.TryParseExact(mesSeleccionado, "MMMM yyyy", new CultureInfo("es-PE"), DateTimeStyles.None, out mesDt)
+                    || DateTime.TryParseExact(mesSeleccionado, "MMMM yyyy", new CultureInfo("en-US"), DateTimeStyles.None, out mesDt);
+
+                var formaPagoNorm = (formaPago ?? string.Empty).Trim();
+
                 var pedimentosFiltrados = pedimentos
-                    .Where(p => p.FechaPago.HasValue &&
-                                p.FechaPago.Value.ToString("MMMM yyyy") == mesSeleccionado &&
-                                p.FormaPago_IGI == formaPago)
+                    .Where(p =>
+                        p.FechaPago.HasValue &&
+                        (
+                            (mesValido && p.FechaPago.Value.Year == mesDt.Year && p.FechaPago.Value.Month == mesDt.Month)
+                            || (!mesValido && p.FechaPago.Value.ToString("MMMM yyyy").Equals(mesSeleccionado, StringComparison.OrdinalIgnoreCase))
+                        )
+                        && ((p.FormaPago_IGI ?? string.Empty).Trim() == formaPagoNorm)
+                    )
                     .OrderBy(p => p.FechaPago)
                     .ThenBy(p => p.Pedimento);
 
-                foreach (var pedimento in pedimentosFiltrados)
+                // Aplicar filtro RT si está activado: eliminar pedimentos donde ambos IGI_Pagado y IGI_Calculado son 0
+                // Mantener los pedimentos donde al menos uno de los campos no es cero
+                var pedimentosFiltradosFinal = filtrarRT
+                    ? pedimentosFiltrados.Where(p => !(p.IGI_Pagado == 0m && p.IGI_Calculado == 0m))
+                    : pedimentosFiltrados;
+
+                foreach (var pedimento in pedimentosFiltradosFinal)
                 {
+                    // Para forma de pago '5' (crédito) igualar IGI_Pagado a 0 en el detalle
+                    var forma = (pedimento.FormaPago_IGI ?? string.Empty).Trim();
+                    decimal displayIGIPagado = forma == "5" ? 0m : pedimento.IGI_Pagado;
+
                     // Diferencia: Calculado - Pagado (positivo = ahorro)
-                    decimal diferencia = pedimento.IGI_Calculado - pedimento.IGI_Pagado;
+                    // Para forma '5' invertimos la diferencia para reflejar deuda
+                    decimal diferencia;
+                    if (forma == "5")
+                        diferencia = displayIGIPagado - pedimento.IGI_Calculado; // negativo
+                    else
+                        diferencia = pedimento.IGI_Calculado - displayIGIPagado;
 
                     dt.Rows.Add(
                         pedimento.FechaPago?.ToString("dd/MM/yyyy") ?? "",
                         pedimento.Pedimento,
-                        pedimento.IGI_Pagado,
+                        displayIGIPagado,
                         pedimento.IGI_Calculado,
                         diferencia,
                         pedimento.FormaPago_IGI
@@ -100,10 +188,24 @@ namespace Retorno360Tacna.FORMS
                 dt.Columns.Add("IVA PAGADO", typeof(decimal));
                 dt.Columns.Add("FORMA DE PAGO", typeof(string));
 
+                // IVA: mismo tratamiento de fecha y forma de pago
+                DateTime mesDtIva;
+                bool mesValidoIva = DateTime.TryParseExact(mesSeleccionado, "MMMM yyyy", CultureInfo.CurrentCulture, DateTimeStyles.None, out mesDtIva)
+                    || DateTime.TryParseExact(mesSeleccionado, "MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out mesDtIva)
+                    || DateTime.TryParseExact(mesSeleccionado, "MMMM yyyy", new CultureInfo("es-PE"), DateTimeStyles.None, out mesDtIva)
+                    || DateTime.TryParseExact(mesSeleccionado, "MMMM yyyy", new CultureInfo("en-US"), DateTimeStyles.None, out mesDtIva);
+
+                var formaPagoNormIva = (formaPago ?? string.Empty).Trim();
+
                 var pedimentosFiltrados = pedimentos
-                    .Where(p => p.FechaPago.HasValue &&
-                                p.FechaPago.Value.ToString("MMMM yyyy") == mesSeleccionado &&
-                                p.FormaPago_IVA == formaPago)
+                    .Where(p =>
+                        p.FechaPago.HasValue &&
+                        (
+                            (mesValidoIva && p.FechaPago.Value.Year == mesDtIva.Year && p.FechaPago.Value.Month == mesDtIva.Month)
+                            || (!mesValidoIva && p.FechaPago.Value.ToString("MMMM yyyy").Equals(mesSeleccionado, StringComparison.OrdinalIgnoreCase))
+                        )
+                        && ((p.FormaPago_IVA ?? string.Empty).Trim() == formaPagoNormIva)
+                    )
                     .OrderBy(p => p.FechaPago)
                     .ThenBy(p => p.Pedimento);
 
@@ -217,6 +319,19 @@ namespace Retorno360Tacna.FORMS
         {
             this.KeyPreview = true;
             this.KeyDown += FrmDetallePedimentos_KeyDown;
+        }
+
+        private void BtnFiltrarRT_Click(object? sender, EventArgs e)
+        {
+            filtrarRT = !filtrarRT;
+            if (btnFiltrarRT != null)
+            {
+                // Si el filtro está activado (se ocultaron los RT) mostramos la opción para "Agregar RT" (restaurar)
+                btnFiltrarRT.Text = filtrarRT ? "Agregar RT" : "No RT";
+            }
+
+            // Recargar datos aplicando/quitando filtro
+            CargarDatos();
         }
 
         private void btnCalculadora_Click(object sender, EventArgs e)

@@ -34,6 +34,7 @@ namespace Retorno360Tacna.FORMS
             btnCerrarSesion = new Button();
             btnReportes = new Button();
             panelSubMenuInventarios = new Panel();
+            btnReportesInventario = new Button();
             btnCatalogoPartes = new Button();
             btnInventarios = new Button();
             panelSubMenuAdmin = new Panel();
@@ -130,7 +131,7 @@ namespace Retorno360Tacna.FORMS
             btnReportes.ForeColor = Color.White;
             btnReportes.Image = Properties.Resources.Sales_report_25411;
             btnReportes.ImageAlign = ContentAlignment.MiddleRight;
-            btnReportes.Location = new Point(0, 652);
+            btnReportes.Location = new Point(0, 712);
             btnReportes.Name = "btnReportes";
             btnReportes.Padding = new Padding(20, 0, 0, 0);
             btnReportes.Size = new Size(250, 60);
@@ -145,13 +146,36 @@ namespace Retorno360Tacna.FORMS
             // panelSubMenuInventarios
             // 
             panelSubMenuInventarios.BackColor = Color.FromArgb(35, 42, 50);
+            panelSubMenuInventarios.Controls.Add(btnReportesInventario);
             panelSubMenuInventarios.Controls.Add(btnCatalogoPartes);
             panelSubMenuInventarios.Dock = DockStyle.Top;
             panelSubMenuInventarios.Location = new Point(0, 592);
             panelSubMenuInventarios.Name = "panelSubMenuInventarios";
-            panelSubMenuInventarios.Size = new Size(250, 60);
+            panelSubMenuInventarios.Size = new Size(250, 120);
             panelSubMenuInventarios.TabIndex = 9;
             panelSubMenuInventarios.Visible = false;
+            // 
+            // btnReportesInventario
+            // 
+            btnReportesInventario.Cursor = Cursors.Hand;
+            btnReportesInventario.Dock = DockStyle.Top;
+            btnReportesInventario.FlatAppearance.BorderSize = 0;
+            btnReportesInventario.FlatStyle = FlatStyle.Flat;
+            btnReportesInventario.Font = new Font("Segoe UI", 10F);
+            btnReportesInventario.ForeColor = Color.LightGray;
+            btnReportesInventario.Image = Properties.Resources.Sales_report_25411;
+            btnReportesInventario.ImageAlign = ContentAlignment.MiddleRight;
+            btnReportesInventario.Location = new Point(0, 60);
+            btnReportesInventario.Name = "btnReportesInventario";
+            btnReportesInventario.Padding = new Padding(35, 0, 0, 0);
+            btnReportesInventario.Size = new Size(250, 60);
+            btnReportesInventario.TabIndex = 1;
+            btnReportesInventario.Text = "Reportes de Inventario";
+            btnReportesInventario.TextAlign = ContentAlignment.MiddleLeft;
+            btnReportesInventario.UseVisualStyleBackColor = true;
+            btnReportesInventario.Click += btnReportesInventario_Click;
+            btnReportesInventario.MouseEnter += MenuButton_MouseEnter;
+            btnReportesInventario.MouseLeave += MenuButton_MouseLeave;
             // 
             // btnCatalogoPartes
             // 
@@ -461,5 +485,6 @@ namespace Retorno360Tacna.FORMS
         private Button btnToggleSidebar;
         private Panel panelSubMenuInventarios;
         private Button btnCatalogoPartes;
+        private Button btnReportesInventario;
     }
 }

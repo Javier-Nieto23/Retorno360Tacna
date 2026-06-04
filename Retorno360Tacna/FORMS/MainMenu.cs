@@ -216,7 +216,7 @@ namespace Retorno360Tacna.FORMS
             if (menuInventariosExpandido)
             {
                 panelSubMenuInventarios.Visible = true;
-                panelSubMenuInventarios.Height = 60;
+                panelSubMenuInventarios.Height = 120;
                 btnInventarios.Text = "Inventarios";
             }
             else
@@ -249,6 +249,36 @@ namespace Retorno360Tacna.FORMS
                 };
                 panelContenido.Controls.Add(frmCatalogo);
                 frmCatalogo.Show();
+            }
+            else
+            {
+                MessageBox.Show("No hay conexión activa. Por favor, inicie sesión nuevamente.",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnReportesInventario_Click(object sender, EventArgs e)
+        {
+            ActivarBoton(btnReportesInventario);
+            lblTitulo.Text = "Reportes de Inventario";
+            LimpiarPanel();
+
+            // Colapsar sidebar automáticamente al seleccionar una opción del submenú
+            if (!sidebarColapsado)
+            {
+                btnToggleSidebar_Click(sender, e);
+            }
+
+            if (conexionActual != null)
+            {
+                FrmReportesInventario frmReportesInventario = new FrmReportesInventario(conexionActual)
+                {
+                    TopLevel = false,
+                    FormBorderStyle = FormBorderStyle.None,
+                    Dock = DockStyle.Fill
+                };
+                panelContenido.Controls.Add(frmReportesInventario);
+                frmReportesInventario.Show();
             }
             else
             {

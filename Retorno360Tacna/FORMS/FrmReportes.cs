@@ -480,8 +480,40 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
+                // Determinar base de datos actual (si existe selección en cmbCliente)
+                string baseDatos = cmbCliente.SelectedItem?.ToString() ?? string.Empty;
+
+                // Si tenemos baseDatos, intentar obtener detalle por base para asegurar consistencia
+                // Si no hay base seleccionada (consulta por razón social), obtener detalle por razón social
+                List<ReporteIGIPagado> detalleToShow = reporteActual;
+                if (!string.IsNullOrEmpty(baseDatos))
+                {
+                    try
+                    {
+                        detalleToShow = reporteService.ObtenerDetallePorBase(baseDatos, dtpFechaInicio.Value.Date, dtpFechaFin.Value.Date);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"No se pudo obtener detalle por base: {ex.Message}");
+                        detalleToShow = reporteActual;
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        var razonSeleccionada = (RazonSocial)cmbRazonSocial.SelectedItem;
+                        detalleToShow = reporteService.ObtenerDetallePorRazonSocial(razonSeleccionada.IdRazon, dtpFechaInicio.Value.Date, dtpFechaFin.Value.Date);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"No se pudo obtener detalle por razón social: {ex.Message}");
+                        detalleToShow = reporteActual;
+                    }
+                }
+
                 // Abrir formulario de detalle
-                var frmDetalle = new FrmDetallePedimentos(reporteActual, mes, formaPago, "IGI");
+                var frmDetalle = new FrmDetallePedimentos(detalleToShow, mes, formaPago, "IGI");
                 frmDetalle.ShowDialog(this);
                 frmDetalle.Dispose();
             }
@@ -1107,6 +1139,7 @@ namespace Retorno360Tacna.FORMS
                             reporteActual,
                             tablaIGI,
                             tablaIVA,
+                            null, // tablaDetalleCompleto (opcional por ahora)
                             resumen,
                             nombreRazon,
                             baseDatos,
@@ -1260,6 +1293,58 @@ namespace Retorno360Tacna.FORMS
                                 // Ajustar ancho de columnas
                                 worksheetIVA.Columns().AdjustToContents();
                             }
+
+                            // Hoja 3: Detalle Completo de Pedimentos (todos los registros RAW)
+                            var worksheetDetalle = workbook.Worksheets.Add("Detalle Completo");
+
+                            // Encabezados de detalle
+                            var detalleHeaders = new[]
+                            {
+                                "Base Datos", "ID Pedimento", "Pedimento", "Fecha Pago", "IGI Pagado", "IGI Calculado", "Diferencia IGI",
+                                "IVA Pagado", "Forma Pago IGI", "Forma Pago IVA", "Estatus Glosa", "Estatus Origen"
+                            };
+
+                            for (int col = 0; col < detalleHeaders.Length; col++)
+                            {
+                                worksheetDetalle.Cell(1, col + 1).Value = detalleHeaders[col];
+                                worksheetDetalle.Cell(1, col + 1).Style.Font.Bold = true;
+                                worksheetDetalle.Cell(1, col + 1).Style.Fill.BackgroundColor = XLColor.FromArgb(41, 128, 185);
+                                worksheetDetalle.Cell(1, col + 1).Style.Font.FontColor = XLColor.White;
+                                worksheetDetalle.Cell(1, col + 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                            }
+
+                            // Rellenar datos desde reporteActual
+                            int fila = 2;
+                            foreach (var r in reporteActual)
+                            {
+                                worksheetDetalle.Cell(fila, 1).Value = r.BaseDatos ?? string.Empty;
+                                worksheetDetalle.Cell(fila, 2).Value = r.IdPedimento;
+                                worksheetDetalle.Cell(fila, 3).Value = r.Pedimento ?? string.Empty;
+                                worksheetDetalle.Cell(fila, 4).Value = r.FechaPago.HasValue ? r.FechaPago.Value.ToString("dd/MM/yyyy") : string.Empty;
+
+                                worksheetDetalle.Cell(fila, 5).Value = r.IGI_Pagado;
+                                worksheetDetalle.Cell(fila, 5).Style.NumberFormat.Format = "$#,##0.00";
+
+                                worksheetDetalle.Cell(fila, 6).Value = r.IGI_Calculado;
+                                worksheetDetalle.Cell(fila, 6).Style.NumberFormat.Format = "$#,##0.00";
+
+                                // Usar la propiedad DiferenciaIGI para reflejar regla de forma de pago
+                                worksheetDetalle.Cell(fila, 7).Value = r.DiferenciaIGI;
+                                worksheetDetalle.Cell(fila, 7).Style.NumberFormat.Format = "$#,##0.00";
+
+                                worksheetDetalle.Cell(fila, 8).Value = r.IVA_Pagado;
+                                worksheetDetalle.Cell(fila, 8).Style.NumberFormat.Format = "$#,##0.00";
+
+                                worksheetDetalle.Cell(fila, 9).Value = r.FormaPago_IGI ?? string.Empty;
+                                worksheetDetalle.Cell(fila, 10).Value = r.FormaPago_IVA ?? string.Empty;
+                                worksheetDetalle.Cell(fila, 11).Value = r.EstatusGlosa ?? string.Empty;
+                                worksheetDetalle.Cell(fila, 12).Value = r.EstatusOrigen ?? string.Empty;
+
+                                fila++;
+                            }
+
+                            // Ajustar ancho de columnas
+                            worksheetDetalle.Columns().AdjustToContents();
 
                             // Guardar archivo
                             workbook.SaveAs(saveDialog.FileName);

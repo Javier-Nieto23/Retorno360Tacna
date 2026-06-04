@@ -15,6 +15,177 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
+        /// Genera resumen por forma de pago IGI a partir del detalle por partidas
+        /// Reproduce la lógica del query: totaliza IGI_Pagado e IGI_Calculado por forma de pago
+        /// Para forma de pago '5' se iguala IGI_Pagado a 0 antes de totalizar
+        /// </summary>
+        public List<ResumenFormaPagoIGI> ObtenerResumenPorFormaPagoIGI(List<DatoDetalleIGI> partidas)
+        {
+            var resultado = new List<ResumenFormaPagoIGI>();
+            if (partidas == null || !partidas.Any()) return resultado;
+
+            var agrupado = partidas
+                .GroupBy(p => (p.Gl_FPagoAdvalorem ?? string.Empty).Trim())
+                .Select(g => new
+                {
+                    Forma = string.IsNullOrEmpty(g.Key) ? "" : g.Key,
+                    TotalPedimentos = g.Select(x => x.Pim_Folio).Distinct().Count(),
+                    TotalPartidas = g.Count(),
+                    TotalIGI_Pagado = g.Sum(x => x.Gl_ImporteADvalorem),
+                    TotalIGI_Calculado = g.Sum(x => x.IGI_CalculadoDetalle)
+                });
+
+            foreach (var item in agrupado)
+            {
+                var totalPagado = item.TotalIGI_Pagado;
+                // Si la forma es '5' (credito) igualar pagado a 0
+                if (item.Forma == "5") totalPagado = 0m;
+
+                resultado.Add(new ResumenFormaPagoIGI
+                {
+                    FormaPago = item.Forma,
+                    TotalPedimentos = item.TotalPedimentos,
+                    TotalPartidas = item.TotalPartidas,
+                    TotalIGI_Pagado = totalPagado,
+                    TotalIGI_Calculado = item.TotalIGI_Calculado,
+                    Diferencia = totalPagado - item.TotalIGI_Calculado
+                });
+            }
+
+            return resultado.OrderBy(r => r.FormaPago).ToList();
+        }
+
+        /// <summary>
+        /// Endpoint público: obtiene el resumen por forma de pago IGI para una base de pedimentos
+        /// Reutiliza ObtenerPartidasPorBase() y luego agrega/totaliza respetando la regla FP-5 = IGI_Pagado 0
+        /// </summary>
+        public List<ResumenFormaPagoIGI> ObtenerResumenPorFormaPagoIGIPorBase(string baseDatos, DateTime fechaInicio, DateTime fechaFin)
+        {
+            try
+            {
+                var partidas = ObtenerPartidasPorBase(baseDatos, fechaInicio, fechaFin);
+                return ObtenerResumenPorFormaPagoIGI(partidas);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error al obtener resumen por forma de pago para base {baseDatos}: {ex.Message}");
+                return new List<ResumenFormaPagoIGI>();
+            }
+        }
+
+        /// <summary>
+        /// Endpoint público: obtiene el resumen por forma de pago IGI para todas las bases de una razón social
+        /// Recorre las bases de la razón y consolida las partidas antes de totalizar
+        /// </summary>
+        public List<ResumenFormaPagoIGI> ObtenerResumenPorFormaPagoIGIPorRazonSocial(int idRazon, DateTime fechaInicio, DateTime fechaFin)
+        {
+            try
+            {
+                var allPartidas = new List<DatoDetalleIGI>();
+                var bases = ObtenerBasesDatosConConexion(idRazon);
+                if (!bases.Any()) return new List<ResumenFormaPagoIGI>();
+
+                foreach (var b in bases)
+                {
+                    try
+                    {
+                        var partidas = ObtenerPartidasPorBase(b.BaseDatos, fechaInicio, fechaFin);
+                        if (partidas != null && partidas.Any())
+                            allPartidas.AddRange(partidas);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error al obtener partidas para base {b.BaseDatos}: {ex.Message}");
+                    }
+                }
+
+                return ObtenerResumenPorFormaPagoIGI(allPartidas);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al obtener resumen por razón social: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Obtiene el detalle por razón social (varias bases) para mostrar pedimentos individuales
+        /// Recorre todas las bases de la razón y consolida pedimentos detallados agrupados por pedimento
+        /// </summary>
+        public List<ReporteIGIPagado> ObtenerDetallePorRazonSocial(int idRazon, DateTime fechaInicio, DateTime fechaFin)
+        {
+            try
+            {
+                var resultados = new List<ReporteIGIPagado>();
+
+                // Obtener bases de datos asociadas a la razón social
+                var bases = ObtenerBasesDatosConConexion(idRazon);
+                if (!bases.Any())
+                    return resultados;
+
+                // Obtener la base de TR_GLOSA de la razón
+                var razon = ObtenerRazonSocial(idRazon);
+                string baseDatosGlosa = razon.BaseDatosOrigen;
+
+                foreach (var b in bases)
+                {
+                    try
+                    {
+                        var conexionPedimentos = ObtenerConexionParaBaseDatos(b.BaseDatos);
+                        var conexionGlosa = ObtenerConexionParaBaseDatos(baseDatosGlosa);
+
+                        var datosDetalle = ObtenerDatosDetalleConJoinCruzado(b.BaseDatos, baseDatosGlosa, fechaInicio, fechaFin, conexionPedimentos, conexionGlosa);
+                        var agrupados = AgruparDatosPorPedimento(datosDetalle);
+                        resultados.AddRange(agrupados);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error obteniendo detalle para base {b.BaseDatos}: {ex.Message}");
+                    }
+                }
+
+                // Consolidar por pedimento (mismo pedimento puede venir de varias bases)
+                var final = resultados
+                    .GroupBy(r => r.Pedimento)
+                    .Select(g => g.First())
+                    .ToList();
+
+                return final;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al obtener detalle por razón social: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Obtiene el detalle por pedimento (no agrupado) para una base de pedimentos específica
+        /// Usado para mostrar el detalle en el formulario cuando se hace doble click en una agrupación
+        /// </summary>
+        public List<ReporteIGIPagado> ObtenerDetallePorBase(string baseDatos, DateTime fechaInicio, DateTime fechaFin)
+        {
+            try
+            {
+                int idRazon = ObtenerIdRazonDesdeBaseDatos(baseDatos);
+                var razonSocial = ObtenerRazonSocial(idRazon);
+                string baseDatosGlosa = razonSocial.BaseDatosOrigen;
+
+                var conexionPedimentos = ObtenerConexionParaBaseDatos(baseDatos);
+                var conexionGlosa = ObtenerConexionParaBaseDatos(baseDatosGlosa);
+
+                // Obtener registros detalle (por secuencia/fracción)
+                var datosDetalle = ObtenerDatosDetalleConJoinCruzado(baseDatos, baseDatosGlosa, fechaInicio, fechaFin, conexionPedimentos, conexionGlosa);
+
+                // Agrupar por pedimento para generar ReporteIGIPagado por pedimento
+                var agrupados = AgruparDatosPorPedimento(datosDetalle);
+                return agrupados;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al obtener detalle por base {baseDatos}: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
         /// Genera el reporte de IGI Pagado para una base de datos específica
         /// Usa exclusivamente el método optimizado con tablas temporales
         /// </summary>
@@ -176,6 +347,124 @@ namespace Retorno360Tacna.SERVICES
             };
         }
 
+        // Helper: valida si dos conexiones/server info representan la misma conexión
+        private bool ValidarSiMismaConexion(string servidorA, string servidorB, int? idConexionA, int? idConexionB)
+        {
+            // si ambos tienen IdConexion y son iguales -> misma
+            if (idConexionA.HasValue && idConexionB.HasValue)
+                return idConexionA.Value == idConexionB.Value;
+
+            // si uno tiene IdConexion y el otro no -> distintos
+            if (idConexionA.HasValue || idConexionB.HasValue)
+                return false;
+
+            // si ninguno tiene IdConexion, comparar servidor string
+            return string.Equals(servidorA ?? string.Empty, servidorB ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Facade: reutiliza la lógica ya implementada para obtener datos agrupados
+        // Si las implementaciones completas están en otros métodos, este método las llamará.
+        private List<ReporteIGIPagado> ObtenerDatosAgrupadosConJoinCruzado(
+            string baseDatosPedimentos,
+            string baseDatosGlosa,
+            DateTime fechaInicio,
+            DateTime fechaFin,
+            Conexion conexionPedimentos,
+            Conexion conexionGlosa)
+        {
+            // Reutilizar la lógica que ya existe en métodos más abajo del archivo.
+            // Determinamos si están en el mismo servidor y delegamos.
+            var infoPed = ObtenerConexionExterna(baseDatosPedimentos);
+            var infoGlo = ObtenerConexionExterna(baseDatosGlosa);
+
+            string servidorPedimentos = infoPed.TieneConexionExterna && !string.IsNullOrEmpty(infoPed.Servidor) ? infoPed.Servidor : conexionPrincipal.Servidor ?? string.Empty;
+            string servidorGlosa = infoGlo.TieneConexionExterna && !string.IsNullOrEmpty(infoGlo.Servidor) ? infoGlo.Servidor : conexionPrincipal.Servidor ?? string.Empty;
+
+            bool mismoServidor = ValidarSiMismaConexion(servidorPedimentos, servidorGlosa, infoPed.IdConexion, infoGlo.IdConexion);
+
+            List<DatoDetalleIGI> detalles;
+            if (mismoServidor)
+            {
+                detalles = ObtenerDatosConJoinDirecto(baseDatosPedimentos, baseDatosGlosa, fechaInicio, fechaFin, conexionPedimentos, servidorPedimentos, infoPed.TieneConexionExterna ? infoPed.UsuarioSQL ?? string.Empty : conexionPrincipal.UsuarioSQL ?? string.Empty);
+            }
+            else
+            {
+                detalles = ObtenerDatosConConsultasSeparadas(baseDatosPedimentos, baseDatosGlosa, fechaInicio, fechaFin, conexionPedimentos, conexionGlosa);
+            }
+
+            // Agrupar por pedimento y devolver ReporteIGIPagado
+            try
+            {
+                return AgruparDatosPorPedimento(detalles);
+            }
+            catch
+            {
+                return new List<ReporteIGIPagado>();
+            }
+        }
+
+        // Stub: obtiene datos de TR_GLOSA para un pedimento (multi-servidor path)
+        // Devuelve lista de objetos con campos esperados por el código más arriba.
+        private List<(int Secuencia, decimal ImporteADvalorem, decimal ImporteIVA, DateTime? FechaPago, string FormaPagoIGI, string FormaPagoIVA, string Pedimento, string OrigenZip)> ObtenerDatosGlosaParaPedimento(
+            string baseDatosGlosa,
+            string aduana,
+            string patente,
+            string folio,
+            DateTime? fechaPago,
+            Conexion conexionGlosa)
+        {
+            var lista = new List<(int, decimal, decimal, DateTime?, string, string, string, string)>();
+
+            try
+            {
+                // Query mínimo para obtener secuencia e importes desde TR_GLOSA
+                string sql = $@"
+                    SELECT ISNULL(TR.GL_SEC,0) AS Secuencia,
+                           ISNULL(TR.Gl_ImporteADvalorem,0) AS ImporteADvalorem,
+                           ISNULL(TR.Gl_ImporteIVA,0) AS ImporteIVA,
+                           CONVERT(DATE, TR.Gl_FecPagoReal) AS FechaPago,
+                           ISNULL(TR.Gl_FPagoAdvalorem,'') AS FormaPagoIGI,
+                           ISNULL(TR.Gl_FPagoIVA,'') AS FormaPagoIVA,
+                           ISNULL(TR.Gl_Pedimento,'') AS Pedimento,
+                           ISNULL(TR.Gl_OrigenZipGlosa,'') AS OrigenZip
+                    FROM [{baseDatosGlosa}].dbo.TR_GLOSA TR
+                    WHERE TR.Gl_Aduana = @Aduana
+                      AND TR.Gl_Patente = @Patente
+                      AND TR.Gl_Pedimento = @Folio
+                      AND (@FechaPago IS NULL OR CONVERT(DATE,TR.Gl_FecPagoReal) = @FechaPago)
+                      AND TR.Gl_TOper = 1";
+
+                using var cn = conexionGlosa.ObtenerConexion();
+                using var cmd = new SqlCommand(sql, cn);
+                cmd.Parameters.AddWithValue("@Aduana", aduana ?? string.Empty);
+                cmd.Parameters.AddWithValue("@Patente", patente ?? string.Empty);
+                cmd.Parameters.AddWithValue("@Folio", folio ?? string.Empty);
+                cmd.Parameters.AddWithValue("@FechaPago", fechaPago.HasValue ? (object)fechaPago.Value.Date : DBNull.Value);
+
+                cn.Open();
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    lista.Add((
+                        reader.IsDBNull(0) ? 0 : reader.GetInt32(0),
+                        reader.IsDBNull(1) ? 0 : Convert.ToDecimal(reader.GetValue(1)),
+                        reader.IsDBNull(2) ? 0 : Convert.ToDecimal(reader.GetValue(2)),
+                        LeerFechaPago(reader, 3),
+                        reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+                        reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
+                        reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
+                        reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
+                    ));
+                }
+            }
+            catch
+            {
+                // en caso de error devolver vacío
+            }
+
+            return lista;
+        }
+
         /// <summary>
         /// Obtiene datos con JOIN cruzado: TR_GLOSA de una base, Di_Pedimento de otra
         /// Soporta servidores diferentes usando estrategia de consultas separadas
@@ -245,8 +534,8 @@ namespace Retorno360Tacna.SERVICES
                 System.Diagnostics.Debug.WriteLine($"      +- ConnectionString: {conexionPedimentos.GetConnectionString()}");
 
                 System.Diagnostics.Debug.WriteLine($"\n   ?? BASE DE TR_GLOSA DE LA RAZÓN: {nombreBaseTRGlosa}");
-                System.Diagnostics.Debug.WriteLine($"      +- Servidor: {servidorBaseTRGlosa}");
-                System.Diagnostics.Debug.WriteLine($"      +- Usuario SQL: {usuarioBaseTRGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      +- Servidor: {servidorGlosa}");
+                System.Diagnostics.Debug.WriteLine($"      +- Usuario SQL: {usuarioGlosa}");
                 System.Diagnostics.Debug.WriteLine($"      +- IdConexion: {(conexionInfoGlosa.IdConexion?.ToString() ?? "NULL (usa conexión principal)")}");
                 System.Diagnostics.Debug.WriteLine($"      +- ConnectionString: {conexionGlosa.GetConnectionString()}");
 
@@ -275,7 +564,7 @@ namespace Retorno360Tacna.SERVICES
                         usuarioPedimentos
                     );
                 }
-                                else
+                else
                 {
                     // Estrategia de consultas separadas para servidores diferentes
                     // Usando las variables guardadas de ambos servidores (conexionPedimentos y conexionGlosa)
@@ -319,21 +608,16 @@ namespace Retorno360Tacna.SERVICES
             System.Diagnostics.Debug.WriteLine($"   Base Glosa: [{baseDatosGlosa}]");
 #endif
 
+            // Usar query preciso por partida conforme especificado por el usuario
             string sql = $@"
-                SELECT 
-                    DP.Pim_Consecutivo,
-                    DP.Adu_AduanaSecc,
-                    DP.AgP_Patente,
-                    DP.Pim_Folio,
-                    IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago) AS Pim_FechaPago,
-                    TR.Gl_FecPagoReal,
-                    ISNULL(TR.Gl_ImporteADvalorem, 0) AS Gl_ImporteADvalorem,
-                    ISNULL(ROUND((ISNULL(DI.Pid_ValorAdu, 0) * ISNULL(FRA.Fra_AdvGral, 0)) / 100, 0), 0) AS IGI_Calculado_Detalle,
-                    ISNULL(TR.Gl_ImporteIVA, 0) AS Gl_ImporteIVA,
-                    TR.Gl_FPagoAdvalorem,
-                    TR.Gl_FPagoIVA,
-                    TR.Gl_Pedimento,
-                    TR.Gl_OrigenZipGlosa
+                SELECT
+                    DP.Pim_Consecutivo AS iDPedimento,
+                    DP.Adu_AduanaSecc + '-' + DP.AgP_Patente + '-' + DP.Pim_Folio AS Pedimento,
+                    DI.Pid_Secuencia AS Partida,
+                    ISNULL(TR.Gl_ImporteADvalorem,0) AS IGI_Pagado,
+                    ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100.0, 0) AS IGI_Calculado,
+                    TR.Gl_FPagoAdvalorem AS FormaPago_IGI,
+                    CONVERT(DATE,TR.Gl_FecPagoReal) AS FechaPago
                 FROM [{baseDatosPedimentos}].dbo.Di_Pedimento DP
                 INNER JOIN [{baseDatosPedimentos}].dbo.Di_PedimentoDet DI
                     ON DI.Pim_Consecutivo = DP.Pim_Consecutivo
@@ -341,7 +625,6 @@ namespace Retorno360Tacna.SERVICES
                     ON TR.Gl_Pedimento = DP.Pim_Folio
                     AND TR.Gl_Aduana = DP.Adu_AduanaSecc
                     AND TR.Gl_Patente = DP.AgP_Patente
-                    AND YEAR(IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)) = YEAR(CONVERT(DATE, TR.Gl_FecPagoReal))
                     AND DI.Pid_Secuencia = TR.GL_SEC
                     AND TR.Gl_TOper = 1
                     AND TR.Gl_OrigenZipGlosa = 'S'
@@ -349,8 +632,9 @@ namespace Retorno360Tacna.SERVICES
                     ON FRA.Fra_Fraccion = IIF(LEFT(DI.Fra_Fraccion, 2) = '98', DI.Fra_FraccionORIG, DI.Fra_Fraccion)
                     AND FRA.Pai_Clave = 'MEX'
                     AND FRA.Fra_TipoOper = 0
-                WHERE 
-                    CONVERT(DATE, IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)) BETWEEN @FechaInicio AND @FechaFin";
+                WHERE
+                    CONVERT(DATE,TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
+                    AND TR.Gl_FPagoAdvalorem IN ('0','5','21')";
 
             using var cn = conexionPedimentos.ObtenerConexion();
             using var cmd = new SqlCommand(sql, cn);
@@ -369,22 +653,22 @@ namespace Retorno360Tacna.SERVICES
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
+                // Columnas: 0=iDPedimento,1=Pedimento,2=Partida,3=IGI_Pagado,4=IGI_Calculado,5=FormaPago_IGI,6=FechaPago
+                var ped = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
+                var partes = (ped ?? string.Empty).Split('-');
+
                 var dato = new DatoDetalleIGI
                 {
                     BaseDatos = baseDatosPedimentos,
-                    Pim_Consecutivo = reader.GetInt32(0),
-                    Adu_AduanaSecc = reader.GetString(1),
-                    AgP_Patente = reader.GetString(2),
-                    Pim_Folio = reader.GetString(3),
-                    Pim_FechaPago = LeerFechaPago(reader, 4),
-                    Gl_FecPagoReal = LeerFechaPago(reader, 5),
-                    Gl_ImporteADvalorem = reader.IsDBNull(6) ? 0 : reader.GetDecimal(6),
-                    IGI_CalculadoDetalle = reader.IsDBNull(7) ? 0 : reader.GetDecimal(7),
-                    Gl_ImporteIVA = reader.IsDBNull(8) ? 0 : reader.GetDecimal(8),
-                    Gl_FPagoAdvalorem = reader.IsDBNull(9) ? string.Empty : reader.GetString(9),
-                    Gl_FPagoIVA = reader.IsDBNull(10) ? string.Empty : reader.GetString(10),
-                    Gl_Pedimento = reader.IsDBNull(11) ? null : reader.GetString(11),
-                    Gl_OrigenZipGlosa = reader.IsDBNull(12) ? null : reader.GetString(12)
+                    Pim_Consecutivo = reader.IsDBNull(0) ? 0 : reader.GetInt32(0),
+                    Adu_AduanaSecc = partes.Length > 0 ? partes[0] : string.Empty,
+                    AgP_Patente = partes.Length > 1 ? partes[1] : string.Empty,
+                    Pim_Folio = partes.Length > 2 ? partes[2] : string.Empty,
+                    Pid_Secuencia = reader.IsDBNull(2) ? 0 : reader.GetInt32(2),
+                    Gl_FecPagoReal = LeerFechaPago(reader, 6),
+                    Gl_ImporteADvalorem = LeerDecimal(reader, 3),
+                    IGI_CalculadoDetalle = LeerDecimal(reader, 4),
+                    Gl_FPagoAdvalorem = reader.IsDBNull(5) ? string.Empty : reader.GetString(5)
                 };
 
                 datosDetalle.Add(dato);
@@ -455,72 +739,142 @@ namespace Retorno360Tacna.SERVICES
                 return datosDetalle;
             }
 
-            // PASO 2: Procesar en lotes y obtener detalles con validación contra TR_GLOSA
-            const int tamañoLote = 50;
-            int totalLotes = (int)Math.Ceiling(pedimentosBase.Count / (double)tamañoLote);
+            // PASO 2: Obtener partidas desde la base de pedimentos y consultar TR_GLOSA agregada desde la base de glosa
+            // Ejecutar una consulta en la base de pedimentos que obtiene el IGI calculado por partida
+            var partidasPedimento = new List<(int IdPedimento, string Pedimento, int Partida, decimal IGI_Calculado, DateTime? FechaPago)>();
 
-            for (int i = 0; i < totalLotes; i++)
+            string sqlPartidas = $@"
+                SELECT
+                    DP.Pim_Consecutivo AS iDPedimento,
+                    DP.Adu_AduanaSecc + '-' + DP.AgP_Patente + '-' + DP.Pim_Folio AS Pedimento,
+                    DI.Pid_Secuencia AS Partida,
+                    ISNULL(ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100.0, 0), 0) AS IGI_Calculado,
+                    CONVERT(DATE, IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)) AS FechaPago
+                FROM [{baseDatosPedimentos}].dbo.Di_Pedimento DP
+                INNER JOIN [{baseDatosPedimentos}].dbo.Di_PedimentoDet DI
+                    ON DI.Pim_Consecutivo = DP.Pim_Consecutivo
+                INNER JOIN [{baseDatosPedimentos}].dbo.Ca_Farancelaria FRA
+                    ON FRA.Fra_Fraccion = IIF(LEFT(DI.Fra_Fraccion,2) = '98', DI.Fra_FraccionORIG, DI.Fra_Fraccion)
+                    AND FRA.Pai_Clave = 'MEX'
+                    AND FRA.Fra_TipoOper = 0
+                WHERE CONVERT(DATE, IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)) BETWEEN @FechaInicio AND @FechaFin";
+
+            using (var cnPed = conexionPedimentos.ObtenerConexion())
+            using (var cmdPart = new SqlCommand(sqlPartidas, cnPed))
             {
-                var lote = pedimentosBase.Skip(i * tamañoLote).Take(tamañoLote).ToList();
-
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine($"   ?? Procesando lote {i + 1}/{totalLotes} ({lote.Count} pedimentos)");
-#endif
-
-                // Por cada pedimento del lote, obtener sus detalles y validar contra TR_GLOSA
-                foreach (var pedimento in lote)
+                cmdPart.Parameters.AddWithValue("@FechaInicio", fechaInicio);
+                cmdPart.Parameters.AddWithValue("@FechaFin", fechaFin);
+                cnPed.Open();
+                using var rdr = cmdPart.ExecuteReader();
+                while (rdr.Read())
                 {
-                    try
+                    partidasPedimento.Add((
+                        rdr.IsDBNull(0) ? 0 : rdr.GetInt32(0),
+                        rdr.IsDBNull(1) ? string.Empty : rdr.GetString(1),
+                        rdr.IsDBNull(2) ? 0 : rdr.GetInt32(2),
+                        rdr.IsDBNull(3) ? 0 : Convert.ToDecimal(rdr.GetValue(3)),
+                        LeerFechaPago(rdr, 4)
+                    ));
+                }
+            }
+
+            if (!partidasPedimento.Any())
+                return datosDetalle;
+
+            // Consultar TR_GLOSA en la base de glosa agregando por Pedimento + Partida
+            var glosaDict = new Dictionary<(string Pedimento, int Partida), (decimal IGI_Pagado, decimal IVA_Pagado, string FormaPago, DateTime? FechaPago, string OrigenZip)>();
+
+            string sqlGlosa = $@"
+                SELECT
+                    TR.GL_SEC AS Partida,
+                    TR.GL_ADUANA + '-' + TR.GL_PATENTE + '-' + TR.GL_PEDIMENTO AS Pedimento,
+                    SUM(ISNULL(TR.Gl_ImporteADvalorem,0)) AS IGI_Pagado,
+                    SUM(ISNULL(TR.Gl_ImporteIVA,0)) AS IVA_Pagado,
+                    ISNULL(TR.Gl_FPagoAdvalorem,'') AS FormaPago_IGI,
+                    CONVERT(DATE,TR.Gl_FecPagoReal) AS FechaPago,
+                    ISNULL(TR.Gl_OrigenZipGlosa,'') AS OrigenZip
+                FROM [{baseDatosGlosa}].dbo.TR_GLOSA TR
+                WHERE CONVERT(DATE,TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
+                    AND TR.Gl_TOper = 1
+                    AND TR.Gl_OrigenZipGlosa = 'S'
+                    AND TR.Gl_FPagoAdvalorem IN ('0','5','21')
+                GROUP BY TR.GL_SEC, TR.GL_ADUANA, TR.GL_PATENTE, TR.GL_PEDIMENTO, TR.Gl_FPagoAdvalorem, CONVERT(DATE,TR.Gl_FecPagoReal), TR.Gl_OrigenZipGlosa";
+
+            using (var cnGlo = conexionGlosa.ObtenerConexion())
+            using (var cmdGlo = new SqlCommand(sqlGlosa, cnGlo))
+            {
+                cmdGlo.Parameters.AddWithValue("@FechaInicio", fechaInicio);
+                cmdGlo.Parameters.AddWithValue("@FechaFin", fechaFin);
+                cnGlo.Open();
+                using var rdrG = cmdGlo.ExecuteReader();
+                while (rdrG.Read())
+                {
+                    var ped = rdrG.IsDBNull(1) ? string.Empty : rdrG.GetString(1);
+                    var part = rdrG.IsDBNull(0) ? 0 : rdrG.GetInt32(0);
+                    glosaDict[(ped, part)] = (
+                        rdrG.IsDBNull(2) ? 0 : Convert.ToDecimal(rdrG.GetValue(2)),
+                        rdrG.IsDBNull(3) ? 0 : Convert.ToDecimal(rdrG.GetValue(3)),
+                        rdrG.IsDBNull(4) ? string.Empty : rdrG.GetString(4),
+                        LeerFechaPago(rdrG, 5),
+                        rdrG.IsDBNull(6) ? string.Empty : rdrG.GetString(6)
+                    );
+                }
+            }
+
+            // Combinar partidasPedimento con glosaDict
+            foreach (var p in partidasPedimento)
+            {
+                var key = (p.Pedimento ?? string.Empty, p.Partida);
+                bool tieneGlosa = glosaDict.TryGetValue(key, out var g);
+
+                // Si existe glosa, aplicar la regla: si la forma de pago es '5' (CRÉDITO) entonces IGI pagado = 0
+                decimal igiPagado = 0m;
+                decimal ivaPagado = 0m;
+                string formaPago = string.Empty;
+                DateTime? fechaPago = null;
+                string origenZip = null;
+
+                if (tieneGlosa)
+                {
+                    igiPagado = g.IGI_Pagado;
+                    ivaPagado = g.IVA_Pagado;
+                    formaPago = g.FormaPago ?? string.Empty;
+                    fechaPago = g.FechaPago;
+                    origenZip = g.OrigenZip;
+
+                    if (formaPago == "5")
                     {
-                        // Obtener detalles del pedimento con fracción arancelaria
-                        var detallesPedimento = ObtenerDetallesPedimento(
-                            baseDatosPedimentos,
-                            pedimento.Consecutivo,
-                            conexionPedimentos
-                        );
-
-                        // Validar contra TR_GLOSA
-                        var datosGlosa = ObtenerDatosGlosaParaPedimento(
-                            baseDatosGlosa,
-                            pedimento.Aduana,
-                            pedimento.Patente,
-                            pedimento.Folio,
-                            pedimento.FechaPago,
-                            conexionGlosa
-                        );
-
-                        // Combinar datos
-                        foreach (var detalle in detallesPedimento)
-                        {
-                            var datoGlosa = datosGlosa.FirstOrDefault(g => g.Secuencia == detalle.Secuencia);
-                            bool tieneGlosa = datoGlosa.Secuencia != 0; // Si Secuencia es 0, no se encontró
-
-                            var datoDetalle = new DatoDetalleIGI
-                            {
-                                BaseDatos = baseDatosPedimentos,
-                                Pim_Consecutivo = pedimento.Consecutivo,
-                                Adu_AduanaSecc = pedimento.Aduana,
-                                AgP_Patente = pedimento.Patente,
-                                Pim_Folio = pedimento.Folio,
-                                Pim_FechaPago = pedimento.FechaPago,
-                                Gl_FecPagoReal = tieneGlosa ? datoGlosa.FechaPago : null,
-                                Gl_ImporteADvalorem = tieneGlosa ? datoGlosa.ImporteADvalorem : 0,
-                                IGI_CalculadoDetalle = detalle.IGI_Calculado,
-                                Gl_ImporteIVA = tieneGlosa ? datoGlosa.ImporteIVA : 0,
-                                Gl_FPagoAdvalorem = tieneGlosa ? datoGlosa.FormaPagoIGI : string.Empty,
-                                Gl_FPagoIVA = tieneGlosa ? datoGlosa.FormaPagoIVA : string.Empty,
-                                Gl_Pedimento = tieneGlosa ? datoGlosa.Pedimento : null,
-                                Gl_OrigenZipGlosa = tieneGlosa ? datoGlosa.OrigenZip : null
-                            };
-
-                            datosDetalle.Add(datoDetalle);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"   ?? Error procesando pedimento {pedimento.Folio}: {ex.Message}");
+                        // Para forma 5, el importe pagado se considera 0 según la regla de negocio
+                        igiPagado = 0m;
                     }
                 }
+
+                var diferencia = igiPagado - p.IGI_Calculado;
+                var estatus = Math.Abs((double)diferencia) > 1 ? "DIFERENCIA" : "OK";
+
+                var d = new DatoDetalleIGI
+                {
+                    BaseDatos = baseDatosPedimentos,
+                    Pim_Consecutivo = p.IdPedimento,
+                    Adu_AduanaSecc = (p.Pedimento ?? string.Empty).Split('-').FirstOrDefault() ?? string.Empty,
+                    AgP_Patente = (p.Pedimento ?? string.Empty).Split('-').Skip(1).FirstOrDefault() ?? string.Empty,
+                    Pim_Folio = (p.Pedimento ?? string.Empty).Split('-').Skip(2).FirstOrDefault() ?? string.Empty,
+                    Pid_Secuencia = p.Partida,
+                    Pim_FechaPago = p.FechaPago,
+                    Gl_FecPagoReal = fechaPago,
+                    Gl_ImporteADvalorem = igiPagado,
+                    Gl_ImporteIVA = ivaPagado,
+                    IGI_CalculadoDetalle = p.IGI_Calculado,
+                    DiferenciaIGI = diferencia,
+                    EstatusIGI = estatus,
+                    Gl_FPagoAdvalorem = formaPago,
+                    Gl_FPagoIVA = string.Empty,
+                    Gl_Pedimento = tieneGlosa ? p.Pedimento : null,
+                    Gl_OrigenZipGlosa = origenZip,
+                    EstatusGlosa = tieneGlosa ? "SI CARGADO" : "NO CARGADO",
+                };
+
+                datosDetalle.Add(d);
             }
 
 #if DEBUG
@@ -531,21 +885,25 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
-        /// Obtiene los detalles de un pedimento con cálculo de IGI
+        /// Obtiene los detalles de un pedimento con información por partida
+        /// Devuelve secuencia, IGI calculado, valor aduana, fracción y tasa IGI
         /// </summary>
-        private List<(int Secuencia, decimal IGI_Calculado)> ObtenerDetallesPedimento(
+        private List<(int Secuencia, decimal IGI_Calculado, decimal ValorAdu, string Fraccion, decimal TasaIGI)> ObtenerDetallesPedimento(
             string baseDatos,
             int consecutivo,
             Conexion conexion)
         {
-            var detalles = new List<(int Secuencia, decimal IGI_Calculado)>();
+            var detalles = new List<(int Secuencia, decimal IGI_Calculado, decimal ValorAdu, string Fraccion, decimal TasaIGI)>();
 
             string sql = $@"
                 SELECT 
                     DI.Pid_Secuencia,
-                    ISNULL(ROUND((ISNULL(DI.Pid_ValorAdu, 0) * ISNULL(FRA.Fra_AdvGral, 0)) / 100, 0), 0) AS IGI_Calculado
-                FROM Di_PedimentoDet DI
-                INNER JOIN Ca_Farancelaria FRA
+                    ISNULL(ROUND((ISNULL(DI.Pid_ValorAdu, 0) * ISNULL(FRA.Fra_AdvGral, 0)) / 100, 0), 0) AS IGI_Calculado,
+                    ISNULL(DI.Pid_ValorAdu, 0) AS ValorAdu,
+                    IIF(LEFT(DI.Fra_Fraccion,2) = '98', DI.Fra_FraccionORIG, DI.Fra_Fraccion) AS Fraccion,
+                    ISNULL(FRA.Fra_AdvGral, 0) AS TasaIGI
+                FROM [{baseDatos}].dbo.Di_PedimentoDet DI
+                INNER JOIN [{baseDatos}].dbo.Ca_Farancelaria FRA
                     ON FRA.Fra_Fraccion = IIF(LEFT(DI.Fra_Fraccion, 2) = '98', DI.Fra_FraccionORIG, DI.Fra_Fraccion)
                     AND FRA.Pai_Clave = 'MEX'
                     AND FRA.Fra_TipoOper = 0
@@ -563,7 +921,10 @@ namespace Retorno360Tacna.SERVICES
             {
                 detalles.Add((
                     reader.GetInt32(0),
-                    reader.IsDBNull(1) ? 0 : reader.GetDecimal(1)
+                    LeerDecimal(reader, 1),
+                    LeerDecimal(reader, 2),
+                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
+                    LeerDecimal(reader, 4)
                 ));
             }
 
@@ -571,775 +932,200 @@ namespace Retorno360Tacna.SERVICES
         }
 
         /// <summary>
-        /// Obtiene datos de TR_GLOSA para un pedimento específico
+        /// Obtiene detalle a nivel de partidas para una base de pedimentos
+        /// Usa query directo cuando las bases están en el mismo servidor; en multi-servidor
+        /// combina pedimentos + partidas y valida contra TR_GLOSA de forma equivalente.
         /// </summary>
-        private List<(int Secuencia, DateTime? FechaPago, decimal ImporteADvalorem, decimal ImporteIVA, string FormaPagoIGI, string FormaPagoIVA, string Pedimento, string OrigenZip)> ObtenerDatosGlosaParaPedimento(
-            string baseDatosGlosa,
-            string aduana,
-            string patente,
-            string folio,
-            DateTime? fechaPago,
-            Conexion conexionGlosa)
+        public List<DatoDetalleIGI> ObtenerPartidasPorBase(string baseDatos, DateTime fechaInicio, DateTime fechaFin)
         {
-            var datosGlosa = new List<(int Secuencia, DateTime? FechaPago, decimal ImporteADvalorem, decimal ImporteIVA, string FormaPagoIGI, string FormaPagoIVA, string Pedimento, string OrigenZip)>();
+            var resultados = new List<DatoDetalleIGI>();
 
-            string sql = $@"
-                SELECT 
-                    TR.GL_SEC,
-                    TR.Gl_FecPagoReal,
-                    ISNULL(TR.Gl_ImporteADvalorem, 0) AS Gl_ImporteADvalorem,
-                    ISNULL(TR.Gl_ImporteIVA, 0) AS Gl_ImporteIVA,
-                    TR.Gl_FPagoAdvalorem,
-                    TR.Gl_FPagoIVA,
-                    TR.Gl_Pedimento,
-                    TR.Gl_OrigenZipGlosa
-                FROM TR_GLOSA TR
-                WHERE TR.Gl_Pedimento = @Folio
-                    AND TR.Gl_Aduana = @Aduana
-                    AND TR.Gl_Patente = @Patente
-                    AND TR.Gl_TOper = 1
-                    AND TR.Gl_OrigenZipGlosa = 'S'
-                    AND (@FechaPago IS NULL OR YEAR(CONVERT(DATE, TR.Gl_FecPagoReal)) = YEAR(@FechaPago))";
+            int idRazon = ObtenerIdRazonDesdeBaseDatos(baseDatos);
+            var razon = ObtenerRazonSocial(idRazon);
+            string baseDatosGlosa = razon.BaseDatosOrigen;
 
-            using var cn = conexionGlosa.ObtenerConexion();
-            using var cmd = new SqlCommand(sql, cn);
+            var conexionPedimentos = ObtenerConexionParaBaseDatos(baseDatos);
+            var conexionGlosa = ObtenerConexionParaBaseDatos(baseDatosGlosa);
 
-            cmd.Parameters.AddWithValue("@Folio", folio);
-            cmd.Parameters.AddWithValue("@Aduana", aduana);
-            cmd.Parameters.AddWithValue("@Patente", patente);
-            cmd.Parameters.AddWithValue("@FechaPago", fechaPago.HasValue ? (object)fechaPago.Value : DBNull.Value);
+            // Determinar si están en el mismo servidor
+            var conexionInfoPedimentos = ObtenerConexionExterna(baseDatos);
+            var conexionInfoGlosa = ObtenerConexionExterna(baseDatosGlosa);
+            string servidorPedimentos = conexionInfoPedimentos.TieneConexionExterna && !string.IsNullOrEmpty(conexionInfoPedimentos.Servidor)
+                ? conexionInfoPedimentos.Servidor
+                : conexionPrincipal.Servidor ?? string.Empty;
+            string servidorGlosa = conexionInfoGlosa.TieneConexionExterna && !string.IsNullOrEmpty(conexionInfoGlosa.Servidor)
+                ? conexionInfoGlosa.Servidor
+                : conexionPrincipal.Servidor ?? string.Empty;
 
-            cn.Open();
+            bool mismoServidor = ValidarSiMismaConexion(servidorPedimentos, servidorGlosa, conexionInfoPedimentos.IdConexion, conexionInfoGlosa.IdConexion);
 
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            if (mismoServidor)
             {
-                datosGlosa.Add((
-                    reader.GetInt32(0),
-                    LeerFechaPago(reader, 1),
-                    reader.IsDBNull(2) ? 0 : reader.GetDecimal(2),
-                    reader.IsDBNull(3) ? 0 : reader.GetDecimal(3),
-                    reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                    reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
-                    reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
-                    reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
-                ));
-            }
+                // Ejecutar query proporcionado (con prefijos de base)
+                string sql = $@"
+SELECT 
+    DP.Pim_Consecutivo AS iDPedimento,
+    DP.Adu_AduanaSecc + '-' + DP.AgP_Patente + '-' + DP.Pim_Folio AS Pedimento,
+    DI.Pid_Secuencia AS Partida,
+    TR.Gl_FecPagoReal AS FechaPago,
+    ISNULL(TR.Gl_ImporteADvalorem,0) AS IGI_Pagado,
+    ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100.0, 0) AS IGI_Calculado,
+    ISNULL(TR.Gl_ImporteADvalorem,0) - ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100.0, 0) AS Diferencia_IGI,
+    CASE WHEN ABS(ISNULL(TR.Gl_ImporteADvalorem,0) - ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100.0, 0)) > 1 THEN 'DIFERENCIA' ELSE 'OK' END AS EstatusIGI,
+    ISNULL(TR.Gl_ImporteIVA,0) AS Gl_ImporteIVA,
+    DI.Pid_ValorAdu AS ValorAduana,
+    IIF(LEFT(DI.Fra_Fraccion,2) = '98', DI.Fra_FraccionORIG, DI.Fra_Fraccion) AS Fraccion,
+    FRA.Fra_AdvGral AS TasaIGI,
+    TR.Gl_FPagoAdvalorem AS FormaPago_IGI,
+    TR.Gl_FPagoIVA AS FormaPago_IVA,
+    CASE WHEN TR.Gl_Pedimento IS NOT NULL THEN 'SI CARGADO' ELSE 'NO CARGADO' END AS EstatusGlosa,
+    CASE WHEN TR.Gl_OrigenZipGlosa = 'S' THEN 'ZIP' ELSE 'NO ZIP' END AS EstatusOrigen
+FROM [{baseDatos}].dbo.Di_Pedimento DP
+INNER JOIN [{baseDatos}].dbo.Di_PedimentoDet DI ON DI.Pim_Consecutivo = DP.Pim_Consecutivo
+LEFT JOIN [{baseDatosGlosa}].dbo.TR_GLOSA TR ON TR.Gl_Pedimento = DP.Pim_Folio
+    AND TR.Gl_Aduana = DP.Adu_AduanaSecc
+    AND TR.Gl_Patente = DP.AgP_Patente
+    AND YEAR(IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)) = YEAR(CONVERT(DATE,TR.Gl_FecPagoReal))
+    AND DI.Pid_Secuencia = TR.GL_SEC
+    AND TR.Gl_TOper = 1
+    AND TR.Gl_OrigenZipGlosa = 'S'
+INNER JOIN [{baseDatos}].dbo.Ca_Farancelaria FRA ON FRA.Fra_Fraccion = IIF(LEFT(DI.Fra_Fraccion,2) = '98', DI.Fra_FraccionORIG, DI.Fra_Fraccion)
+    AND FRA.Pai_Clave = 'MEX'
+    AND FRA.Fra_TipoOper = 0
+                WHERE CONVERT(DATE,TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
+    AND (
+        -- Seguir lógica del query original: incluir formas de pago ADVALOREM 0, 5 y 21
+        TR.Gl_FPagoAdvalorem IN ('0','5','21')
+    )
+ORDER BY DP.Pim_Folio, DI.Pid_Secuencia";
 
-            return datosGlosa;
-        }
+                using var cn = conexionPedimentos.ObtenerConexion();
+                using var cmd = new SqlCommand(sql, cn);
+                cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
 
-        /// <summary>
-        /// Obtiene datos AGRUPADOS usando JOIN cruzado - Versión optimizada con GROUP BY en SQL
-        /// Ejecuta el GROUP BY directamente en cada base de datos (más eficiente)
-        /// Similar a la lógica del checkbox de consulta por base individual
-        /// </summary>
-        private List<ReporteIGIPagado> ObtenerDatosAgrupadosConJoinCruzado(
-            string baseDatosPedimentos,
-            string baseDatosGlosa,
-            DateTime fechaInicio,
-            DateTime fechaFin,
-            Conexion conexionPedimentos,
-            Conexion conexionGlosa)
-        {
-            var resultados = new List<ReporteIGIPagado>();
-
-            try
-            {
-                // Obtener información de conexión para validar servidores
-                var conexionInfoPedimentos = ObtenerConexionExterna(baseDatosPedimentos);
-                var conexionInfoGlosa = ObtenerConexionExterna(baseDatosGlosa);
-
-                // Determinar servidor de cada base
-                string servidorPedimentos = conexionInfoPedimentos.TieneConexionExterna && !string.IsNullOrEmpty(conexionInfoPedimentos.Servidor)
-                    ? conexionInfoPedimentos.Servidor
-                    : conexionPrincipal.Servidor ?? string.Empty;
-
-                string servidorGlosa = conexionInfoGlosa.TieneConexionExterna && !string.IsNullOrEmpty(conexionInfoGlosa.Servidor)
-                    ? conexionInfoGlosa.Servidor
-                    : conexionPrincipal.Servidor ?? string.Empty;
-
-                // Validar si están en el mismo servidor
-                bool mismoServidor = ValidarSiMismaConexion(
-                    servidorPedimentos,
-                    servidorGlosa,
-                    conexionInfoPedimentos.IdConexion,
-                    conexionInfoGlosa.IdConexion
-                );
-
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine($"\n?? ObtenerDatosAgrupadosConJoinCruzado:");
-                System.Diagnostics.Debug.WriteLine($"   Base Pedimentos: {baseDatosPedimentos} (Servidor: {servidorPedimentos})");
-                System.Diagnostics.Debug.WriteLine($"   Base Glosa: {baseDatosGlosa} (Servidor: {servidorGlosa})");
-                System.Diagnostics.Debug.WriteLine($"   ¿Mismo servidor?: {(mismoServidor ? "SÍ" : "NO")}");
-#endif
-
-                if (mismoServidor)
-                {
-                    // JOIN directo con GROUP BY en SQL (mismo servidor)
-                    resultados = ObtenerDatosAgrupadosConJoinDirecto(baseDatosPedimentos, baseDatosGlosa, fechaInicio, fechaFin, conexionPedimentos);
-                }
-                else
-                {
-                    // JOIN multi-servidor: ejecutar GROUP BY en pedimentos y luego validar con glosa
-                    resultados = ObtenerDatosAgrupadosMultiServidor(baseDatosPedimentos, baseDatosGlosa, fechaInicio, fechaFin, conexionPedimentos, conexionGlosa);
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error al obtener datos agrupados entre {baseDatosPedimentos} y {baseDatosGlosa}: {ex.Message}", ex);
-            }
-
-            return resultados;
-        }
-
-        /// <summary>
-        /// Obtiene datos agrupados usando JOIN directo cuando las bases están en el mismo servidor
-        /// Ejecuta el GROUP BY directamente en SQL para máxima eficiencia
-        /// Utiliza tablas temporales para hacer INNER JOIN entre pedimentos del cliente y TR_GLOSA
-        /// </summary>
-        private List<ReporteIGIPagado> ObtenerDatosAgrupadosConJoinDirecto(
-            string baseDatosPedimentos,
-            string baseDatosGlosa,
-            DateTime fechaInicio,
-            DateTime fechaFin,
-            Conexion conexionPedimentos)
-        {
-            var resultados = new List<ReporteIGIPagado>();
-
-            // Nuevo query usando tablas temporales para obtener solo pedimentos que coinciden
-            string sql = $@"
-                DECLARE @PedimentosCLIENTE TABLE (
-                    iDPedimento INT,
-                    Pedimento NVARCHAR(MAX),
-                    FechaPago DATE,
-                    IGI_Calculado DECIMAL(18,2),
-                    FormaPago_IGI NVARCHAR(MAX)
-                )
-                INSERT INTO @PedimentosCLIENTE(iDPedimento, Pedimento, FechaPago, IGI_Calculado, FormaPago_IGI)
-                SELECT 
-                    DP.Pim_Consecutivo AS iDPedimento,
-                    DP.Adu_AduanaSecc + '-' + DP.AgP_Patente + '-' + DP.Pim_Folio AS Pedimento,
-                    IIF(DP.CLP_CLAVE= 'R1',DP.Pim_FechaPagoR1,DP.Pim_FechaPago) AS FechaPago,
-                    SUM(ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100,0)) AS IGI_Calculado,
-                    Di.FoP_Clave AS FormaPago_IGI
-                FROM [{baseDatosPedimentos}].dbo.Di_Pedimento DP
-                INNER JOIN [{baseDatosPedimentos}].dbo.Di_PedimentoDet DI ON DI.Pim_Consecutivo = DP.Pim_Consecutivo
-                INNER JOIN [{baseDatosPedimentos}].dbo.Ca_Farancelaria FRA ON FRA.Fra_Fraccion = IIF(LEFT(DI.Fra_Fraccion,2)= '98', DI.Fra_FraccionORIG,DI.Fra_Fraccion) 
-                    AND FRA.Pai_Clave = 'MEX' 
-                    AND FRA.Fra_TipoOper = 0
-                WHERE 
-                    IIF(DP.CLP_CLAVE= 'R1',DP.Pim_FechaPagoR1,DP.Pim_FechaPago) BETWEEN @FechaInicio AND @FechaFin
-                GROUP BY  
-                    DP.Pim_Consecutivo,
-                    DP.Adu_AduanaSecc,
-                    DP.AgP_Patente,
-                    DP.Pim_Folio,
-                    IIF(DP.CLP_CLAVE= 'R1',DP.Pim_FechaPagoR1,DP.Pim_FechaPago),
-                    Di.FoP_Clave
-
-                DECLARE @PedimentosGLOSAIGI TABLE (
-                    Pedimento NVARCHAR(MAX),
-                    FechaPago DATE,
-                    IGI_Pagado DECIMAL(18,2),
-                    FormaPago_IGI NVARCHAR(MAX)
-                )
-                INSERT INTO @PedimentosGLOSAIGI(Pedimento, FechaPago, IGI_Pagado, FormaPago_IGI)
-                SELECT 
-                    TR.GL_ADUANA + '-' + TR.GL_PATENTE + '-' + TR.GL_PEDIMENTO AS Pedimento,
-                    CONVERT(DATE, TR.Gl_FecPagoReal) AS FechaPago,
-                    SUM(ISNULL(TR.Gl_ImporteADvalorem,0)) AS IGI_Pagado,
-                    TR.Gl_FPagoAdvalorem AS FormaPago_IGI
-                FROM [{baseDatosGlosa}].DBO.TR_GLOSA TR
-                WHERE 
-                    CONVERT(DATE,TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
-                    AND TR.Gl_TOper = 1
-                    AND TR.Gl_OrigenZipGlosa = 'S'
-                    AND (
-                        TR.Gl_FPagoAdvalorem IN ('0','5')
-                    )
-                GROUP BY  
-                    TR.GL_ADUANA + '-' + TR.GL_PATENTE + '-' + TR.GL_PEDIMENTO
-                    ,CONVERT(DATE, TR.Gl_FecPagoReal)
-                    ,TR.Gl_FPagoAdvalorem
-                HAVING SUM(ISNULL(TR.Gl_ImporteADvalorem,0)) > 0 
-
-                DECLARE @PedimentosGLOSAIVA TABLE (
-                    Pedimento NVARCHAR(MAX),
-                    FechaPago DATE,
-                    IVA_Pagado DECIMAL(18,2),
-                    FormaPago_IVA NVARCHAR(MAX) 
-                )
-                INSERT INTO @PedimentosGLOSAIVA(Pedimento, FechaPago, IVA_Pagado, FormaPago_IVA)
-                SELECT 
-                    TR.GL_ADUANA + '-' + TR.GL_PATENTE + '-' + TR.GL_PEDIMENTO AS Pedimento,
-                    CONVERT(DATE, TR.Gl_FecPagoReal) AS FechaPago,
-                    SUM(ISNULL(TR.Gl_ImporteIVA,0)) AS IVA_Pagado,
-                    TR.Gl_FPagoIVA AS FormaPago_IVA
-                FROM [{baseDatosGlosa}].DBO.TR_GLOSA TR
-                WHERE 
-                    CONVERT(DATE,TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
-                    AND TR.Gl_TOper = 1
-                    AND TR.Gl_OrigenZipGlosa = 'S'
-                    AND (
-                        TR.Gl_FPagoIVA IN ('0','21') 
-                    )
-                GROUP BY  
-                    TR.GL_ADUANA + '-' + TR.GL_PATENTE + '-' + TR.GL_PEDIMENTO
-                    ,CONVERT(DATE, TR.Gl_FecPagoReal)
-                    ,TR.Gl_FPagoIVA
-                HAVING SUM(ISNULL(TR.Gl_ImporteIVA,0)) > 0
-
-                /*TABLA DE ANALISIS DE IGI*/
-                SELECT
-                    0 AS iDPedimento,
-                    '' AS Pedimento,
-                    GLOSA.FechaPago,
-                    SUM(GLOSA.IGI_Pagado) AS IGI_Pagado,
-                    SUM(CLIENT.IGI_Calculado) AS IGI_Calculado,
-                    CAST(0 AS DECIMAL(18,2)) AS IVA_Pagado,
-                    GLOSA.FormaPago_IGI AS FormaPago_IGI,
-                    '' AS FormaPago_IVA,
-                    'SI CARGADO' AS EstatusGlosa,
-                    'ZIP' AS EstatusOrigen
-                FROM @PedimentosGLOSAIGI GLOSA
-                INNER JOIN @PedimentosCLIENTE CLIENT
-                    ON CLIENT.Pedimento = GLOSA.Pedimento
-                    AND CLIENT.FormaPago_IGI = GLOSA.FormaPago_IGI
-                GROUP BY
-                    GLOSA.FechaPago,
-                    GLOSA.FormaPago_IGI
-
-                /*TABLA DE ANALISIS DE IVA*/
-                SELECT
-                    0 AS iDPedimento,
-                    '' AS Pedimento,
-                    GLOSA.FechaPago,
-                    CAST(0 AS DECIMAL(18,2)) AS IGI_Pagado,
-                    CAST(0 AS DECIMAL(18,2)) AS IGI_Calculado,
-                    SUM(GLOSA.IVA_Pagado) AS IVA_Pagado,
-                    '' AS FormaPago_IGI,
-                    GLOSA.FormaPago_IVA AS FormaPago_IVA,
-                    'SI CARGADO' AS EstatusGlosa,
-                    'ZIP' AS EstatusOrigen
-                FROM @PedimentosGLOSAIVA GLOSA
-                INNER JOIN (SELECT DISTINCT Pedimento FROM @PedimentosCLIENTE) CLIENT
-                    ON CLIENT.Pedimento = GLOSA.Pedimento
-                GROUP BY
-                    GLOSA.FechaPago,
-                    GLOSA.FormaPago_IVA";
-
-            using var cn = conexionPedimentos.ObtenerConexion();
-            using var cmd = new SqlCommand(sql, cn);
-
-            cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
-            cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
-
-            cn.Open();
-
-            using var reader = cmd.ExecuteReader();
-
-            // Leer primer result set (IGI)
-            while (reader.Read())
-            {
-                var reporte = new ReporteIGIPagado
-                {
-                    BaseDatos = baseDatosPedimentos,
-                    IdPedimento = reader.GetInt32(0),
-                    Pedimento = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
-                    FechaPago = LeerFechaPago(reader, 2),
-                    IGI_Pagado = reader.IsDBNull(3) ? 0 : reader.GetDecimal(3),
-                    IGI_Calculado = reader.IsDBNull(4) ? 0 : reader.GetDecimal(4),
-                    IVA_Pagado = reader.IsDBNull(5) ? 0 : reader.GetDecimal(5),
-                    FormaPago_IGI = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
-                    FormaPago_IVA = reader.IsDBNull(7) ? string.Empty : reader.GetString(7),
-                    EstatusGlosa = reader.IsDBNull(8) ? "NO CARGADO" : reader.GetString(8),
-                    EstatusOrigen = reader.IsDBNull(9) ? "NO ZIP" : reader.GetString(9)
-                };
-
-                resultados.Add(reporte);
-            }
-
-            // Avanzar al segundo result set (IVA)
-            if (reader.NextResult())
-            {
+                cn.Open();
+                using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    var reporte = new ReporteIGIPagado
+                    var d = new DatoDetalleIGI
                     {
-                        BaseDatos = baseDatosPedimentos,
-                        IdPedimento = reader.GetInt32(0),
-                        Pedimento = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
-                        FechaPago = LeerFechaPago(reader, 2),
-                        IGI_Pagado = reader.IsDBNull(3) ? 0 : reader.GetDecimal(3),
-                        IGI_Calculado = reader.IsDBNull(4) ? 0 : reader.GetDecimal(4),
-                        IVA_Pagado = reader.IsDBNull(5) ? 0 : reader.GetDecimal(5),
-                        FormaPago_IGI = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
-                        FormaPago_IVA = reader.IsDBNull(7) ? string.Empty : reader.GetString(7),
-                        EstatusGlosa = reader.IsDBNull(8) ? "NO CARGADO" : reader.GetString(8),
-                        EstatusOrigen = reader.IsDBNull(9) ? "NO ZIP" : reader.GetString(9)
+                        BaseDatos = baseDatos,
+                        Pim_Consecutivo = reader.IsDBNull(0) ? 0 : reader.GetInt32(0),
+                        Adu_AduanaSecc = reader.IsDBNull(1) ? string.Empty : reader.GetString(1).Split('-')[0],
+                        AgP_Patente = reader.IsDBNull(1) ? string.Empty : reader.GetString(1).Split('-')[1],
+                        Pim_Folio = reader.IsDBNull(1) ? string.Empty : reader.GetString(1).Split('-')[2],
+                        Pid_Secuencia = reader.IsDBNull(2) ? 0 : reader.GetInt32(2),
+                        Gl_FecPagoReal = LeerFechaPago(reader, 3),
+                        Gl_ImporteADvalorem = LeerDecimal(reader, 4),
+                        IGI_CalculadoDetalle = LeerDecimal(reader, 5),
+                        DiferenciaIGI = LeerDecimal(reader, 6),
+                        EstatusIGI = reader.IsDBNull(7) ? string.Empty : reader.GetString(7),
+                        Gl_ImporteIVA = LeerDecimal(reader, 8),
+                        ValorAduana = LeerDecimal(reader, 9),
+                        Fraccion = reader.IsDBNull(10) ? string.Empty : reader.GetString(10),
+                        TasaIGI = LeerDecimal(reader, 11),
+                        Gl_FPagoAdvalorem = reader.IsDBNull(12) ? string.Empty : reader.GetString(12),
+                        Gl_FPagoIVA = reader.IsDBNull(13) ? string.Empty : reader.GetString(13),
+                        EstatusGlosa = reader.IsDBNull(14) ? string.Empty : reader.GetString(14),
+                        Gl_OrigenZipGlosa = reader.IsDBNull(15) ? string.Empty : reader.GetString(15)
                     };
 
-                    resultados.Add(reporte);
+                    resultados.Add(d);
                 }
             }
-
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine($"   ? Pedimentos agrupados obtenidos: {resultados.Count}");
-#endif
-
-            return resultados;
-        }
-
-        /// <summary>
-        /// Obtiene datos agrupados para multi-servidor
-        /// Primero agrupa en la base de pedimentos, luego valida con glosa
-        /// Separa en dos consultas: una para IGI (con FormaPago_IGI) y otra para IVA (solo Pedimento)
-        /// </summary>
-        private List<ReporteIGIPagado> ObtenerDatosAgrupadosMultiServidor(
-            string baseDatosPedimentos,
-            string baseDatosGlosa,
-            DateTime fechaInicio,
-            DateTime fechaFin,
-            Conexion conexionPedimentos,
-            Conexion conexionGlosa)
-        {
-            var resultados = new List<ReporteIGIPagado>();
-
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine($"   ?? Ejecutando estrategia multi-servidor con GROUP BY...");
-#endif
-
-            // PASO 1: Obtener pedimentos ÚNICOS agrupados desde la base de pedimentos
-            var pedimentosUnicos = new Dictionary<string, (int IdPedimento, DateTime? FechaPago)>();
-
-            string sqlPedimentosUnicos = $@"
+            else
+            {
+                // Multi-servidor: iterar pedimentos y combinar partidas con glosa filtrada
+                // Reutilizar la lista de pedimentos como en ObtenerDatosConConsultasSeparadas
+                string sqlPedimentos = @"
                 SELECT DISTINCT
-                    DP.Pim_Consecutivo AS iDPedimento,
-                    DP.Adu_AduanaSecc + '-' + DP.AgP_Patente + '-' + DP.Pim_Folio AS Pedimento,
-                    IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago) AS FechaPago
-                FROM Di_Pedimento DP
-                WHERE 
-                    IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago) BETWEEN @FechaInicio AND @FechaFin";
-
-            using (var cnPedimentos = conexionPedimentos.ObtenerConexion())
-            using (var cmdPedimentos = new SqlCommand(sqlPedimentosUnicos, cnPedimentos))
-            {
-                cmdPedimentos.Parameters.AddWithValue("@FechaInicio", fechaInicio);
-                cmdPedimentos.Parameters.AddWithValue("@FechaFin", fechaFin);
-
-                cnPedimentos.Open();
-
-                using var readerPedimentos = cmdPedimentos.ExecuteReader();
-                while (readerPedimentos.Read())
-                {
-                    int idPedimento = readerPedimentos.GetInt32(0);
-                    string pedimento = readerPedimentos.IsDBNull(1) ? string.Empty : readerPedimentos.GetString(1);
-                    DateTime? fechaPago = LeerFechaPago(readerPedimentos, 2);
-
-                    if (!pedimentosUnicos.ContainsKey(pedimento))
-                    {
-                        pedimentosUnicos[pedimento] = (idPedimento, fechaPago);
-                    }
-                }
-            }
-
-            // PASO 2: Obtener datos de IGI agrupados por pedimento + FormaPago_IGI
-            var datosIGI = ObtenerDatosIGIAgrupadosMultiServidor(baseDatosPedimentos, fechaInicio, fechaFin, conexionPedimentos);
-
-            // PASO 3: Para cada dato de IGI, buscar en glosa filtrando por FormaPago_IGI
-            foreach (var datoIGI in datosIGI)
-            {
-                try
-                {
-                    var datosGlosaIGI = ObtenerDatosGlosaIGIAgrupadosParaPedimento(
-                        baseDatosGlosa,
-                        datoIGI.Aduana,
-                        datoIGI.Patente,
-                        datoIGI.Folio,
-                        datoIGI.FechaPago,
-                        datoIGI.FormaPago_IGI,
-                        conexionGlosa
-                    );
-
-                    // Solo agregar si hay datos válidos de glosa IGI
-                    if (datosGlosaIGI.FormaPago_IGI == datoIGI.FormaPago_IGI && !string.IsNullOrEmpty(datosGlosaIGI.Pedimento))
-                    {
-                        // Crear reporte con datos de IGI
-                        var reporte = new ReporteIGIPagado
-                        {
-                            BaseDatos = baseDatosPedimentos,
-                            IdPedimento = datoIGI.IdPedimento,
-                            Pedimento = datoIGI.Pedimento,
-                            FechaPago = datosGlosaIGI.FechaPago ?? datoIGI.FechaPago,
-                            IGI_Pagado = datosGlosaIGI.IGI_Pagado,
-                            IGI_Calculado = datoIGI.IGI_Calculado,
-                            IVA_Pagado = 0,  // Se llenará en el paso 4
-                            FormaPago_IGI = datosGlosaIGI.FormaPago_IGI,
-                            FormaPago_IVA = string.Empty,  // Se llenará en el paso 4
-                            EstatusGlosa = "SI CARGADO",
-                            EstatusOrigen = datosGlosaIGI.OrigenZip == "S" ? "ZIP" : "NO ZIP"
-                        };
-
-                        resultados.Add(reporte);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"   ?? Error procesando IGI pedimento {datoIGI.Folio}: {ex.Message}");
-                }
-            }
-
-            // PASO 4: Obtener datos de IVA agrupados (solo por pedimento, sin FormaPago_IGI)
-            foreach (var kvp in pedimentosUnicos)
-            {
-                string pedimento = kvp.Key;
-                int idPedimento = kvp.Value.IdPedimento;
-                DateTime? fechaPago = kvp.Value.FechaPago;
-
-                string[] partesPedimento = pedimento.Split('-');
-                if (partesPedimento.Length != 3) continue;
-
-                string aduana = partesPedimento[0];
-                string patente = partesPedimento[1];
-                string folio = partesPedimento[2];
-
-                try
-                {
-                    var datosGlosaIVA = ObtenerDatosGlosaIVAAgrupadosParaPedimento(
-                        baseDatosGlosa,
-                        aduana,
-                        patente,
-                        folio,
-                        fechaPago,
-                        conexionGlosa
-                    );
-
-                    // Solo agregar si hay datos válidos de IVA
-                    if (!string.IsNullOrEmpty(datosGlosaIVA.Pedimento) && datosGlosaIVA.IVA_Pagado > 0)
-                    {
-                        // Crear reporte con datos de IVA
-                        var reporte = new ReporteIGIPagado
-                        {
-                            BaseDatos = baseDatosPedimentos,
-                            IdPedimento = idPedimento,
-                            Pedimento = pedimento,
-                            FechaPago = datosGlosaIVA.FechaPago ?? fechaPago,
-                            IGI_Pagado = 0,
-                            IGI_Calculado = 0,
-                            IVA_Pagado = datosGlosaIVA.IVA_Pagado,
-                            FormaPago_IGI = string.Empty,
-                            FormaPago_IVA = datosGlosaIVA.FormaPago_IVA,
-                            EstatusGlosa = "SI CARGADO",
-                            EstatusOrigen = datosGlosaIVA.OrigenZip == "S" ? "ZIP" : "NO ZIP"
-                        };
-
-                        resultados.Add(reporte);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"   ?? Error procesando IVA pedimento {folio}: {ex.Message}");
-                }
-            }
-
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine($"   ? Total registros (IGI + IVA): {resultados.Count}");
-#endif
-
-            return resultados;
-        }
-
-        /// <summary>
-        /// Obtiene datos de IGI agrupados por pedimento + FormaPago_IGI
-        /// </summary>
-        private List<(int IdPedimento, string Pedimento, string Aduana, string Patente, string Folio, DateTime? FechaPago, decimal IGI_Calculado, string FormaPago_IGI)> 
-            ObtenerDatosIGIAgrupadosMultiServidor(
-            string baseDatosPedimentos,
-            DateTime fechaInicio,
-            DateTime fechaFin,
-            Conexion conexionPedimentos)
-        {
-            var datosIGI = new List<(int, string, string, string, string, DateTime?, decimal, string)>();
-
-            string sqlIGI = $@"
-                SELECT 
-                    DP.Pim_Consecutivo AS iDPedimento,
-                    DP.Adu_AduanaSecc + '-' + DP.AgP_Patente + '-' + DP.Pim_Folio AS Pedimento,
-                    DP.Adu_AduanaSecc,
-                    DP.AgP_Patente,
-                    DP.Pim_Folio,
-                    IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago) AS FechaPago,
-                    SUM(ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100, 0)) AS IGI_Calculado,
-                    DI.FoP_Clave AS FormaPago_IGI
-                FROM Di_Pedimento DP
-                INNER JOIN Di_PedimentoDet DI
-                    ON DI.Pim_Consecutivo = DP.Pim_Consecutivo
-                INNER JOIN Ca_Farancelaria FRA
-                    ON FRA.Fra_Fraccion = IIF(LEFT(DI.Fra_Fraccion, 2) = '98', DI.Fra_FraccionORIG, DI.Fra_Fraccion)
-                    AND FRA.Pai_Clave = 'MEX'
-                    AND FRA.Fra_TipoOper = 0
-                WHERE 
-                    IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago) BETWEEN @FechaInicio AND @FechaFin
-                GROUP BY  
                     DP.Pim_Consecutivo,
                     DP.Adu_AduanaSecc,
                     DP.AgP_Patente,
                     DP.Pim_Folio,
-                    IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago),
-                    DI.FoP_Clave";
+                    IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago) AS Pim_FechaPago
+                FROM Di_Pedimento DP
+                WHERE CONVERT(DATE, IIF(DP.CLP_CLAVE = 'R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)) BETWEEN @FechaInicio AND @FechaFin";
 
-            using var cn = conexionPedimentos.ObtenerConexion();
-            using var cmd = new SqlCommand(sqlIGI, cn);
+                var pedimentosBase = new List<(int Consecutivo, string Aduana, string Patente, string Folio, DateTime? FechaPago)>();
+                using (var cnPedimentos = conexionPedimentos.ObtenerConexion())
+                using (var cmdPedimentos = new SqlCommand(sqlPedimentos, cnPedimentos))
+                {
+                    cmdPedimentos.Parameters.AddWithValue("@FechaInicio", fechaInicio);
+                    cmdPedimentos.Parameters.AddWithValue("@FechaFin", fechaFin);
+                    cnPedimentos.Open();
+                    using var readerPedimentos = cmdPedimentos.ExecuteReader();
+                    while (readerPedimentos.Read())
+                    {
+                        pedimentosBase.Add((
+                            readerPedimentos.GetInt32(0),
+                            readerPedimentos.GetString(1),
+                            readerPedimentos.GetString(2),
+                            readerPedimentos.GetString(3),
+                            LeerFechaPago(readerPedimentos, 4)
+                        ));
+                    }
+                }
 
-            cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio);
-            cmd.Parameters.AddWithValue("@FechaFin", fechaFin);
+                const int tamañoLote = 50;
+                int totalLotes = (int)Math.Ceiling(pedimentosBase.Count / (double)tamañoLote);
 
-            cn.Open();
+                for (int i = 0; i < totalLotes; i++)
+                {
+                    var lote = pedimentosBase.Skip(i * tamañoLote).Take(tamañoLote).ToList();
+                    foreach (var pedimento in lote)
+                    {
+                        try
+                        {
+                            var detalles = ObtenerDetallesPedimento(baseDatos, pedimento.Consecutivo, conexionPedimentos);
+                            var datosGlosa = ObtenerDatosGlosaParaPedimento(baseDatosGlosa, pedimento.Aduana, pedimento.Patente, pedimento.Folio, pedimento.FechaPago, conexionGlosa);
 
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                datosIGI.Add((
-                    reader.GetInt32(0),
-                    reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
-                    reader.GetString(2),
-                    reader.GetString(3),
-                    reader.GetString(4),
-                    LeerFechaPago(reader, 5),
-                    reader.IsDBNull(6) ? 0 : reader.GetDecimal(6),
-                    reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
-                ));
+                            // Filtrar glosa por formas solicitadas y por secuencia
+                            foreach (var det in detalles)
+                            {
+                                // Buscar glosa por secuencia y por forma de pago IGI (0,5,21) según query original
+                                var gl = datosGlosa.FirstOrDefault(g => g.Secuencia == det.Secuencia &&
+                                    (g.FormaPagoIGI == "0" || g.FormaPagoIGI == "5" || g.FormaPagoIGI == "21"));
+
+                                if (gl.Secuencia == 0) continue; // no coincidente
+
+                                var d = new DatoDetalleIGI
+                                {
+                                    BaseDatos = baseDatos,
+                                    Pim_Consecutivo = pedimento.Consecutivo,
+                                    Adu_AduanaSecc = pedimento.Aduana,
+                                    AgP_Patente = pedimento.Patente,
+                                    Pim_Folio = pedimento.Folio,
+                                    Pid_Secuencia = det.Secuencia,
+                                    Pim_FechaPago = pedimento.FechaPago,
+                                    Gl_FecPagoReal = gl.FechaPago,
+                                    Gl_ImporteADvalorem = gl.ImporteADvalorem,
+                                    IGI_CalculadoDetalle = det.IGI_Calculado,
+                                    DiferenciaIGI = gl.ImporteADvalorem - det.IGI_Calculado,
+                                    EstatusIGI = Math.Abs((double)(gl.ImporteADvalorem - det.IGI_Calculado)) > 1 ? "DIFERENCIA" : "OK",
+                                    Gl_ImporteIVA = gl.ImporteIVA,
+                                    ValorAduana = det.ValorAdu,
+                                    Fraccion = det.Fraccion,
+                                    TasaIGI = det.TasaIGI,
+                                    Gl_FPagoAdvalorem = gl.FormaPagoIGI,
+                                    Gl_FPagoIVA = gl.FormaPagoIVA,
+                                    Gl_Pedimento = gl.Pedimento,
+                                    Gl_OrigenZipGlosa = gl.OrigenZip
+                                };
+
+                                resultados.Add(d);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"   ?? Error procesando partidas pedimento {pedimento.Folio}: {ex.Message}");
+                        }
+                    }
+                }
             }
 
-            return datosIGI;
-        }
-
-        /// <summary>
-        /// Obtiene datos de TR_GLOSA para IGI agrupados por pedimento específico
-        /// Filtra por FormaPago_IGI para que coincida con el del cliente
-        /// Solo permite formas de pago 0 y 5 para IGI (según query original)
-        /// </summary>
-        private (DateTime? FechaPago, decimal IGI_Pagado, string FormaPago_IGI, string Pedimento, string OrigenZip) 
-            ObtenerDatosGlosaIGIAgrupadosParaPedimento(
-            string baseDatosGlosa,
-            string aduana,
-            string patente,
-            string folio,
-            DateTime? fechaPago,
-            string formaPagoIGI,
-            Conexion conexionGlosa)
-        {
-            string sql = $@"
-                SELECT 
-                    MAX(TR.Gl_FecPagoReal) AS FechaPago,
-                    SUM(ISNULL(TR.Gl_ImporteADvalorem, 0)) AS IGI_Pagado,
-                    MAX(TR.Gl_FPagoAdvalorem) AS FormaPago_IGI,
-                    MAX(TR.Gl_Pedimento) AS Pedimento,
-                    MAX(TR.Gl_OrigenZipGlosa) AS OrigenZip
-                FROM TR_GLOSA TR
-                WHERE TR.Gl_Pedimento = @Folio
-                    AND TR.Gl_Aduana = @Aduana
-                    AND TR.Gl_Patente = @Patente
-                    AND TR.Gl_TOper = 1
-                    AND TR.Gl_OrigenZipGlosa = 'S'
-                    AND TR.Gl_FPagoAdvalorem = @FormaPagoIGI
-                    AND TR.Gl_FPagoAdvalorem IN ('0','5')
-                    AND (@FechaPago IS NULL OR YEAR(CONVERT(DATE, TR.Gl_FecPagoReal)) = YEAR(@FechaPago))
-                HAVING SUM(ISNULL(TR.Gl_ImporteADvalorem,0)) > 0";
-
-            using var cn = conexionGlosa.ObtenerConexion();
-            using var cmd = new SqlCommand(sql, cn);
-
-            cmd.Parameters.AddWithValue("@Folio", folio);
-            cmd.Parameters.AddWithValue("@Aduana", aduana);
-            cmd.Parameters.AddWithValue("@Patente", patente);
-            cmd.Parameters.AddWithValue("@FormaPagoIGI", formaPagoIGI);
-            cmd.Parameters.AddWithValue("@FechaPago", fechaPago.HasValue ? (object)fechaPago.Value : DBNull.Value);
-
-            cn.Open();
-
-            using var reader = cmd.ExecuteReader();
-            if (reader.Read())
-            {
-                return (
-                    LeerFechaPago(reader, 0),
-                    reader.IsDBNull(1) ? 0 : reader.GetDecimal(1),
-                    reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
-                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                    reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                );
-            }
-
-            // Si no hay datos de glosa IGI, retornar valores vacíos
-            return (null, 0, string.Empty, string.Empty, string.Empty);
-        }
-
-        /// <summary>
-        /// Obtiene datos de TR_GLOSA para IVA agrupados por pedimento específico
-        /// NO filtra por FormaPago, solo por pedimento (según query original)
-        /// Solo permite formas de pago 0 y 21 para IVA (según query original)
-        /// </summary>
-        private (DateTime? FechaPago, decimal IVA_Pagado, string FormaPago_IVA, string Pedimento, string OrigenZip) 
-            ObtenerDatosGlosaIVAAgrupadosParaPedimento(
-            string baseDatosGlosa,
-            string aduana,
-            string patente,
-            string folio,
-            DateTime? fechaPago,
-            Conexion conexionGlosa)
-        {
-            string sql = $@"
-                SELECT 
-                    MAX(TR.Gl_FecPagoReal) AS FechaPago,
-                    SUM(ISNULL(TR.Gl_ImporteIVA, 0)) AS IVA_Pagado,
-                    MAX(TR.Gl_FPagoIVA) AS FormaPago_IVA,
-                    MAX(TR.Gl_Pedimento) AS Pedimento,
-                    MAX(TR.Gl_OrigenZipGlosa) AS OrigenZip
-                FROM TR_GLOSA TR
-                WHERE TR.Gl_Pedimento = @Folio
-                    AND TR.Gl_Aduana = @Aduana
-                    AND TR.Gl_Patente = @Patente
-                    AND TR.Gl_TOper = 1
-                    AND TR.Gl_OrigenZipGlosa = 'S'
-                    AND TR.Gl_FPagoIVA IN ('0','21')
-                    AND (@FechaPago IS NULL OR YEAR(CONVERT(DATE, TR.Gl_FecPagoReal)) = YEAR(@FechaPago))
-                HAVING SUM(ISNULL(TR.Gl_ImporteIVA,0)) > 0";
-
-            using var cn = conexionGlosa.ObtenerConexion();
-            using var cmd = new SqlCommand(sql, cn);
-
-            cmd.Parameters.AddWithValue("@Folio", folio);
-            cmd.Parameters.AddWithValue("@Aduana", aduana);
-            cmd.Parameters.AddWithValue("@Patente", patente);
-            cmd.Parameters.AddWithValue("@FechaPago", fechaPago.HasValue ? (object)fechaPago.Value : DBNull.Value);
-
-            cn.Open();
-
-            using var reader = cmd.ExecuteReader();
-            if (reader.Read())
-            {
-                return (
-                    LeerFechaPago(reader, 0),
-                    reader.IsDBNull(1) ? 0 : reader.GetDecimal(1),
-                    reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
-                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                    reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                );
-            }
-
-            // Si no hay datos de glosa IVA, retornar valores vacíos
-            return (null, 0, string.Empty, string.Empty, string.Empty);
-        }
-
-        /// <summary>
-        /// Obtiene datos de TR_GLOSA AGRUPADOS para un pedimento específico
-        /// Filtra por FormaPago_IGI para que coincida con el del cliente
-        /// Solo permite formas de pago 0 y 5 para IGI (según query original)
-        /// </summary>
-        private (DateTime? FechaPago, decimal IGI_Pagado, decimal IVA_Pagado, string FormaPago_IGI, string FormaPago_IVA, string Pedimento, string OrigenZip) 
-            ObtenerDatosGlosaAgrupadosParaPedimento(
-            string baseDatosGlosa,
-            string aduana,
-            string patente,
-            string folio,
-            DateTime? fechaPago,
-            string formaPagoIGI,  // Nuevo parámetro
-            Conexion conexionGlosa)
-        {
-            string sql = $@"
-                SELECT 
-                    MAX(TR.Gl_FecPagoReal) AS FechaPago,
-                    SUM(ISNULL(TR.Gl_ImporteADvalorem, 0)) AS IGI_Pagado,
-                    SUM(ISNULL(TR.Gl_ImporteIVA, 0)) AS IVA_Pagado,
-                    MAX(TR.Gl_FPagoAdvalorem) AS FormaPago_IGI,
-                    MAX(TR.Gl_FPagoIVA) AS FormaPago_IVA,
-                    MAX(TR.Gl_Pedimento) AS Pedimento,
-                    MAX(TR.Gl_OrigenZipGlosa) AS OrigenZip
-                FROM TR_GLOSA TR
-                WHERE TR.Gl_Pedimento = @Folio
-                    AND TR.Gl_Aduana = @Aduana
-                    AND TR.Gl_Patente = @Patente
-                    AND TR.Gl_TOper = 1
-                    AND TR.Gl_OrigenZipGlosa = 'S'
-                    AND TR.Gl_FPagoAdvalorem = @FormaPagoIGI
-                    AND TR.Gl_FPagoAdvalorem IN ('0','5')
-                    AND (@FechaPago IS NULL OR YEAR(CONVERT(DATE, TR.Gl_FecPagoReal)) = YEAR(@FechaPago))
-                HAVING SUM(ISNULL(TR.Gl_ImporteADvalorem,0)) > 0";
-
-            using var cn = conexionGlosa.ObtenerConexion();
-            using var cmd = new SqlCommand(sql, cn);
-
-            cmd.Parameters.AddWithValue("@Folio", folio);
-            cmd.Parameters.AddWithValue("@Aduana", aduana);
-            cmd.Parameters.AddWithValue("@Patente", patente);
-            cmd.Parameters.AddWithValue("@FormaPagoIGI", formaPagoIGI);
-            cmd.Parameters.AddWithValue("@FechaPago", fechaPago.HasValue ? (object)fechaPago.Value : DBNull.Value);
-
-            cn.Open();
-
-            using var reader = cmd.ExecuteReader();
-            if (reader.Read())
-            {
-                return (
-                    LeerFechaPago(reader, 0),
-                    reader.IsDBNull(1) ? 0 : reader.GetDecimal(1),
-                    reader.IsDBNull(2) ? 0 : reader.GetDecimal(2),
-                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                    reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                    reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
-                    reader.IsDBNull(6) ? string.Empty : reader.GetString(6)
-                );
-            }
-
-            // Si no hay datos de glosa, retornar valores vacíos
-            return (null, 0, 0, string.Empty, string.Empty, string.Empty, string.Empty);
-        }
-
-        /// <summary>
-        /// Valida si dos conexiones apuntan al mismo servidor
-        /// </summary>
-        private bool ValidarSiMismaConexion(string servidor1, string servidor2, int? idConexion1, int? idConexion2)
-        {
-            // Si tienen el mismo IdConexion (y no es null), son la misma conexión
-            if (idConexion1.HasValue && idConexion2.HasValue && idConexion1 == idConexion2)
-            {
-                return true;
-            }
-
-            // Si ambos tienen IdConexion NULL, usan conexión principal (mismo servidor)
-            if (!idConexion1.HasValue && !idConexion2.HasValue)
-            {
-                return true;
-            }
-
-            // Comparar nombres de servidor (normalizando)
-            string srv1 = NormalizarNombreServidor(servidor1);
-            string srv2 = NormalizarNombreServidor(servidor2);
-
-            return srv1.Equals(srv2, StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>
-        /// Normaliza el nombre del servidor para comparación
-        /// </summary>
-        private string NormalizarNombreServidor(string servidor)
-        {
-            if (string.IsNullOrWhiteSpace(servidor))
-                return string.Empty;
-
-            // Remover espacios
-            servidor = servidor.Trim();
-
-            // Convertir localhost a IP
-            if (servidor.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
-                servidor.Equals("(local)", StringComparison.OrdinalIgnoreCase) ||
-                servidor.Equals(".", StringComparison.OrdinalIgnoreCase))
-            {
-                return "127.0.0.1";
-            }
-
-            return servidor;
+            return resultados;
         }
 
         /// <summary>
@@ -1374,6 +1160,28 @@ namespace Retorno360Tacna.SERVICES
             }
         }
 
+        /// <summary>
+        /// Lee un valor decimal del reader manejando conversiones de tipo y valores NULL
+        /// </summary>
+        private decimal LeerDecimal(SqlDataReader reader, int columnIndex)
+        {
+            if (reader.IsDBNull(columnIndex))
+                return 0;
+
+            try
+            {
+                // Intentar obtener el valor del tipo que sea
+                object value = reader.GetValue(columnIndex);
+                
+                // Convertir a decimal sin importar el tipo SQL original
+                return Convert.ToDecimal(value);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+        
 
         /// <summary>
         /// Agrupa todos los datos detalle por pedimento (de todas las bases de datos)
@@ -1604,6 +1412,475 @@ namespace Retorno360Tacna.SERVICES
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
