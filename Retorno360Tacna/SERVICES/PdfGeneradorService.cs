@@ -1742,6 +1742,8 @@ namespace Retorno360Tacna.SERVICES
             var totalIVA_Pagado21 = reportesIVA_FormaPago21.Sum(r => r.IVA_Pagado);
             var totalIVA_Pagado0 = reportesIVA_FormaPago0.Sum(r => r.IVA_Pagado);
 
+
+
             // Generar gráfico de barras apiladas por mes
             byte[] imagenGraficoIGI = GenerarGraficoIGIPorMes(reporteCompleto);
             byte[] imagenGraficoIVA = GenerarGraficoIVAPorMes(reporteCompleto);

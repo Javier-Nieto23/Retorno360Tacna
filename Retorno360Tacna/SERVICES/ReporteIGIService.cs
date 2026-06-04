@@ -852,6 +852,7 @@ namespace Retorno360Tacna.SERVICES
                 var diferencia = igiPagado - p.IGI_Calculado;
                 var estatus = Math.Abs((double)diferencia) > 1 ? "DIFERENCIA" : "OK";
 
+
                 var d = new DatoDetalleIGI
                 {
                     BaseDatos = baseDatosPedimentos,
