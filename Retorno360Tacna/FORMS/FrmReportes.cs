@@ -5,6 +5,7 @@ using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 using LiveChartsCore.SkiaSharpView.WinForms;
+using System.Linq;
 using System.Diagnostics;
 using ClosedXML.Excel;
 
@@ -238,17 +239,104 @@ namespace Retorno360Tacna.FORMS
                 DateTime fechaFin = dtpFechaFin.Value.Date;
                 bool sinValidacionGlosa = chkSinGlosa.Checked;
 
+                System.Data.DataTable tablaIGI;
+                System.Data.DataTable tablaIVA;
+
                 if (sinValidacionGlosa)
                 {
-                    // Consultar todas las bases de datos de la razón social
+                    // Consultar todas las bases de datos de la razón social y agregar resultados
                     var razonSeleccionada = (RazonSocial)cmbRazonSocial.SelectedItem;
                     lblProgreso.Text = $"Consultando todas las bases de {razonSeleccionada.NombreRazon} para generar reporte...";
                     lblResumenInfo.Text = "Generando reporte...";
 
-                    // Ejecutar consulta en background
-                    reporteActual = await Task.Run(() =>
-                        reporteService.GenerarReporteIGIPorRazonSocial(razonSeleccionada.IdRazon, fechaInicio, fechaFin)
-                    );
+                    var resultado = await Task.Run(() =>
+                    {
+                        var bases = reporteService.ObtenerBasesDatosRazon(razonSeleccionada.IdRazon);
+
+                        // Agregadores en memoria
+                        var aggIGI = new Dictionary<(int Año, int Mes, string Forma), (decimal IGI_Pagado, decimal IGI_Calculado)>();
+                        var aggIVA = new Dictionary<(int Año, int Mes, string Forma), decimal>();
+
+                        foreach (var baseDb in bases)
+                        {
+                            try
+                            {
+                                var tablas = reporteService.ObtenerResumenTablasPorBase(baseDb, fechaInicio, fechaFin);
+                                var tIGI = tablas.IGI;
+                                var tIVA = tablas.IVA;
+
+                                foreach (System.Data.DataRow r in tIGI.Rows)
+                                {
+                                    int año = Convert.ToInt32(r["Año"]);
+                                    int mes = Convert.ToInt32(r["Mes"]);
+                                    string forma = r["FormaPago_IGI"]?.ToString() ?? string.Empty;
+                                    decimal igiPag = r["IGI_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(r["IGI_Pagado"]);
+                                    decimal igiCalc = r["IGI_Calculado"] == DBNull.Value ? 0m : Convert.ToDecimal(r["IGI_Calculado"]);
+
+                                    var key = (año, mes, forma);
+                                    if (aggIGI.TryGetValue(key, out var cur))
+                                    {
+                                        aggIGI[key] = (cur.IGI_Pagado + igiPag, cur.IGI_Calculado + igiCalc);
+                                    }
+                                    else
+                                    {
+                                        aggIGI[key] = (igiPag, igiCalc);
+                                    }
+                                }
+
+                                foreach (System.Data.DataRow r in tIVA.Rows)
+                                {
+                                    int año = Convert.ToInt32(r["Año"]);
+                                    int mes = Convert.ToInt32(r["Mes"]);
+                                    string forma = r["FormaPago_IVA"]?.ToString() ?? string.Empty;
+                                    decimal ivaPag = r["IVA_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(r["IVA_Pagado"]);
+
+                                    var key = (año, mes, forma);
+                                    if (aggIVA.TryGetValue(key, out var cur))
+                                    {
+                                        aggIVA[key] = cur + ivaPag;
+                                    }
+                                    else
+                                    {
+                                        aggIVA[key] = ivaPag;
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                                // Ignorar bases con error localmente y continuar
+                            }
+                        }
+
+                        // Construir DataTables resultantes
+                        var resIGI = new System.Data.DataTable();
+                        resIGI.Columns.Add("Año", typeof(int));
+                        resIGI.Columns.Add("Mes", typeof(int));
+                        resIGI.Columns.Add("IGI_Pagado", typeof(decimal));
+                        resIGI.Columns.Add("IGI_Calculado", typeof(decimal));
+                        resIGI.Columns.Add("FormaPago_IGI", typeof(string));
+
+                        var resIVA = new System.Data.DataTable();
+                        resIVA.Columns.Add("Año", typeof(int));
+                        resIVA.Columns.Add("Mes", typeof(int));
+                        resIVA.Columns.Add("IVA_Pagado", typeof(decimal));
+                        resIVA.Columns.Add("FormaPago_IVA", typeof(string));
+
+                        foreach (var kv in aggIGI.OrderBy(k => k.Key.Año).ThenBy(k => k.Key.Mes).ThenBy(k => k.Key.Forma))
+                        {
+                            resIGI.Rows.Add(kv.Key.Año, kv.Key.Mes, kv.Value.IGI_Pagado, kv.Value.IGI_Calculado, kv.Key.Forma);
+                        }
+
+                        foreach (var kv in aggIVA.OrderBy(k => k.Key.Año).ThenBy(k => k.Key.Mes).ThenBy(k => k.Key.Forma))
+                        {
+                            resIVA.Rows.Add(kv.Key.Año, kv.Key.Mes, kv.Value, kv.Key.Forma);
+                        }
+
+                        return (resIGI, resIVA);
+                    });
+
+                    tablaIGI = resultado.Item1;
+                    tablaIVA = resultado.Item2;
                 }
                 else
                 {
@@ -257,14 +345,34 @@ namespace Retorno360Tacna.FORMS
                     lblProgreso.Text = $"Consultando {baseDatos} para generar reporte...";
                     lblResumenInfo.Text = "Generando reporte...";
 
-                    // Ejecutar consulta en background
-                    reporteActual = await Task.Run(() =>
-                        reporteService.GenerarReporteIGI(baseDatos, fechaInicio, fechaFin, false)
-                    );
+                    var resultado = await Task.Run(() => reporteService.ObtenerResumenTablasPorBase(baseDatos, fechaInicio, fechaFin));
+                    tablaIGI = resultado.IGI;
+                    tablaIVA = resultado.IVA;
                 }
 
-                // Mostrar resultados
-                MostrarResultados();
+                // Mostrar resultados en los grids
+                dgvReporteIGI.DataSource = tablaIGI;
+                dgvReporteIVA.DataSource = tablaIVA;
+
+                // Formatear columnas
+                FormatearGridIGI();
+                FormatearGridIVA();
+
+                // Generar resumen (a partir de la tabla IGI)
+                var resumen = new ResumenIGI();
+                if (tablaIGI != null && tablaIGI.Rows.Count > 0)
+                {
+                    resumen.TotalIGI_Pagado = tablaIGI.Rows.Cast<System.Data.DataRow>().Sum(r => Convert.ToDecimal(r["IGI_Pagado"]));
+                    resumen.TotalIGI_Calculado = tablaIGI.Rows.Cast<System.Data.DataRow>().Sum(r => Convert.ToDecimal(r["IGI_Calculado"]));
+                    resumen.TotalIVA_Pagado = tablaIVA != null && tablaIVA.Rows.Count > 0 ? tablaIVA.Rows.Cast<System.Data.DataRow>().Sum(r => Convert.ToDecimal(r["IVA_Pagado"])) : 0m;
+                    resumen.TotalPedimentos = tablaIGI.Rows.Count;
+                }
+
+                MostrarResumenPorFormaPago(resumen);
+
+                lblProgreso.Text = "Consulta completada";
+                btnGenerarPDF.Enabled = true;
+                btnExportarExcel.Enabled = true;
             }
             catch (Exception ex)
             {
