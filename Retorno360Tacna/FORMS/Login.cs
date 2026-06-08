@@ -26,6 +26,12 @@ namespace Retorno360Tacna.FORMS
             this.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 20, 20));
             CargarConexiones();
             CargarUsuarioGuardado();
+
+            if (ConfiguracionService.ObtenerAjusteVentanaPantallaLogica())
+            {
+                ConfiguracionService.AplicarPerfilPantallaLogica(this);
+                this.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 20, 20));
+            }
         }
 
         protected override void WndProc(ref Message m)

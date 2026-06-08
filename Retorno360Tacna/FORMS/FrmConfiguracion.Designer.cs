@@ -24,6 +24,8 @@ namespace Retorno360Tacna.FORMS
             lblEscalaActual = new Label();
             cmbEscalaUI = new ComboBox();
             lblEscalaUI = new Label();
+            chkAjustarPantallaLogica = new CheckBox();
+            lblPantallaLogica = new Label();
             lblDescripcion = new Label();
             btnGuardar = new Button();
             btnCancelar = new Button();
@@ -82,12 +84,14 @@ namespace Retorno360Tacna.FORMS
             groupBoxInterfaz.Controls.Add(lblEscalaActual);
             groupBoxInterfaz.Controls.Add(cmbEscalaUI);
             groupBoxInterfaz.Controls.Add(lblEscalaUI);
+            groupBoxInterfaz.Controls.Add(chkAjustarPantallaLogica);
+            groupBoxInterfaz.Controls.Add(lblPantallaLogica);
             groupBoxInterfaz.Controls.Add(lblDescripcion);
             groupBoxInterfaz.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             groupBoxInterfaz.ForeColor = Color.FromArgb(52, 73, 94);
             groupBoxInterfaz.Location = new Point(20, 80);
             groupBoxInterfaz.Name = "groupBoxInterfaz";
-            groupBoxInterfaz.Size = new Size(560, 250);
+            groupBoxInterfaz.Size = new Size(560, 290);
             groupBoxInterfaz.TabIndex = 1;
             groupBoxInterfaz.TabStop = false;
             groupBoxInterfaz.Text = "Configuración de Pantalla";
@@ -152,6 +156,27 @@ namespace Retorno360Tacna.FORMS
             lblEscalaUI.Size = new Size(119, 19);
             lblEscalaUI.TabIndex = 1;
             lblEscalaUI.Text = "Escala de Pantalla:";
+            // 
+            // chkAjustarPantallaLogica
+            // 
+            chkAjustarPantallaLogica.AutoSize = true;
+            chkAjustarPantallaLogica.Font = new Font("Segoe UI", 9.5F);
+            chkAjustarPantallaLogica.Location = new Point(30, 165);
+            chkAjustarPantallaLogica.Name = "chkAjustarPantallaLogica";
+            chkAjustarPantallaLogica.Size = new Size(309, 21);
+            chkAjustarPantallaLogica.TabIndex = 6;
+            chkAjustarPantallaLogica.Text = "Ajustar ventana para pantalla lógica 1536 × 864";
+            chkAjustarPantallaLogica.UseVisualStyleBackColor = true;
+            // 
+            // lblPantallaLogica
+            // 
+            lblPantallaLogica.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
+            lblPantallaLogica.ForeColor = Color.FromArgb(127, 140, 141);
+            lblPantallaLogica.Location = new Point(30, 190);
+            lblPantallaLogica.Name = "lblPantallaLogica";
+            lblPantallaLogica.Size = new Size(500, 30);
+            lblPantallaLogica.TabIndex = 7;
+            lblPantallaLogica.Text = "Activa esta opción solo si deseas que la ventana del software se adapte a una pantalla lógica de 1536 × 864.";
             // 
             // lblDescripcion
             // 
@@ -713,6 +738,8 @@ namespace Retorno360Tacna.FORMS
         private Label lblEscalaActual;
         private Label lblVistaPrevia;
         private Button btnVistaPrevia;
+        private CheckBox chkAjustarPantallaLogica;
+        private Label lblPantallaLogica;
         private GroupBox groupBoxUsuarios;
         private Button btnAgregarUsuario;
         private Panel panelAgregarUsuario;

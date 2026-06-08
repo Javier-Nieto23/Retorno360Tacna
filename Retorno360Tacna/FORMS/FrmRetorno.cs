@@ -49,53 +49,43 @@ namespace Retorno360Tacna.FORMS
 
                 this.SuspendLayout();
 
-                int anchoDisponible = this.ClientSize.Width;
-                int altoDisponible = this.ClientSize.Height;
+                const int baseWidth = 1230;
+                const int baseHeight = 618;
+                const int baseChartWidth = 428;
+                const int baseChartHeight = 396;
 
-                // Posiciones y tamaños base del diseño original
-                const int BASE_WIDTH = 1230;
-                const int BASE_HEIGHT = 618;
-                const int CHART_LEFT = 340;
-                const int PIE_LEFT = 799;
-                const int CHART_TOP = 172;
-                const int CHART_BASE_WIDTH = 450;
-                const int PIE_BASE_WIDTH = 400;
-                const int CHART_BASE_HEIGHT = 410;
+                int margen = 12;
+                int separacion = 15;
+                int topGraficas = 170;
 
-                // Calcular factores de escala
-                float factorAncho = (float)anchoDisponible / BASE_WIDTH;
-                float factorAlto = (float)altoDisponible / BASE_HEIGHT;
-
-                // Usar el factor menor para mantener proporciones
+                float factorAncho = (float)this.ClientSize.Width / baseWidth;
+                float factorAlto = (float)this.ClientSize.Height / baseHeight;
                 float factorEscala = Math.Min(factorAncho, factorAlto);
+                factorEscala = Math.Max(0.95f, Math.Min(1.12f, factorEscala));
 
-                // No reducir más allá del tamaño original
-                if (factorEscala > 1.0f)
-                {
-                    factorEscala = 1.0f + ((factorEscala - 1.0f) * 0.7f); // Crecer solo 70% del exceso
-                }
+                int anchoResultados = 310;
+                int altoResultados = Math.Max(298, Math.Min(360, this.ClientSize.Height - topGraficas - margen));
+                int altoGrafica = (int)(baseChartHeight * factorEscala);
+                int anchoGraficaObjetivo = (int)(baseChartWidth * factorEscala);
 
-                // Ajustar panel de gráfica de columnas
-                if (panelGraficaColumnas != null)
-                {
-                    int nuevoAncho = (int)(CHART_BASE_WIDTH * factorEscala);
-                    int nuevoAlto = (int)(CHART_BASE_HEIGHT * factorEscala);
+                groupBoxResultados.Location = new Point(margen, 172);
+                groupBoxResultados.Size = new Size(anchoResultados, altoResultados);
 
-                    panelGraficaColumnas.Location = new Point(CHART_LEFT, CHART_TOP);
-                    panelGraficaColumnas.Width = Math.Max(350, nuevoAncho);
-                    panelGraficaColumnas.Height = Math.Max(300, nuevoAlto);
-                }
+                int areaIzquierda = groupBoxResultados.Right + separacion;
+                int anchoDisponibleGrafica = Math.Max(360, this.ClientSize.Width - areaIzquierda - margen);
+                int anchoGrafica = Math.Min(anchoDisponibleGrafica, Math.Max(390, Math.Min(520, anchoGraficaObjetivo)));
+                int leftGraficaCentrado = (this.ClientSize.Width - anchoGrafica) / 2;
+                int leftGrafica = Math.Max(areaIzquierda, leftGraficaCentrado);
+                int topGrafica = topGraficas + 45 + Math.Max(0, (altoResultados - altoGrafica) / 2);
 
-                // Ajustar panel de gráfica de pie
-                if (panelGraficaPie != null)
-                {
-                    int nuevoAncho = (int)(CHART_BASE_WIDTH * factorEscala);
-                    int nuevoAlto = (int)(CHART_BASE_HEIGHT * factorEscala);
+                panelGraficaColumnas.Location = new Point(leftGrafica, topGrafica);
+                panelGraficaColumnas.Size = new Size(anchoGrafica, altoGrafica);
 
-                    panelGraficaPie.Location = new Point(CHART_LEFT, CHART_TOP);
-                    panelGraficaPie.Width = Math.Max(350, nuevoAncho);
-                    panelGraficaPie.Height = Math.Max(300, nuevoAlto);
-                }
+                panelGraficaPie.Location = new Point(leftGrafica, topGrafica);
+                panelGraficaPie.Size = new Size(anchoGrafica, altoGrafica);
+
+                AjustarAreaGrafica(panelGraficaColumnas, cartesianChartView, lblTituloColumnas, btnAnteriorColumnas, btnSiguienteColumnas);
+                AjustarAreaGrafica(panelGraficaPie, pieChartView, lblTituloPie, btnAnteriorPie, btnSiguientePie);
 
                 this.ResumeLayout(false);
                 this.PerformLayout();
@@ -106,11 +96,40 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
+        private void AjustarAreaGrafica(Control panelContenedor, Control grafica, Label titulo, Button btnAnterior, Button btnSiguiente)
+        {
+            if (panelContenedor == null || grafica == null)
+                return;
+
+            int margen = 8;
+            int topGrafica = 42;
+            int anchoGrafica = Math.Max(200, panelContenedor.ClientSize.Width - (margen * 2));
+            int altoGrafica = Math.Max(200, panelContenedor.ClientSize.Height - topGrafica - margen);
+
+            grafica.Location = new Point(margen, topGrafica);
+            grafica.Size = new Size(anchoGrafica, altoGrafica);
+            grafica.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            grafica.SendToBack();
+
+            btnAnterior.Location = new Point(5, 5);
+            btnSiguiente.Location = new Point(Math.Max(5, panelContenedor.ClientSize.Width - btnSiguiente.Width - 5), 5);
+
+            titulo.AutoSize = false;
+            titulo.TextAlign = ContentAlignment.MiddleCenter;
+            titulo.Location = new Point(btnAnterior.Right + 10, 8);
+            titulo.Size = new Size(Math.Max(120, panelContenedor.ClientSize.Width - btnAnterior.Width - btnSiguiente.Width - 30), 24);
+
+            titulo.BringToFront();
+            btnAnterior.BringToFront();
+            btnSiguiente.BringToFront();
+        }
+
         private void FrmRetorno_Load(object sender, EventArgs e)
         {
             CargarRazonesSociales();
             InicializarFechas();
             ConfigurarGrafica();
+            AjustarControles();
         }
 
         private void InicializarFechas()
@@ -177,6 +196,9 @@ namespace Retorno360Tacna.FORMS
             // Inicializar series vacías
             pieChartView.Series = Array.Empty<ISeries>();
             cartesianChartView.Series = Array.Empty<ISeries>();
+
+            AjustarAreaGrafica(panelGraficaColumnas, cartesianChartView, lblTituloColumnas, btnAnteriorColumnas, btnSiguienteColumnas);
+            AjustarAreaGrafica(panelGraficaPie, pieChartView, lblTituloPie, btnAnteriorPie, btnSiguientePie);
         }
 
         private void CargarRazonesSociales()

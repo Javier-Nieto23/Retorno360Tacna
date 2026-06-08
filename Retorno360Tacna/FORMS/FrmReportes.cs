@@ -23,11 +23,20 @@ namespace Retorno360Tacna.FORMS
         private bool modalAbierto = false;
         private int ultimaFilaClickeada = -1;
 
+        // Tablas de detalle para mostrar al hacer doble clic
+        private System.Data.DataTable? detalleIGIActual;
+        private System.Data.DataTable? detalleIVAActual;
+
         public FrmReportes(ConexionInfo conexion)
         {
             InitializeComponent();
             conexionActual = conexion;
             reporteService = new ReporteIGIService(conexion);
+
+            if (SERVICES.ConfiguracionService.ObtenerAjusteVentanaPantallaLogica())
+            {
+                SERVICES.ConfiguracionService.AplicarPerfilPantallaLogica(this);
+            }
 
             // Inicializar gráfica
             InicializarGrafica();
@@ -68,7 +77,8 @@ namespace Retorno360Tacna.FORMS
                 // El panelResumen ahora usa Dock = DockStyle.Bottom
                 // por lo que no necesitamos ajustar su posición manualmente
 
-                // chartIGI usa Dock.Fill, se ajustará automáticamente
+                AjustarAreaGrafica(chartIGI, panelGrafica, lblTituloGrafica);
+                AjustarAreaGrafica(chartIVA, panelGrafica, lblTituloGrafica);
 
                 this.ResumeLayout(true);
             }
@@ -76,6 +86,22 @@ namespace Retorno360Tacna.FORMS
             {
                 // Evitar errores durante el redimensionamiento
             }
+        }
+
+        private void AjustarAreaGrafica(CartesianChart? chart, Panel panelContenedor, Label titulo)
+        {
+            if (chart == null)
+                return;
+
+            int margen = 10;
+            int top = titulo.Bottom + 8;
+            int ancho = Math.Max(100, panelContenedor.ClientSize.Width - (margen * 2));
+            int alto = Math.Max(120, panelContenedor.ClientSize.Height - top - margen);
+
+            chart.Location = new Point(margen, top);
+            chart.Size = new Size(ancho, alto);
+            chart.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            chart.SendToBack();
         }
 
         private void FrmReportes_Load(object sender, EventArgs e)
@@ -90,9 +116,43 @@ namespace Retorno360Tacna.FORMS
             // Configurar DataGridView
             ConfigurarDataGridView();
 
+            panelGraficaIVA.Visible = false;
+            MostrarGraficaActual();
+
             // Deshabilitar botón PDF al inicio
             btnGenerarPDF.Enabled = false;
             btnExportarExcel.Enabled = false;
+        }
+
+        private void MostrarGraficaActual()
+        {
+            panelGrafica.Visible = true;
+            panelGrafica.BringToFront();
+            panelGraficaIVA.Visible = false;
+
+            if (chartIGI != null)
+            {
+                chartIGI.Visible = graficaActual == 0;
+                if (chartIGI.Visible)
+                    chartIGI.SendToBack();
+            }
+
+            if (chartIVA != null)
+            {
+                chartIVA.Visible = graficaActual == 1;
+                if (chartIVA.Visible)
+                    chartIVA.SendToBack();
+            }
+
+            lblTituloGrafica.Text = graficaActual == 0
+                ? "IGI por Mes y Forma de Pago (1/2)"
+                : "IVA por Mes y Forma de Pago (2/2)";
+
+            lblTituloGrafica.BringToFront();
+            btnAnteriorGrafica.Visible = true;
+            btnSiguienteGrafica.Visible = true;
+            btnAnteriorGrafica.BringToFront();
+            btnSiguienteGrafica.BringToFront();
         }
 
         private async void CargarRazonesSociales()
@@ -253,38 +313,44 @@ namespace Retorno360Tacna.FORMS
                     {
                         var bases = reporteService.ObtenerBasesDatosRazon(razonSeleccionada.IdRazon);
 
-                        // Agregadores en memoria
-                        var aggIGI = new Dictionary<(int Año, int Mes, string Forma), (decimal IGI_Pagado, decimal IGI_Calculado)>();
+                        // Agregadores en memoria para resúmenes
+                        var aggIGI = new Dictionary<(int Año, int Mes, string Forma), (decimal IGI_Pagado, decimal IGI_Calculado, decimal Diferencia)>();
                         var aggIVA = new Dictionary<(int Año, int Mes, string Forma), decimal>();
+
+                        // Agregador de detalles
+                        var todosDetallesIGI = new System.Data.DataTable();
+                        var todosDetallesIVA = new System.Data.DataTable();
+                        bool primeraIteracion = true;
 
                         foreach (var baseDb in bases)
                         {
                             try
                             {
-                                var tablas = reporteService.ObtenerResumenTablasPorBase(baseDb, fechaInicio, fechaFin);
-                                var tIGI = tablas.IGI;
-                                var tIVA = tablas.IVA;
+                                var conciliacion = reporteService.ObtenerConciliacionIGI(baseDb, fechaInicio, fechaFin);
 
-                                foreach (System.Data.DataRow r in tIGI.Rows)
+                                // Agregar resúmenes IGI
+                                foreach (System.Data.DataRow r in conciliacion.ResumenIGI.Rows)
                                 {
                                     int año = Convert.ToInt32(r["Año"]);
                                     int mes = Convert.ToInt32(r["Mes"]);
                                     string forma = r["FormaPago_IGI"]?.ToString() ?? string.Empty;
                                     decimal igiPag = r["IGI_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(r["IGI_Pagado"]);
                                     decimal igiCalc = r["IGI_Calculado"] == DBNull.Value ? 0m : Convert.ToDecimal(r["IGI_Calculado"]);
+                                    decimal dif = r["Diferencia_IGI"] == DBNull.Value ? 0m : Convert.ToDecimal(r["Diferencia_IGI"]);
 
                                     var key = (año, mes, forma);
                                     if (aggIGI.TryGetValue(key, out var cur))
                                     {
-                                        aggIGI[key] = (cur.IGI_Pagado + igiPag, cur.IGI_Calculado + igiCalc);
+                                        aggIGI[key] = (cur.IGI_Pagado + igiPag, cur.IGI_Calculado + igiCalc, cur.Diferencia + dif);
                                     }
                                     else
                                     {
-                                        aggIGI[key] = (igiPag, igiCalc);
+                                        aggIGI[key] = (igiPag, igiCalc, dif);
                                     }
                                 }
 
-                                foreach (System.Data.DataRow r in tIVA.Rows)
+                                // Agregar resúmenes IVA
+                                foreach (System.Data.DataRow r in conciliacion.ResumenIVA.Rows)
                                 {
                                     int año = Convert.ToInt32(r["Año"]);
                                     int mes = Convert.ToInt32(r["Mes"]);
@@ -301,6 +367,19 @@ namespace Retorno360Tacna.FORMS
                                         aggIVA[key] = ivaPag;
                                     }
                                 }
+
+                                // Agregar detalles (merge de tablas)
+                                if (primeraIteracion)
+                                {
+                                    todosDetallesIGI = conciliacion.DetalleIGI.Copy();
+                                    todosDetallesIVA = conciliacion.DetalleIVA.Copy();
+                                    primeraIteracion = false;
+                                }
+                                else
+                                {
+                                    todosDetallesIGI.Merge(conciliacion.DetalleIGI);
+                                    todosDetallesIVA.Merge(conciliacion.DetalleIVA);
+                                }
                             }
                             catch
                             {
@@ -308,12 +387,13 @@ namespace Retorno360Tacna.FORMS
                             }
                         }
 
-                        // Construir DataTables resultantes
+                        // Construir DataTables resultantes de resumen
                         var resIGI = new System.Data.DataTable();
                         resIGI.Columns.Add("Año", typeof(int));
                         resIGI.Columns.Add("Mes", typeof(int));
                         resIGI.Columns.Add("IGI_Pagado", typeof(decimal));
                         resIGI.Columns.Add("IGI_Calculado", typeof(decimal));
+                        resIGI.Columns.Add("Diferencia_IGI", typeof(decimal));
                         resIGI.Columns.Add("FormaPago_IGI", typeof(string));
 
                         var resIVA = new System.Data.DataTable();
@@ -324,7 +404,7 @@ namespace Retorno360Tacna.FORMS
 
                         foreach (var kv in aggIGI.OrderBy(k => k.Key.Año).ThenBy(k => k.Key.Mes).ThenBy(k => k.Key.Forma))
                         {
-                            resIGI.Rows.Add(kv.Key.Año, kv.Key.Mes, kv.Value.IGI_Pagado, kv.Value.IGI_Calculado, kv.Key.Forma);
+                            resIGI.Rows.Add(kv.Key.Año, kv.Key.Mes, kv.Value.IGI_Pagado, kv.Value.IGI_Calculado, kv.Value.Diferencia, kv.Key.Forma);
                         }
 
                         foreach (var kv in aggIVA.OrderBy(k => k.Key.Año).ThenBy(k => k.Key.Mes).ThenBy(k => k.Key.Forma))
@@ -332,11 +412,16 @@ namespace Retorno360Tacna.FORMS
                             resIVA.Rows.Add(kv.Key.Año, kv.Key.Mes, kv.Value, kv.Key.Forma);
                         }
 
-                        return (resIGI, resIVA);
+                        return (resIGI, resIVA, todosDetallesIGI, todosDetallesIVA);
                     });
 
                     tablaIGI = resultado.Item1;
                     tablaIVA = resultado.Item2;
+                    detalleIGIActual = resultado.Item3;
+                    detalleIVAActual = resultado.Item4;
+
+                    ReconstruirReporteActualDesdeDetalles();
+                    CompletarReporteActualDesdeResumenes(tablaIGI, tablaIVA);
                 }
                 else
                 {
@@ -345,10 +430,22 @@ namespace Retorno360Tacna.FORMS
                     lblProgreso.Text = $"Consultando {baseDatos} para generar reporte...";
                     lblResumenInfo.Text = "Generando reporte...";
 
-                    var resultado = await Task.Run(() => reporteService.ObtenerResumenTablasPorBase(baseDatos, fechaInicio, fechaFin));
-                    tablaIGI = resultado.IGI;
-                    tablaIVA = resultado.IVA;
+                    var resultado = await Task.Run(() => reporteService.ObtenerConciliacionIGI(baseDatos, fechaInicio, fechaFin));
+
+                    // Guardar las tablas de detalle para uso posterior (doble clic)
+                    detalleIGIActual = resultado.DetalleIGI;
+                    detalleIVAActual = resultado.DetalleIVA;
+
+                    ReconstruirReporteActualDesdeDetalles(baseDatos);
+
+                    // Mostrar solo los RESÚMENES en los grids
+                    tablaIGI = resultado.ResumenIGI;
+                    tablaIVA = resultado.ResumenIVA;
+                    CompletarReporteActualDesdeResumenes(tablaIGI, tablaIVA, baseDatos);
                 }
+
+                PrepararColumnaPeriodo(tablaIGI);
+                PrepararColumnaPeriodo(tablaIVA);
 
                 // Mostrar resultados en los grids
                 dgvReporteIGI.DataSource = tablaIGI;
@@ -410,6 +507,328 @@ namespace Retorno360Tacna.FORMS
                 panelCargando.Top = (this.ClientSize.Height - panelCargando.Height) / 2;
                 panelCargando.BringToFront();
             }
+        }
+
+        private void ReconstruirReporteActualDesdeDetalles(string baseDatosPredeterminada = "")
+        {
+            reporteActual.Clear();
+
+            var mapa = new Dictionary<string, ReporteIGIPagado>(StringComparer.OrdinalIgnoreCase);
+
+            if (detalleIGIActual != null)
+            {
+                foreach (System.Data.DataRow row in detalleIGIActual.Rows)
+                {
+                    string pedimento = row["Pedimento"]?.ToString()?.Trim() ?? string.Empty;
+                    DateTime? fechaPago = row["FechaPago"] == DBNull.Value ? null : Convert.ToDateTime(row["FechaPago"]);
+                    string formaPagoIGI = row["FormaPago_IGI"]?.ToString()?.Trim() ?? string.Empty;
+                    string llave = $"{pedimento}|{fechaPago:yyyyMMdd}|{formaPagoIGI}";
+
+                    var item = new ReporteIGIPagado
+                    {
+                        BaseDatos = baseDatosPredeterminada,
+                        Pedimento = pedimento,
+                        FechaPago = fechaPago,
+                        FormaPago_IGI = formaPagoIGI,
+                        IGI_Pagado = row["IGI_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IGI_Pagado"]),
+                        IGI_Calculado = row["IGI_Calculado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IGI_Calculado"]),
+                        EstatusGlosa = row.Table.Columns.Contains("Estatus") ? row["Estatus"]?.ToString() ?? string.Empty : string.Empty
+                    };
+
+                    mapa[llave] = item;
+                }
+            }
+
+            if (detalleIVAActual != null)
+            {
+                foreach (System.Data.DataRow row in detalleIVAActual.Rows)
+                {
+                    string pedimento = row["Pedimento"]?.ToString()?.Trim() ?? string.Empty;
+                    DateTime? fechaPago = row["FechaPago"] == DBNull.Value ? null : Convert.ToDateTime(row["FechaPago"]);
+                    string formaPagoIVA = row["FormaPago_IVA"]?.ToString()?.Trim() ?? string.Empty;
+
+                    var coincidencia = mapa.Values.FirstOrDefault(x =>
+                        string.Equals(x.Pedimento, pedimento, StringComparison.OrdinalIgnoreCase)
+                        && x.FechaPago == fechaPago
+                        && string.IsNullOrWhiteSpace(x.FormaPago_IVA));
+
+                    if (coincidencia != null)
+                    {
+                        coincidencia.FormaPago_IVA = formaPagoIVA;
+                        coincidencia.IVA_Pagado = row["IVA_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IVA_Pagado"]);
+                    }
+                    else
+                    {
+                        var item = new ReporteIGIPagado
+                        {
+                            BaseDatos = baseDatosPredeterminada,
+                            Pedimento = pedimento,
+                            FechaPago = fechaPago,
+                            FormaPago_IVA = formaPagoIVA,
+                            IVA_Pagado = row["IVA_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IVA_Pagado"])
+                        };
+
+                        mapa[$"IVA|{pedimento}|{fechaPago:yyyyMMdd}|{formaPagoIVA}"] = item;
+                    }
+                }
+            }
+
+            reporteActual = mapa.Values
+                .OrderBy(x => x.FechaPago)
+                .ThenBy(x => x.Pedimento)
+                .ToList();
+        }
+
+        private void CompletarReporteActualDesdeResumenes(System.Data.DataTable? tablaIGI, System.Data.DataTable? tablaIVA, string baseDatosPredeterminada = "")
+        {
+            if (tablaIGI != null)
+            {
+                foreach (System.Data.DataRow row in tablaIGI.Rows)
+                {
+                    int anio = ObtenerValorEntero(row, "Año", "A�o");
+                    int mes = ObtenerValorEntero(row, "Mes");
+                    string formaPagoIGI = row["FormaPago_IGI"]?.ToString()?.Trim() ?? string.Empty;
+
+                    if (anio <= 0 || mes <= 0 || string.IsNullOrWhiteSpace(formaPagoIGI))
+                        continue;
+
+                    bool existe = reporteActual.Any(x =>
+                        x.FechaPago.HasValue
+                        && x.FechaPago.Value.Year == anio
+                        && x.FechaPago.Value.Month == mes
+                        && string.Equals((x.FormaPago_IGI ?? string.Empty).Trim(), formaPagoIGI, StringComparison.OrdinalIgnoreCase));
+
+                    if (!existe)
+                    {
+                        reporteActual.Add(new ReporteIGIPagado
+                        {
+                            BaseDatos = baseDatosPredeterminada,
+                            FechaPago = new DateTime(anio, mes, 1),
+                            FormaPago_IGI = formaPagoIGI,
+                            IGI_Pagado = row["IGI_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IGI_Pagado"]),
+                            IGI_Calculado = row["IGI_Calculado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IGI_Calculado"])
+                        });
+                    }
+                }
+            }
+
+            if (tablaIVA != null)
+            {
+                foreach (System.Data.DataRow row in tablaIVA.Rows)
+                {
+                    int anio = ObtenerValorEntero(row, "Año", "A�o");
+                    int mes = ObtenerValorEntero(row, "Mes");
+                    string formaPagoIVA = row["FormaPago_IVA"]?.ToString()?.Trim() ?? string.Empty;
+
+                    if (anio <= 0 || mes <= 0 || string.IsNullOrWhiteSpace(formaPagoIVA))
+                        continue;
+
+                    bool existe = reporteActual.Any(x =>
+                        x.FechaPago.HasValue
+                        && x.FechaPago.Value.Year == anio
+                        && x.FechaPago.Value.Month == mes
+                        && string.Equals((x.FormaPago_IVA ?? string.Empty).Trim(), formaPagoIVA, StringComparison.OrdinalIgnoreCase));
+
+                    if (!existe)
+                    {
+                        reporteActual.Add(new ReporteIGIPagado
+                        {
+                            BaseDatos = baseDatosPredeterminada,
+                            FechaPago = new DateTime(anio, mes, 1),
+                            FormaPago_IVA = formaPagoIVA,
+                            IVA_Pagado = row["IVA_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IVA_Pagado"])
+                        });
+                    }
+                }
+            }
+
+            reporteActual = reporteActual
+                .OrderBy(x => x.FechaPago)
+                .ThenBy(x => x.Pedimento)
+                .ToList();
+        }
+
+        private static int ObtenerValorEntero(System.Data.DataRow row, params string[] nombresColumna)
+        {
+            foreach (var nombre in nombresColumna)
+            {
+                if (row.Table.Columns.Contains(nombre) && row[nombre] != DBNull.Value)
+                {
+                    return Convert.ToInt32(row[nombre]);
+                }
+            }
+
+            return 0;
+        }
+
+        private static string ObtenerNombreMes(int mes)
+        {
+            return mes switch
+            {
+                1 => "Enero",
+                2 => "Febrero",
+                3 => "Marzo",
+                4 => "Abril",
+                5 => "Mayo",
+                6 => "Junio",
+                7 => "Julio",
+                8 => "Agosto",
+                9 => "Septiembre",
+                10 => "Octubre",
+                11 => "Noviembre",
+                12 => "Diciembre",
+                _ => $"Mes {mes}"
+            };
+        }
+
+        private static void PrepararColumnaPeriodo(System.Data.DataTable? tabla)
+        {
+            if (tabla == null)
+                return;
+
+            if (!tabla.Columns.Contains("Periodo"))
+                tabla.Columns.Add("Periodo", typeof(string));
+
+            foreach (System.Data.DataRow row in tabla.Rows)
+            {
+                int anio = ObtenerValorEntero(row, "Año", "A�o");
+                int mes = ObtenerValorEntero(row, "Mes");
+                row["Periodo"] = anio > 0 && mes > 0
+                    ? $"{ObtenerNombreMes(mes)} {anio}"
+                    : string.Empty;
+            }
+        }
+
+        private static string ObtenerTextoMesParaPdf(System.Data.DataRow row)
+        {
+            int anio = ObtenerValorEntero(row, "Año", "A�o");
+            int mes = ObtenerValorEntero(row, "Mes");
+
+            if (anio > 0 && mes > 0)
+                return $"{ObtenerNombreMes(mes)} {anio}";
+
+            if (row.Table.Columns.Contains("MES"))
+                return row["MES"]?.ToString() ?? string.Empty;
+
+            return string.Empty;
+        }
+
+        private System.Data.DataTable CrearTablaPdfIGIDesdeGrid()
+        {
+            var dt = new System.Data.DataTable();
+            dt.Columns.Add("MES", typeof(string));
+            dt.Columns.Add("IGI PAGADO", typeof(decimal));
+            dt.Columns.Add("IGI CALCULADO", typeof(decimal));
+            dt.Columns.Add("DIFERENCIA", typeof(decimal));
+            dt.Columns.Add("FORMA DE PAGO IGI", typeof(string));
+
+            if (dgvReporteIGI.DataSource is not System.Data.DataTable origen)
+                return dt;
+
+            foreach (System.Data.DataRow row in origen.Rows)
+            {
+                decimal igiPagado = row.Table.Columns.Contains("IGI_Pagado") && row["IGI_Pagado"] != DBNull.Value
+                    ? Convert.ToDecimal(row["IGI_Pagado"])
+                    : row.Table.Columns.Contains("IGI PAGADO") && row["IGI PAGADO"] != DBNull.Value
+                        ? Convert.ToDecimal(row["IGI PAGADO"])
+                        : 0m;
+
+                decimal igiCalculado = row.Table.Columns.Contains("IGI_Calculado") && row["IGI_Calculado"] != DBNull.Value
+                    ? Convert.ToDecimal(row["IGI_Calculado"])
+                    : row.Table.Columns.Contains("IGI CALCULADO") && row["IGI CALCULADO"] != DBNull.Value
+                        ? Convert.ToDecimal(row["IGI CALCULADO"])
+                        : 0m;
+
+                decimal diferencia = row.Table.Columns.Contains("Diferencia_IGI") && row["Diferencia_IGI"] != DBNull.Value
+                    ? Convert.ToDecimal(row["Diferencia_IGI"])
+                    : row.Table.Columns.Contains("DIFERENCIA") && row["DIFERENCIA"] != DBNull.Value
+                        ? Convert.ToDecimal(row["DIFERENCIA"])
+                        : 0m;
+
+                string formaPago = row.Table.Columns.Contains("FormaPago_IGI")
+                    ? row["FormaPago_IGI"]?.ToString() ?? string.Empty
+                    : row.Table.Columns.Contains("FORMA DE PAGO IGI")
+                        ? row["FORMA DE PAGO IGI"]?.ToString() ?? string.Empty
+                        : string.Empty;
+
+                dt.Rows.Add(
+                    ObtenerTextoMesParaPdf(row),
+                    igiPagado,
+                    igiCalculado,
+                    diferencia,
+                    formaPago);
+            }
+
+            return dt;
+        }
+
+        private System.Data.DataTable CrearTablaPdfIVADesdeGrid()
+        {
+            var dt = new System.Data.DataTable();
+            dt.Columns.Add("MES", typeof(string));
+            dt.Columns.Add("IVA PAGADO", typeof(decimal));
+            dt.Columns.Add("FORMA DE PAGO IVA", typeof(string));
+
+            if (dgvReporteIVA.DataSource is not System.Data.DataTable origen)
+                return dt;
+
+            foreach (System.Data.DataRow row in origen.Rows)
+            {
+                decimal ivaPagado = row.Table.Columns.Contains("IVA_Pagado") && row["IVA_Pagado"] != DBNull.Value
+                    ? Convert.ToDecimal(row["IVA_Pagado"])
+                    : row.Table.Columns.Contains("IVA PAGADO") && row["IVA PAGADO"] != DBNull.Value
+                        ? Convert.ToDecimal(row["IVA PAGADO"])
+                        : 0m;
+
+                string formaPago = row.Table.Columns.Contains("FormaPago_IVA")
+                    ? row["FormaPago_IVA"]?.ToString() ?? string.Empty
+                    : row.Table.Columns.Contains("FORMA DE PAGO IVA")
+                        ? row["FORMA DE PAGO IVA"]?.ToString() ?? string.Empty
+                        : string.Empty;
+
+                dt.Rows.Add(
+                    ObtenerTextoMesParaPdf(row),
+                    ivaPagado,
+                    formaPago);
+            }
+
+            return dt;
+        }
+
+        private System.Data.DataTable CrearTablaDetalleCompletoParaPdf()
+        {
+            var dt = new System.Data.DataTable();
+            dt.Columns.Add("Base Datos", typeof(string));
+            dt.Columns.Add("ID Pedimento", typeof(int));
+            dt.Columns.Add("Pedimento", typeof(string));
+            dt.Columns.Add("Fecha Pago", typeof(DateTime));
+            dt.Columns.Add("IGI Pagado", typeof(decimal));
+            dt.Columns.Add("IGI Calculado", typeof(decimal));
+            dt.Columns.Add("Diferencia IGI", typeof(decimal));
+            dt.Columns.Add("IVA Pagado", typeof(decimal));
+            dt.Columns.Add("Forma Pago IGI", typeof(string));
+            dt.Columns.Add("Forma Pago IVA", typeof(string));
+            dt.Columns.Add("Estatus Glosa", typeof(string));
+            dt.Columns.Add("Estatus Origen", typeof(string));
+
+            foreach (var r in reporteActual.OrderBy(x => x.FechaPago).ThenBy(x => x.Pedimento))
+            {
+                dt.Rows.Add(
+                    r.BaseDatos ?? string.Empty,
+                    r.IdPedimento,
+                    r.Pedimento ?? string.Empty,
+                    r.FechaPago ?? DateTime.MinValue,
+                    r.IGI_Pagado,
+                    r.IGI_Calculado,
+                    r.DiferenciaIGI,
+                    r.IVA_Pagado,
+                    r.FormaPago_IGI ?? string.Empty,
+                    r.FormaPago_IVA ?? string.Empty,
+                    r.EstatusGlosa ?? string.Empty,
+                    r.EstatusOrigen ?? string.Empty);
+            }
+
+            return dt;
         }
 
         private void MostrarResultados()
@@ -483,15 +902,66 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIVA.RowHeadersVisible = false;
             dgvReporteIVA.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
 
-            // Registrar eventos de doble clic para abrir detalle de pedimentos
+            // Abrir detalle solo con doble clic
             dgvReporteIGI.CellDoubleClick += DgvReporteIGI_CellDoubleClick;
             dgvReporteIVA.CellDoubleClick += DgvReporteIVA_CellDoubleClick;
+        }
+
+        private static string ObtenerValorCelda(DataGridViewRow row, params string[] nombresColumna)
+        {
+            foreach (var nombreColumna in nombresColumna)
+            {
+                if (row.DataGridView?.Columns.Contains(nombreColumna) == true)
+                {
+                    return row.Cells[nombreColumna]?.Value?.ToString()?.Trim() ?? string.Empty;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private static DataGridViewColumn? ObtenerColumna(DataGridView grid, params string[] nombresColumna)
+        {
+            foreach (var nombreColumna in nombresColumna)
+            {
+                if (grid.Columns.Contains(nombreColumna))
+                    return grid.Columns[nombreColumna];
+            }
+
+            return null;
         }
 
         private void FormatearGridIGI()
         {
             if (dgvReporteIGI.Columns.Count == 0)
                 return;
+
+            // Renombrar columnas del nuevo formato de conciliación
+            if (dgvReporteIGI.Columns["Año"] != null)
+                dgvReporteIGI.Columns["Año"].Visible = false;
+
+            if (dgvReporteIGI.Columns["Mes"] != null)
+                dgvReporteIGI.Columns["Mes"].Visible = false;
+
+            if (dgvReporteIGI.Columns["Periodo"] != null)
+                dgvReporteIGI.Columns["Periodo"].HeaderText = "MES";
+
+            var columnaIGIPagado = ObtenerColumna(dgvReporteIGI, "IGI_Pagado", "IGI PAGADO");
+            var columnaIGICalculado = ObtenerColumna(dgvReporteIGI, "IGI_Calculado", "IGI CALCULADO");
+            var columnaDiferenciaIGI = ObtenerColumna(dgvReporteIGI, "Diferencia_IGI", "DIFERENCIA");
+            var columnaFormaPagoIGI = ObtenerColumna(dgvReporteIGI, "FormaPago_IGI", "FORMA DE PAGO IGI");
+
+            if (columnaIGIPagado != null)
+                columnaIGIPagado.HeaderText = "IGI PAGADO";
+
+            if (columnaIGICalculado != null)
+                columnaIGICalculado.HeaderText = "IGI CALCULADO";
+
+            if (columnaDiferenciaIGI != null)
+                columnaDiferenciaIGI.HeaderText = "DIFERENCIA";
+
+            if (columnaFormaPagoIGI != null)
+                columnaFormaPagoIGI.HeaderText = "FORMA DE PAGO IGI";
 
             // Título del header
             dgvReporteIGI.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(41, 128, 185);
@@ -501,30 +971,38 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIGI.EnableHeadersVisualStyles = false;
 
             // Formatear columnas de moneda
-            if (dgvReporteIGI.Columns["IGI PAGADO"] != null)
-                dgvReporteIGI.Columns["IGI PAGADO"].DefaultCellStyle.Format = "C2";
-
-            if (dgvReporteIGI.Columns["IGI CALCULADO"] != null)
-                dgvReporteIGI.Columns["IGI CALCULADO"].DefaultCellStyle.Format = "C2";
-
-            if (dgvReporteIGI.Columns["DIFERENCIA"] != null)
+            if (columnaIGIPagado != null)
             {
-                dgvReporteIGI.Columns["DIFERENCIA"].DefaultCellStyle.Format = "C2";
-                dgvReporteIGI.Columns["DIFERENCIA"].DefaultCellStyle.ForeColor = Color.FromArgb(192, 57, 43);
-                dgvReporteIGI.Columns["DIFERENCIA"].DefaultCellStyle.Font = new Font(dgvReporteIGI.Font.FontFamily, 9, FontStyle.Bold);
+                columnaIGIPagado.DefaultCellStyle.Format = "C2";
+                columnaIGIPagado.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            }
+
+            if (columnaIGICalculado != null)
+            {
+                columnaIGICalculado.DefaultCellStyle.Format = "C2";
+                columnaIGICalculado.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            }
+
+            if (columnaDiferenciaIGI != null)
+            {
+                columnaDiferenciaIGI.DefaultCellStyle.Format = "C2";
+                columnaDiferenciaIGI.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                columnaDiferenciaIGI.DefaultCellStyle.ForeColor = Color.FromArgb(192, 57, 43);
+                columnaDiferenciaIGI.DefaultCellStyle.Font = new Font(dgvReporteIGI.Font.FontFamily, 9, FontStyle.Bold);
             }
 
             // Configurar ancho de columnas
-            if (dgvReporteIGI.Columns["MES"] != null)
+            if (dgvReporteIGI.Columns["Periodo"] != null)
             {
-                dgvReporteIGI.Columns["MES"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-                dgvReporteIGI.Columns["MES"].MinimumWidth = 120;
+                dgvReporteIGI.Columns["Periodo"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                dgvReporteIGI.Columns["Periodo"].MinimumWidth = 140;
+                dgvReporteIGI.Columns["Periodo"].DisplayIndex = 0;
             }
 
-            if (dgvReporteIGI.Columns["FORMA DE PAGO IGI"] != null)
+            if (columnaFormaPagoIGI != null)
             {
-                dgvReporteIGI.Columns["FORMA DE PAGO IGI"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                dgvReporteIGI.Columns["FORMA DE PAGO IGI"].MinimumWidth = 100;
+                columnaFormaPagoIGI.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                columnaFormaPagoIGI.MinimumWidth = 100;
             }
         }
 
@@ -532,6 +1010,25 @@ namespace Retorno360Tacna.FORMS
         {
             if (dgvReporteIVA.Columns.Count == 0)
                 return;
+
+            // Renombrar columnas del nuevo formato de conciliación
+            if (dgvReporteIVA.Columns["Año"] != null)
+                dgvReporteIVA.Columns["Año"].Visible = false;
+
+            if (dgvReporteIVA.Columns["Mes"] != null)
+                dgvReporteIVA.Columns["Mes"].Visible = false;
+
+            if (dgvReporteIVA.Columns["Periodo"] != null)
+                dgvReporteIVA.Columns["Periodo"].HeaderText = "MES";
+
+            var columnaIVAPagado = ObtenerColumna(dgvReporteIVA, "IVA_Pagado", "IVA PAGADO");
+            var columnaFormaPagoIVA = ObtenerColumna(dgvReporteIVA, "FormaPago_IVA", "FORMA DE PAGO IVA");
+
+            if (columnaIVAPagado != null)
+                columnaIVAPagado.HeaderText = "IVA PAGADO";
+
+            if (columnaFormaPagoIVA != null)
+                columnaFormaPagoIVA.HeaderText = "FORMA DE PAGO IVA";
 
             // Título del header
             dgvReporteIVA.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(52, 152, 219);
@@ -541,20 +1038,24 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIVA.EnableHeadersVisualStyles = false;
 
             // Formatear columnas de moneda
-            if (dgvReporteIVA.Columns["IVA PAGADO"] != null)
-                dgvReporteIVA.Columns["IVA PAGADO"].DefaultCellStyle.Format = "C2";
-
-            // Configurar ancho de columnas
-            if (dgvReporteIVA.Columns["MES"] != null)
+            if (columnaIVAPagado != null)
             {
-                dgvReporteIVA.Columns["MES"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-                dgvReporteIVA.Columns["MES"].MinimumWidth = 120;
+                columnaIVAPagado.DefaultCellStyle.Format = "C2";
+                columnaIVAPagado.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             }
 
-            if (dgvReporteIVA.Columns["FORMA DE PAGO IVA"] != null)
+            // Configurar ancho de columnas
+            if (dgvReporteIVA.Columns["Periodo"] != null)
             {
-                dgvReporteIVA.Columns["FORMA DE PAGO IVA"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                dgvReporteIVA.Columns["FORMA DE PAGO IVA"].MinimumWidth = 100;
+                dgvReporteIVA.Columns["Periodo"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                dgvReporteIVA.Columns["Periodo"].MinimumWidth = 140;
+                dgvReporteIVA.Columns["Periodo"].DisplayIndex = 0;
+            }
+
+            if (columnaFormaPagoIVA != null)
+            {
+                columnaFormaPagoIVA.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                columnaFormaPagoIVA.MinimumWidth = 100;
             }
         }
 
@@ -578,50 +1079,25 @@ namespace Retorno360Tacna.FORMS
                 // Obtener datos de la fila seleccionada
                 DataGridViewRow row = dgvReporteIGI.Rows[e.RowIndex];
 
-                string mes = row.Cells["MES"]?.Value?.ToString() ?? "";
-                string formaPago = row.Cells["FORMA DE PAGO IGI"]?.Value?.ToString() ?? "";
+                string formaPago = ObtenerValorCelda(row, "FormaPago_IGI", "FORMA DE PAGO IGI");
 
-                if (string.IsNullOrEmpty(mes) || string.IsNullOrEmpty(formaPago))
+                if (string.IsNullOrEmpty(formaPago))
                 {
-                    MessageBox.Show("No se pudo obtener la información del mes o forma de pago.",
+                    MessageBox.Show("No se pudo obtener la información de forma de pago.",
                         "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                // Determinar base de datos actual (si existe selección en cmbCliente)
-                string baseDatos = cmbCliente.SelectedItem?.ToString() ?? string.Empty;
-
-                // Si tenemos baseDatos, intentar obtener detalle por base para asegurar consistencia
-                // Si no hay base seleccionada (consulta por razón social), obtener detalle por razón social
-                List<ReporteIGIPagado> detalleToShow = reporteActual;
-                if (!string.IsNullOrEmpty(baseDatos))
+                // Validar que existan datos de detalle
+                if (detalleIGIActual == null || detalleIGIActual.Rows.Count == 0)
                 {
-                    try
-                    {
-                        detalleToShow = reporteService.ObtenerDetallePorBase(baseDatos, dtpFechaInicio.Value.Date, dtpFechaFin.Value.Date);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"No se pudo obtener detalle por base: {ex.Message}");
-                        detalleToShow = reporteActual;
-                    }
-                }
-                else
-                {
-                    try
-                    {
-                        var razonSeleccionada = (RazonSocial)cmbRazonSocial.SelectedItem;
-                        detalleToShow = reporteService.ObtenerDetallePorRazonSocial(razonSeleccionada.IdRazon, dtpFechaInicio.Value.Date, dtpFechaFin.Value.Date);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"No se pudo obtener detalle por razón social: {ex.Message}");
-                        detalleToShow = reporteActual;
-                    }
+                    MessageBox.Show("No hay datos de detalle disponibles.",
+                        "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
                 }
 
-                // Abrir formulario de detalle
-                var frmDetalle = new FrmDetallePedimentos(detalleToShow, mes, formaPago, "IGI");
+                // Abrir formulario de detalle con la tabla filtrada por forma de pago
+                var frmDetalle = new FrmDetalleConciliacion(detalleIGIActual, formaPago, "IGI");
                 frmDetalle.ShowDialog(this);
                 frmDetalle.Dispose();
             }
@@ -664,18 +1140,25 @@ namespace Retorno360Tacna.FORMS
                 // Obtener datos de la fila seleccionada
                 DataGridViewRow row = dgvReporteIVA.Rows[e.RowIndex];
 
-                string mes = row.Cells["MES"]?.Value?.ToString() ?? "";
-                string formaPago = row.Cells["FORMA DE PAGO IVA"]?.Value?.ToString() ?? "";
+                string formaPago = ObtenerValorCelda(row, "FormaPago_IVA", "FORMA DE PAGO IVA");
 
-                if (string.IsNullOrEmpty(mes) || string.IsNullOrEmpty(formaPago))
+                if (string.IsNullOrEmpty(formaPago))
                 {
-                    MessageBox.Show("No se pudo obtener la información del mes o forma de pago.",
+                    MessageBox.Show("No se pudo obtener la información de forma de pago.",
                         "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                // Abrir formulario de detalle
-                var frmDetalle = new FrmDetallePedimentos(reporteActual, mes, formaPago, "IVA");
+                // Validar que existan datos de detalle
+                if (detalleIVAActual == null || detalleIVAActual.Rows.Count == 0)
+                {
+                    MessageBox.Show("No hay datos de detalle disponibles.",
+                        "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // Abrir formulario de detalle con la tabla filtrada por forma de pago
+                var frmDetalle = new FrmDetalleConciliacion(detalleIVAActual, formaPago, "IVA");
                 frmDetalle.ShowDialog(this);
                 frmDetalle.Dispose();
             }
@@ -712,24 +1195,56 @@ namespace Retorno360Tacna.FORMS
 
         private void MostrarResumenPorFormaPago(ResumenIGI resumen)
         {
-            // Calcular totales separados por forma de pago IGI (0 y 5)
-            var reportesIGI_FormaPago5 = reporteActual.Where(r => r.FormaPago_IGI == "5").ToList();
-            var reportesIGI_FormaPago0 = reporteActual.Where(r => r.FormaPago_IGI == "0").ToList();
+            decimal totalIGI_Pagado5 = 0m;
+            decimal totalIGI_Calculado5 = 0m;
+            decimal diferenciaIGI_5 = 0m;
+            decimal totalIGI_Pagado0 = 0m;
+            decimal totalIGI_Calculado0 = 0m;
+            decimal diferenciaIGI_0 = 0m;
+            decimal totalIVA_Pagado21 = 0m;
+            decimal totalIVA_Pagado0 = 0m;
 
-            var totalIGI_Pagado5 = reportesIGI_FormaPago5.Sum(r => r.IGI_Pagado);
-            var totalIGI_Calculado5 = reportesIGI_FormaPago5.Sum(r => r.IGI_Calculado);
-            var diferenciaIGI_5 = totalIGI_Calculado5 - totalIGI_Pagado5;
+            if (dgvReporteIGI.DataSource is System.Data.DataTable tablaIGI)
+            {
+                foreach (System.Data.DataRow row in tablaIGI.Rows)
+                {
+                    string formaPago = row["FormaPago_IGI"]?.ToString()?.Trim() ?? string.Empty;
+                    decimal igiPagado = row["IGI_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IGI_Pagado"]);
+                    decimal igiCalculado = row["IGI_Calculado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IGI_Calculado"]);
+                    decimal diferencia = row["Diferencia_IGI"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Diferencia_IGI"]);
 
-            var totalIGI_Pagado0 = reportesIGI_FormaPago0.Sum(r => r.IGI_Pagado);
-            var totalIGI_Calculado0 = reportesIGI_FormaPago0.Sum(r => r.IGI_Calculado);
-            var diferenciaIGI_0 = totalIGI_Calculado0 - totalIGI_Pagado0;
+                    if (formaPago == "5")
+                    {
+                        totalIGI_Pagado5 += igiPagado;
+                        totalIGI_Calculado5 += igiCalculado;
+                        diferenciaIGI_5 += diferencia;
+                    }
+                    else if (formaPago == "0")
+                    {
+                        totalIGI_Pagado0 += igiPagado;
+                        totalIGI_Calculado0 += igiCalculado;
+                        diferenciaIGI_0 += diferencia;
+                    }
+                }
+            }
 
-            // Calcular totales separados por forma de pago IVA (0 y 21)
-            var reportesIVA_FormaPago21 = reporteActual.Where(r => r.FormaPago_IVA == "21").ToList();
-            var reportesIVA_FormaPago0 = reporteActual.Where(r => r.FormaPago_IVA == "0").ToList();
+            if (dgvReporteIVA.DataSource is System.Data.DataTable tablaIVA)
+            {
+                foreach (System.Data.DataRow row in tablaIVA.Rows)
+                {
+                    string formaPago = row["FormaPago_IVA"]?.ToString()?.Trim() ?? string.Empty;
+                    decimal ivaPagado = row["IVA_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(row["IVA_Pagado"]);
 
-            var totalIVA_Pagado21 = reportesIVA_FormaPago21.Sum(r => r.IVA_Pagado);
-            var totalIVA_Pagado0 = reportesIVA_FormaPago0.Sum(r => r.IVA_Pagado);
+                    if (formaPago == "21")
+                    {
+                        totalIVA_Pagado21 += ivaPagado;
+                    }
+                    else if (formaPago == "0")
+                    {
+                        totalIVA_Pagado0 += ivaPagado;
+                    }
+                }
+            }
 
             // Formato estructurado con alineación
             string linea1 = $"📊 Total: {resumen.TotalPedimentos} registros";
@@ -752,6 +1267,13 @@ namespace Retorno360Tacna.FORMS
 
             // Actualizar gráfica IVA
             ActualizarGraficaIVAPorFormaPago();
+
+            MostrarGraficaActual();
+
+            if (graficaActual == 0)
+                chartIGI?.Update();
+            else
+                chartIVA?.Update();
         }
 
         private void InicializarGrafica()
@@ -759,14 +1281,15 @@ namespace Retorno360Tacna.FORMS
             // Crear control de gráfica
             chartIGI = new CartesianChart
             {
-                Dock = DockStyle.Fill,
                 ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both,
-                TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Top
+                TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Top,
+                LegendPosition = LiveChartsCore.Measure.LegendPosition.Bottom,
+                BackColor = Color.White
             };
 
             // Agregar al panel de gráfica (después del título)
             panelGrafica.Controls.Add(chartIGI);
-            chartIGI.BringToFront();
+            AjustarAreaGrafica(chartIGI, panelGrafica, lblTituloGrafica);
 
             // Configuración inicial vacía
             chartIGI.Series = Array.Empty<ISeries>();
@@ -801,14 +1324,16 @@ namespace Retorno360Tacna.FORMS
             // Crear control de gráfica IVA
             chartIVA = new CartesianChart
             {
-                Dock = DockStyle.Fill,
                 ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both,
-                TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Top
+                TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Top,
+                LegendPosition = LiveChartsCore.Measure.LegendPosition.Bottom,
+                BackColor = Color.White
             };
 
-            // Agregar al panel de gráfica IVA (después del título)
-            panelGraficaIVA.Controls.Add(chartIVA);
-            chartIVA.BringToFront();
+            // Agregar al mismo panel de gráfica principal
+            panelGrafica.Controls.Add(chartIVA);
+            AjustarAreaGrafica(chartIVA, panelGrafica, lblTituloGrafica);
+            chartIVA.Visible = false;
 
             // Configuración inicial vacía
             chartIVA.Series = Array.Empty<ISeries>();
@@ -883,130 +1408,88 @@ namespace Retorno360Tacna.FORMS
 
             try
             {
-                // Agrupar datos por mes y forma de pago (solo formas válidas: 0 y 5)
-                var datosPorMes = reporteActual
-                    .Where(r => r.FechaPago.HasValue && 
-                                !string.IsNullOrWhiteSpace(r.FormaPago_IGI) &&
-                                (r.FormaPago_IGI == "0" || r.FormaPago_IGI == "5"))
-                    .GroupBy(r => new { 
-                        Año = r.FechaPago.Value.Year, 
-                        Mes = r.FechaPago.Value.Month,
-                        FormaPago = r.FormaPago_IGI
-                    })
-                    .Select(g => new {
-                        Periodo = new DateTime(g.Key.Año, g.Key.Mes, 1),
-                        MesNombre = new DateTime(g.Key.Año, g.Key.Mes, 1).ToString("MMMM").ToLower(),
-                        FormaPago = g.Key.FormaPago,
-                        Pagado = g.Sum(x => x.IGI_Pagado),
-                        Calculado = g.Sum(x => x.IGI_Calculado),
-                        Diferencia = g.Sum(x => x.DiferenciaIGI)
-                    })
-                    .OrderByDescending(x => x.Periodo)
-                    .ToList();
+                chartIGI.Series = Array.Empty<ISeries>();
 
-                if (datosPorMes.Count == 0)
+                if (dgvReporteIGI.DataSource is not System.Data.DataTable tablaIGI || tablaIGI.Rows.Count == 0)
                 {
                     lblTituloGrafica.Text = "Sin datos para mostrar";
                     return;
                 }
 
-                // Obtener meses únicos ordenados cronológicamente (de más reciente a más antiguo)
-                var mesesUnicos = datosPorMes
-                    .GroupBy(x => new { x.MesNombre, x.Periodo })
-                    .OrderByDescending(g => g.Key.Periodo)
-                    .Select(g => g.Key.MesNombre)
+                var datosPorMes = tablaIGI.Rows.Cast<System.Data.DataRow>()
+                    .Select(r => new
+                    {
+                        Anio = ObtenerValorEntero(r, "Año", "A�o"),
+                        Mes = ObtenerValorEntero(r, "Mes"),
+                        FormaPago = r["FormaPago_IGI"]?.ToString()?.Trim() ?? string.Empty,
+                        Pagado = r["IGI_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(r["IGI_Pagado"]),
+                        Calculado = r["IGI_Calculado"] == DBNull.Value ? 0m : Convert.ToDecimal(r["IGI_Calculado"]),
+                        Diferencia = r["Diferencia_IGI"] == DBNull.Value ? 0m : Convert.ToDecimal(r["Diferencia_IGI"])
+                    })
+                    .Where(x => x.Anio > 0 && x.Mes > 0 && (x.FormaPago == "0" || x.FormaPago == "5"))
+                    .OrderBy(x => x.Anio)
+                    .ThenBy(x => x.Mes)
+                    .ThenBy(x => x.FormaPago)
                     .ToList();
 
-                var formasPago = datosPorMes.Select(x => x.FormaPago).Distinct().OrderBy(x => x).ToList();
+                if (datosPorMes.Count == 0)
+                {
+                    chartIGI.Series = Array.Empty<ISeries>();
+                    if (graficaActual == 0)
+                        lblTituloGrafica.Text = "Sin datos para mostrar";
+                    return;
+                }
 
-                // Crear etiquetas combinadas con porcentajes: "enero FP-0  ■ 76.9% ■ 23.1%"
                 var labels = new List<string>();
-                var pagadoValues = new List<decimal>();
-                var calculadoValues = new List<decimal>();
-                var diferenciaValues = new List<decimal>();
-                var pagadoPorcentajes = new List<decimal>();
-                var diferenciaPorcentajes = new List<decimal>();
+                var pagadoValues = new List<double>();
+                var diferenciaValues = new List<double>();
+                var pagadoPorcentajes = new List<double>();
+                var diferenciaPorcentajes = new List<double>();
 
-                foreach (var mes in mesesUnicos)
+                foreach (var dato in datosPorMes)
                 {
-                    foreach (var fp in formasPago)
+                    decimal pagado = dato.Pagado;
+                    decimal calculado = dato.Calculado;
+                    decimal diferencia = dato.Diferencia;
+
+                    pagadoValues.Add((double)pagado);
+                    diferenciaValues.Add((double)diferencia);
+
+                    double porcPagado = 0d;
+                    double porcDiferencia = 0d;
+
+                    if (calculado > 0)
                     {
-                        var dato = datosPorMes.FirstOrDefault(x => x.MesNombre == mes && x.FormaPago == fp);
-                        decimal pagado = dato?.Pagado ?? 0;
-                        decimal calculado = dato?.Calculado ?? 0;
-                        decimal diferencia = dato?.Diferencia ?? 0;
-
-                        pagadoValues.Add(pagado);
-                        calculadoValues.Add(calculado);
-                        diferenciaValues.Add(diferencia);
-
-                        // Calcular porcentajes basados en IGI Calculado como 100%
-                        decimal porcPagado = 0;
-                        decimal porcDiferencia = 0;
-
-                        if (calculado > 0)
-                        {
-                            porcPagado = (pagado / calculado) * 100;
-                            porcDiferencia = (diferencia / calculado) * 100;
-                        }
-
-                        pagadoPorcentajes.Add(porcPagado);
-                        diferenciaPorcentajes.Add(porcDiferencia);
-
-                        // Crear etiqueta con porcentajes incluidos
-                        string etiqueta = $"{mes} FP-{fp}    ■ {porcPagado:N1}%  ■ {porcDiferencia:N1}%";
-                        labels.Add(etiqueta);
+                        porcPagado = (double)((pagado / calculado) * 100m);
+                        porcDiferencia = (double)((diferencia / calculado) * 100m);
                     }
+
+                    pagadoPorcentajes.Add(porcPagado);
+                    diferenciaPorcentajes.Add(porcDiferencia);
+                    labels.Add($"{ObtenerNombreMes(dato.Mes)} FP-{dato.FormaPago}");
                 }
 
-                // Crear series de barras apiladas horizontales
-                var series = new List<ISeries>();
-
-                // Crear diccionario para mapeo confiable de valores a porcentajes
-                var pagadoDictionary = new Dictionary<decimal, decimal>();
-                var diferenciaDictionary = new Dictionary<decimal, decimal>();
-
-                for (int i = 0; i < pagadoValues.Count; i++)
-                {
-                    var keyPagado = pagadoValues[i];
-                    var keyDiferencia = diferenciaValues[i];
-
-                    // Solo agregar si no existe (para evitar duplicados)
-                    if (!pagadoDictionary.ContainsKey(keyPagado))
-                    {
-                        pagadoDictionary[keyPagado] = pagadoPorcentajes[i];
-                    }
-                    if (!diferenciaDictionary.ContainsKey(keyDiferencia))
-                    {
-                        diferenciaDictionary[keyDiferencia] = diferenciaPorcentajes[i];
-                    }
-                }
-
-                // Serie 1: IGI Pagado (azul) - mostrar porcentaje en la etiqueta
-                var seriePagado = new StackedRowSeries<decimal>
+                var seriePagado = new StackedColumnSeries<double>
                 {
                     Name = "IGI pagado",
                     Values = pagadoValues.ToArray(),
                     Fill = new SolidColorPaint(new SKColor(79, 129, 189)), // Azul
                     Stroke = null,
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
+                    DataLabelsPaint = new SolidColorPaint(new SKColor(64, 64, 64)),
                     DataLabelsSize = 11,
                     DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle,
-                    MaxBarWidth = 50,
+                    MaxBarWidth = 40,
                     DataLabelsFormatter = point => {
-                        var valor = (decimal)point.Model;
-                        if (valor > 0 && pagadoDictionary.TryGetValue(valor, out var porcentaje))
+                        int indice = (int)Math.Round(point.Coordinate.SecondaryValue);
+                        if (indice >= 0 && indice < pagadoPorcentajes.Count)
                         {
-                            return $"{porcentaje:N1}%";
+                            return $"{pagadoPorcentajes[indice]:N1}%";
                         }
                         return "";
                     }
                 };
 
-                series.Add(seriePagado);
-
-                // Serie 2: Diferencia (azul claro) - mostrar porcentaje en la etiqueta
-                var serieDiferencia = new StackedRowSeries<decimal>
+                var serieDiferencia = new StackedColumnSeries<double>
                 {
                     Name = "Diferencia",
                     Values = diferenciaValues.ToArray(),
@@ -1015,61 +1498,56 @@ namespace Retorno360Tacna.FORMS
                     DataLabelsPaint = new SolidColorPaint(new SKColor(64, 64, 64)),
                     DataLabelsSize = 11,
                     DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle,
-                    MaxBarWidth = 50,
+                    MaxBarWidth = 40,
                     DataLabelsFormatter = point => {
-                        var valor = (decimal)point.Model;
-                        if (valor > 0 && diferenciaDictionary.TryGetValue(valor, out var porcentaje))
+                        int indice = (int)Math.Round(point.Coordinate.SecondaryValue);
+                        if (indice >= 0 && indice < diferenciaPorcentajes.Count)
                         {
-                            return $"{porcentaje:N1}%";
+                            return $"{diferenciaPorcentajes[indice]:N1}%";
                         }
                         return "";
                     }
                 };
 
-                series.Add(serieDiferencia);
+                chartIGI.Series = new ISeries[] { seriePagado, serieDiferencia };
 
-                chartIGI.Series = series.ToArray();
-
-                // Configurar eje X (valores horizontales)
                 chartIGI.XAxes = new[]
-                {
-                    new Axis
-                    {
-                        TextSize = 9,
-                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
-                        Labeler = value => value >= 1000000 ? $"{value/1000000:N0}M" 
-                                         : value >= 1000 ? $"{value/1000:N0}K" 
-                                         : $"{value:N0}",
-                        ShowSeparatorLines = true
-                    }
-                };
-
-                // Configurar eje Y (etiquetas de meses + forma de pago)
-                var totalFilas = labels.Count;
-
-                chartIGI.YAxes = new[]
                 {
                     new Axis
                     {
                         Labels = labels.ToArray(),
                         TextSize = 9,
-                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
-                        ShowSeparatorLines = false
+                        LabelsRotation = 0,
+                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230))
                     }
                 };
 
-                // Habilitar zoom y pan en ambos ejes
-                // Ctrl + Rueda del mouse = Zoom
-                // Click y arrastrar = Pan (desplazamiento)
-                chartIGI.ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both;
+                chartIGI.YAxes = new[]
+                {
+                    new Axis
+                    {
+                        MinLimit = 0,
+                        TextSize = 9,
+                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
+                        Labeler = value => value >= 1000000 ? $"{value/1000000:N1}M"
+                                         : value >= 1000 ? $"{value/1000:N1}K"
+                                         : value.ToString("N0")
+                    }
+                };
 
-                // Actualizar título de la gráfica
-                lblTituloGrafica.Text = "IGI por Mes y Forma de Pago (1/2)";
+                chartIGI.ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both;
+                lblTituloGrafica.Text = "IGI pagado + diferencia por mes y forma de pago (1/2)";
+                AjustarAreaGrafica(chartIGI, panelGrafica, lblTituloGrafica);
+                MostrarGraficaActual();
+                chartIGI.Update();
+                chartIGI.Refresh();
+                panelGrafica.Refresh();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error al actualizar gráfica: {ex.Message}");
-                lblTituloGrafica.Text = "Error al cargar gráfica (1/2)";
+                if (graficaActual == 0)
+                    lblTituloGrafica.Text = "Error al cargar gráfica (1/2)";
             }
         }
 
@@ -1079,115 +1557,108 @@ namespace Retorno360Tacna.FORMS
 
             try
             {
-                // Agrupar datos por mes y forma de pago IVA (solo formas válidas: 0 y 21)
-                var datosPorMes = reporteActual
-                    .Where(r => r.FechaPago.HasValue && 
-                                !string.IsNullOrWhiteSpace(r.FormaPago_IVA) &&
-                                (r.FormaPago_IVA == "0" || r.FormaPago_IVA == "21"))
-                    .GroupBy(r => new {
-                        Año = r.FechaPago.Value.Year,
-                        Mes = r.FechaPago.Value.Month,
-                        FormaPago = r.FormaPago_IVA
+                chartIVA.Series = Array.Empty<ISeries>();
+
+                if (dgvReporteIVA.DataSource is not System.Data.DataTable tablaIVA || tablaIVA.Rows.Count == 0)
+                {
+                    lblTituloGrafica.Text = "Sin datos de IVA para mostrar";
+                    return;
+                }
+
+                var datosPorMes = tablaIVA.Rows.Cast<System.Data.DataRow>()
+                    .Select(r => new
+                    {
+                        Anio = ObtenerValorEntero(r, "Año", "A�o"),
+                        Mes = ObtenerValorEntero(r, "Mes"),
+                        FormaPago = r["FormaPago_IVA"]?.ToString()?.Trim() ?? string.Empty,
+                        IVAPagado = r["IVA_Pagado"] == DBNull.Value ? 0m : Convert.ToDecimal(r["IVA_Pagado"])
                     })
-                    .Select(g => new {
-                        Periodo = new DateTime(g.Key.Año, g.Key.Mes, 1),
-                        MesNombre = new DateTime(g.Key.Año, g.Key.Mes, 1).ToString("MMMM").ToLower(),
-                        FormaPago = g.Key.FormaPago,
-                        IVAPagado = g.Sum(x => x.IVA_Pagado)
-                    })
-                    .OrderByDescending(x => x.Periodo)
+                    .Where(x => x.Anio > 0 && x.Mes > 0 && (x.FormaPago == "0" || x.FormaPago == "21"))
+                    .OrderBy(x => x.Anio)
+                    .ThenBy(x => x.Mes)
+                    .ThenBy(x => x.FormaPago)
                     .ToList();
 
                 if (datosPorMes.Count == 0)
                 {
-                    lblTituloGraficaIVA.Text = "Sin datos de IVA para mostrar";
+                    chartIVA.Series = Array.Empty<ISeries>();
+                    if (graficaActual == 1)
+                        lblTituloGrafica.Text = "Sin datos de IVA para mostrar";
                     return;
                 }
 
-                // Obtener meses únicos ordenados cronológicamente (de más reciente a más antiguo)
-                var mesesOrdenados = datosPorMes
-                    .GroupBy(x => new { x.MesNombre, x.Periodo })
-                    .OrderByDescending(g => g.Key.Periodo)
-                    .Select(g => g.Key.MesNombre)
-                    .ToList();
-
-                var formasPago = datosPorMes.Select(x => x.FormaPago).Distinct().OrderBy(x => x).ToList();
-
-                // Construir etiquetas combinadas (mes + forma de pago + monto IVA)
                 var labels = new List<string>();
-                var ivaPagadoValues = new List<decimal>();
+                var ivaPagadoValues = new List<double>();
+                var ivaPorcentajes = new List<double>();
 
-                foreach (var mes in mesesOrdenados)
+                foreach (var dato in datosPorMes)
                 {
-                    foreach (var fp in formasPago)
-                    {
-                        var dato = datosPorMes.FirstOrDefault(x => x.MesNombre == mes && x.FormaPago == fp);
-                        decimal ivaPagado = dato?.IVAPagado ?? 0;
-
-                        ivaPagadoValues.Add(ivaPagado);
-
-                        // Crear etiqueta con monto incluido
-                        string etiqueta = $"{mes} FP-{fp}    ■ {ivaPagado:C0}";
-                        labels.Add(etiqueta);
-                    }
+                    decimal ivaPagado = dato.IVAPagado;
+                    ivaPagadoValues.Add((double)ivaPagado);
+                    ivaPorcentajes.Add(100d);
+                    labels.Add($"{ObtenerNombreMes(dato.Mes)} FP-{dato.FormaPago}");
                 }
 
-                // Crear serie de barras horizontales
-                var series = new List<ISeries>();
-
-                // Serie: IVA Pagado (verde)
-                series.Add(new RowSeries<decimal>
+                chartIVA.Series = new ISeries[]
                 {
-                    Name = "IVA pagado",
-                    Values = ivaPagadoValues.ToArray(),
-                    Fill = new SolidColorPaint(new SKColor(46, 204, 113)), // Verde
-                    Stroke = null,
-                    DataLabelsPaint = new SolidColorPaint(new SKColor(255, 255, 255)),
-                    DataLabelsSize = 11,
-                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle,
-                    MaxBarWidth = 50
-                });
-
-                chartIVA.Series = series.ToArray();
-
-                // Configurar eje X (valores horizontales)
-                chartIVA.XAxes = new[]
-                {
-                    new Axis
+                    new ColumnSeries<double>
                     {
-                        TextSize = 9,
-                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
-                        Labeler = value => value >= 1000000 ? $"{value/1000000:N0}M" 
-                                         : value >= 1000 ? $"{value/1000:N0}K" 
-                                         : $"{value:N0}",
-                        ShowSeparatorLines = true
+                        Name = "IVA pagado",
+                        Values = ivaPagadoValues.ToArray(),
+                        Fill = new SolidColorPaint(new SKColor(46, 204, 113)),
+                        Stroke = null,
+                        DataLabelsPaint = new SolidColorPaint(new SKColor(64, 64, 64)),
+                        DataLabelsSize = 11,
+                        DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top,
+                        MaxBarWidth = 40,
+                        DataLabelsFormatter = point => {
+                            int indice = (int)Math.Round(point.Coordinate.SecondaryValue);
+                            if (indice >= 0 && indice < ivaPorcentajes.Count)
+                            {
+                                return $"{ivaPorcentajes[indice]:N1}%";
+                            }
+                            return "";
+                        }
                     }
                 };
 
-                // Configurar eje Y (etiquetas de meses + forma de pago)
-                chartIVA.YAxes = new[]
+                chartIVA.XAxes = new[]
                 {
                     new Axis
                     {
                         Labels = labels.ToArray(),
                         TextSize = 9,
-                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
-                        ShowSeparatorLines = false
+                        LabelsRotation = 0,
+                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230))
                     }
                 };
 
-                // Habilitar zoom y pan en ambos ejes
-                // Ctrl + Rueda del mouse = Zoom
-                // Click y arrastrar = Pan (desplazamiento)
-                chartIVA.ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both;
+                chartIVA.YAxes = new[]
+                {
+                    new Axis
+                    {
+                        MinLimit = 0,
+                        TextSize = 9,
+                        SeparatorsPaint = new SolidColorPaint(new SKColor(230, 230, 230)),
+                        Labeler = value => value >= 1000000 ? $"{value/1000000:N1}M"
+                                         : value >= 1000 ? $"{value/1000:N1}K"
+                                         : value.ToString("N0")
+                    }
+                };
 
-                // Actualizar título de la gráfica
-                lblTituloGraficaIVA.Text = "IVA por Mes y Forma de Pago (2/2)";
+                chartIVA.ZoomMode = LiveChartsCore.Measure.ZoomAndPanMode.Both;
+                lblTituloGrafica.Text = "IVA pagado por mes y forma de pago (2/2)";
+                AjustarAreaGrafica(chartIVA, panelGrafica, lblTituloGrafica);
+                MostrarGraficaActual();
+                chartIVA.Update();
+                chartIVA.Refresh();
+                panelGrafica.Refresh();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error al actualizar gráfica IVA: {ex.Message}");
-                lblTituloGraficaIVA.Text = "Error al cargar gráfica IVA (2/2)";
+                if (graficaActual == 1)
+                    lblTituloGrafica.Text = "Error al cargar gráfica IVA (2/2)";
             }
         }
 
@@ -1238,16 +1709,23 @@ namespace Retorno360Tacna.FORMS
 
                         var resumen = reporteService.GenerarResumen(reporteActual);
 
-                        // Obtener las tablas de datos para el PDF
-                        var tablaIGI = reporteService.ConvertirADataTableIGI(reporteActual);
-                        var tablaIVA = reporteService.ConvertirADataTableIVA(reporteActual);
+                        // Obtener las tablas visibles actualmente en pantalla para el PDF
+                        var tablaIGI = CrearTablaPdfIGIDesdeGrid();
+                        var tablaIVA = CrearTablaPdfIVADesdeGrid();
+                        var tablaDetalleCompleto = CrearTablaDetalleCompletoParaPdf();
+
+                        if (tablaIGI.Rows.Count == 0)
+                            tablaIGI = reporteService.ConvertirADataTableIGI(reporteActual);
+
+                        if (tablaIVA.Rows.Count == 0)
+                            tablaIVA = reporteService.ConvertirADataTableIVA(reporteActual);
 
                         var pdfService = new PdfGeneradorService();
                         pdfService.GenerarReporteIGIConFormasPagoPDF(
                             reporteActual,
                             tablaIGI,
                             tablaIVA,
-                            null, // tablaDetalleCompleto (opcional por ahora)
+                            tablaDetalleCompleto,
                             resumen,
                             nombreRazon,
                             baseDatos,
@@ -1509,23 +1987,12 @@ namespace Retorno360Tacna.FORMS
             // Cambiar índice de gráfica (ciclo entre 0 y 1)
             graficaActual = (graficaActual + direccion + 2) % 2;
 
-            // Mostrar/ocultar paneles según la gráfica actual
+            MostrarGraficaActual();
+
             if (graficaActual == 0)
-            {
-                // Mostrar IGI
-                panelGrafica.Visible = true;
-                panelGrafica.BringToFront();
-                panelGraficaIVA.Visible = false;
-                lblTituloGrafica.Text = "IGI por Mes y Forma de Pago (1/2)";
-            }
+                chartIGI?.Update();
             else
-            {
-                // Mostrar IVA
-                panelGraficaIVA.Visible = true;
-                panelGraficaIVA.BringToFront();
-                panelGrafica.Visible = false;
-                lblTituloGraficaIVA.Text = "IVA por Mes y Forma de Pago (2/2)";
-            }
+                chartIVA?.Update();
         }
 
 

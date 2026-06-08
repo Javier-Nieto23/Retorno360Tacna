@@ -1772,89 +1772,6 @@ namespace Retorno360Tacna.SERVICES
                                     txt.Span("Razón Social: ").Bold();
                                     txt.Span(razonSocial);
                                 });
-
-                            // Página final: Detalle completo de pedimentos (sheet adicional)
-                            if (tablaDetalleCompleto != null && tablaDetalleCompleto.Rows.Count > 0)
-                            {
-                                column.Item().PageBreak();
-
-                                column.Item().PaddingBottom(10).Text("Detalle Completo de Pedimentos (sin agrupación)")
-                                    .FontSize(14)
-                                    .Bold()
-                                    .FontColor(Colors.Blue.Darken2);
-
-                                column.Item().Table(table =>
-                                {
-                                    // Definir columnas fijas para el detalle
-                                    table.ColumnsDefinition(columns =>
-                                    {
-                                        columns.RelativeColumn(1.5f); // Base Datos
-                                        columns.RelativeColumn(1);   // ID Pedimento
-                                        columns.RelativeColumn(2);   // Pedimento
-                                        columns.RelativeColumn(1.2f); // Fecha Pago
-                                        columns.RelativeColumn(1.2f); // IGI Pagado
-                                        columns.RelativeColumn(1.2f); // IGI Calculado
-                                        columns.RelativeColumn(1.2f); // Diferencia IGI
-                                        columns.RelativeColumn(1.2f); // IVA Pagado
-                                        columns.RelativeColumn(1);   // Forma Pago IGI
-                                        columns.RelativeColumn(1);   // Forma Pago IVA
-                                        columns.RelativeColumn(1);   // Estatus Glosa
-                                    });
-
-                                    table.Header(header =>
-                                    {
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("Base Datos").FontColor(Colors.White).Bold().FontSize(8);
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("ID Pedimento").FontColor(Colors.White).Bold().FontSize(8).AlignRight();
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("Pedimento").FontColor(Colors.White).Bold().FontSize(8);
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("Fecha Pago").FontColor(Colors.White).Bold().FontSize(8);
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("IGI Pagado").FontColor(Colors.White).Bold().FontSize(8).AlignRight();
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("IGI Calculado").FontColor(Colors.White).Bold().FontSize(8).AlignRight();
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("Diferencia IGI").FontColor(Colors.White).Bold().FontSize(8).AlignRight();
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("IVA Pagado").FontColor(Colors.White).Bold().FontSize(8).AlignRight();
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("Forma Pago IGI").FontColor(Colors.White).Bold().FontSize(8);
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("Forma Pago IVA").FontColor(Colors.White).Bold().FontSize(8);
-                                        header.Cell().Background(Colors.Grey.Darken2).Padding(5).Text("Estatus Glosa").FontColor(Colors.White).Bold().FontSize(8);
-                                    });
-
-                                    int contador = 0;
-                                    foreach (System.Data.DataRow row in tablaDetalleCompleto.Rows)
-                                    {
-                                        var bgColor = contador % 2 == 0 ? Colors.White : Colors.Grey.Lighten4;
-
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                            .Text(row.Table.Columns.Contains("Base Datos") ? row["Base Datos"].ToString() : string.Empty).FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
-                                            .Text(row.Table.Columns.Contains("ID Pedimento") ? row["ID Pedimento"].ToString() : "").FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                            .Text(row.Table.Columns.Contains("Pedimento") ? row["Pedimento"].ToString() : string.Empty).FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                            .Text(row.Table.Columns.Contains("Fecha Pago") && row["Fecha Pago"] != DBNull.Value ? Convert.ToDateTime(row["Fecha Pago"]).ToString("dd/MM/yyyy") : string.Empty).FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
-                                            .Text(row.Table.Columns.Contains("IGI Pagado") ? Convert.ToDecimal(row["IGI Pagado"]).ToString("C2") : "").FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
-                                            .Text(row.Table.Columns.Contains("IGI Calculado") ? Convert.ToDecimal(row["IGI Calculado"]).ToString("C2") : "").FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
-                                            .Text(row.Table.Columns.Contains("Diferencia IGI") ? Convert.ToDecimal(row["Diferencia IGI"]).ToString("C2") : "").FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight()
-                                            .Text(row.Table.Columns.Contains("IVA Pagado") ? Convert.ToDecimal(row["IVA Pagado"]).ToString("C2") : "").FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                            .Text(row.Table.Columns.Contains("Forma Pago IGI") ? row["Forma Pago IGI"].ToString() : string.Empty).FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                            .Text(row.Table.Columns.Contains("Forma Pago IVA") ? row["Forma Pago IVA"].ToString() : string.Empty).FontSize(7);
-                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                            .Text(row.Table.Columns.Contains("Estatus Glosa") ? row["Estatus Glosa"].ToString() : string.Empty).FontSize(7);
-
-                                        contador++;
-                                    }
-
-                                    if (tablaDetalleCompleto.Rows.Count > 500)
-                                    {
-                                        table.Cell().ColumnSpan(11).Background(Colors.Yellow.Lighten3).Padding(8).AlignCenter()
-                                            .Text($"Nota: Se muestran {Math.Min(500, tablaDetalleCompleto.Rows.Count)} registros por desempeño; el archivo contiene {tablaDetalleCompleto.Rows.Count} totales")
-                                            .FontSize(9).Italic();
-                                    }
-                                });
-                            }
                             });
 
                             if (!string.IsNullOrEmpty(baseDatos))
@@ -2059,6 +1976,80 @@ namespace Retorno360Tacna.SERVICES
                                     contadorIVA++;
                                 }
                             });
+
+                            if (tablaDetalleCompleto != null && tablaDetalleCompleto.Rows.Count > 0)
+                            {
+                                column.Item().PageBreak();
+
+                                column.Item().PaddingBottom(10).Text("Detalle Completo de Pedimentos")
+                                    .FontSize(14)
+                                    .Bold()
+                                    .FontColor(Colors.Blue.Darken2);
+
+                                column.Item().Table(table =>
+                                {
+                                    table.ColumnsDefinition(columns =>
+                                    {
+                                        columns.RelativeColumn(1.5f);
+                                        columns.RelativeColumn(1);
+                                        columns.RelativeColumn(2);
+                                        columns.RelativeColumn(1.2f);
+                                        columns.RelativeColumn(1.2f);
+                                        columns.RelativeColumn(1.2f);
+                                        columns.RelativeColumn(1.2f);
+                                        columns.RelativeColumn(1.2f);
+                                        columns.RelativeColumn(1);
+                                        columns.RelativeColumn(1);
+                                        columns.RelativeColumn(1);
+                                    });
+
+                                    table.Header(header =>
+                                    {
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).Text("Base Datos").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).AlignRight().Text("ID").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).Text("Pedimento").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).Text("Fecha").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).AlignRight().Text("IGI Pagado").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).AlignRight().Text("IGI Calc.").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).AlignRight().Text("Dif. IGI").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).AlignRight().Text("IVA Pagado").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).Text("FP IGI").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).Text("FP IVA").FontColor(Colors.White).Bold().FontSize(7);
+                                        header.Cell().Background(Colors.Grey.Darken2).Padding(4).Text("Estatus").FontColor(Colors.White).Bold().FontSize(7);
+                                    });
+
+                                    int contadorDetalle = 0;
+                                    foreach (System.Data.DataRow row in tablaDetalleCompleto.Rows)
+                                    {
+                                        var bgColor = contadorDetalle % 2 == 0 ? Colors.White : Colors.Grey.Lighten4;
+
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                                            .Text(row.Table.Columns.Contains("Base Datos") ? row["Base Datos"].ToString() : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                                            .Text(row.Table.Columns.Contains("ID Pedimento") ? row["ID Pedimento"].ToString() : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                                            .Text(row.Table.Columns.Contains("Pedimento") ? row["Pedimento"].ToString() : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                                            .Text(row.Table.Columns.Contains("Fecha Pago") && row["Fecha Pago"] != DBNull.Value ? Convert.ToDateTime(row["Fecha Pago"]).ToString("dd/MM/yyyy") : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                                            .Text(row.Table.Columns.Contains("IGI Pagado") ? Convert.ToDecimal(row["IGI Pagado"]).ToString("C2") : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                                            .Text(row.Table.Columns.Contains("IGI Calculado") ? Convert.ToDecimal(row["IGI Calculado"]).ToString("C2") : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                                            .Text(row.Table.Columns.Contains("Diferencia IGI") ? Convert.ToDecimal(row["Diferencia IGI"]).ToString("C2") : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                                            .Text(row.Table.Columns.Contains("IVA Pagado") ? Convert.ToDecimal(row["IVA Pagado"]).ToString("C2") : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                                            .Text(row.Table.Columns.Contains("Forma Pago IGI") ? row["Forma Pago IGI"].ToString() : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                                            .Text(row.Table.Columns.Contains("Forma Pago IVA") ? row["Forma Pago IVA"].ToString() : string.Empty).FontSize(6);
+                                        table.Cell().Background(bgColor).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                                            .Text(row.Table.Columns.Contains("Estatus Glosa") ? row["Estatus Glosa"].ToString() : string.Empty).FontSize(6);
+
+                                        contadorDetalle++;
+                                    }
+                                });
+                            }
                         });
 
                     page.Footer()

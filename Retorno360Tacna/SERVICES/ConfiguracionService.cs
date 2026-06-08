@@ -7,10 +7,88 @@ namespace Retorno360Tacna.SERVICES
 {
     public static class ConfiguracionService
     {
+        private static readonly Size ResolucionLogicaObjetivo = new(1536, 864);
+        private static readonly Size ResolucionMinimaTrabajo = new(1280, 720);
+
         private static string RutaConfiguracion => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Retorno360Tacna",
             "config.txt");
+
+        public static void AplicarPerfilPantallaLogica(Form formulario, bool ocuparAreaTrabajo = false)
+        {
+            try
+            {
+                formulario.AutoScaleMode = AutoScaleMode.Dpi;
+
+                if (!formulario.TopLevel)
+                    return;
+
+                var areaTrabajo = Screen.FromPoint(Cursor.Position).WorkingArea;
+                if (areaTrabajo.Width <= 0 || areaTrabajo.Height <= 0)
+                    areaTrabajo = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, ResolucionLogicaObjetivo.Width, ResolucionLogicaObjetivo.Height);
+
+                formulario.MinimumSize = new Size(
+                    Math.Min(areaTrabajo.Width, ResolucionMinimaTrabajo.Width),
+                    Math.Min(areaTrabajo.Height, ResolucionMinimaTrabajo.Height));
+
+                if (ocuparAreaTrabajo)
+                {
+                    formulario.WindowState = FormWindowState.Normal;
+                    formulario.StartPosition = FormStartPosition.Manual;
+                    formulario.Bounds = areaTrabajo;
+                    return;
+                }
+
+                float factorDpi = 1f;
+                using (var graphics = formulario.CreateGraphics())
+                {
+                    factorDpi = Math.Clamp(graphics.DpiX / 96f, 1f, 1.25f);
+                }
+
+                int anchoObjetivo = Math.Min(areaTrabajo.Width, (int)Math.Round(formulario.ClientSize.Width * factorDpi));
+                int altoObjetivo = Math.Min(areaTrabajo.Height, (int)Math.Round(formulario.ClientSize.Height * factorDpi));
+
+                anchoObjetivo = Math.Min(anchoObjetivo, ResolucionLogicaObjetivo.Width);
+                altoObjetivo = Math.Min(altoObjetivo, ResolucionLogicaObjetivo.Height);
+
+                formulario.WindowState = FormWindowState.Normal;
+                formulario.StartPosition = FormStartPosition.Manual;
+                formulario.ClientSize = new Size(anchoObjetivo, altoObjetivo);
+                formulario.Location = new Point(
+                    areaTrabajo.Left + Math.Max(0, (areaTrabajo.Width - anchoObjetivo) / 2),
+                    areaTrabajo.Top + Math.Max(0, (areaTrabajo.Height - altoObjetivo) / 2));
+            }
+            catch
+            {
+                // Ignorar errores de adaptación visual
+            }
+        }
+
+        public static bool ObtenerAjusteVentanaPantallaLogica()
+        {
+            try
+            {
+                if (File.Exists(RutaConfiguracion))
+                {
+                    var lineas = File.ReadAllLines(RutaConfiguracion);
+                    foreach (var linea in lineas)
+                    {
+                        if (linea.StartsWith("AjustarPantallaLogica="))
+                        {
+                            string valor = linea.Replace("AjustarPantallaLogica=", "").Trim();
+                            if (bool.TryParse(valor, out bool ajustar))
+                                return ajustar;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
 
         public static void AplicarEscalaUI()
         {

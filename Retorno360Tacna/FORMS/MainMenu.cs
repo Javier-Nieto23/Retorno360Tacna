@@ -14,6 +14,9 @@ namespace Retorno360Tacna.FORMS
         private bool menuInventariosExpandido = false;
         private const int ANCHO_SIDEBAR_EXPANDIDO = 250;
         private const int ANCHO_SIDEBAR_COLAPSADO = 60;
+        private int anchoSidebarExpandidoActual = ANCHO_SIDEBAR_EXPANDIDO;
+        private int anchoSidebarColapsadoActual = ANCHO_SIDEBAR_COLAPSADO;
+        private decimal escalaUiActual = 1.0m;
 
         // Importar funciones de Windows para personalizar la barra de título
         [DllImport("dwmapi.dll")]
@@ -25,12 +28,20 @@ namespace Retorno360Tacna.FORMS
         public MainMenu()
         {
             InitializeComponent();
+            if (SERVICES.ConfiguracionService.ObtenerAjusteVentanaPantallaLogica())
+            {
+                SERVICES.ConfiguracionService.AplicarPerfilPantallaLogica(this, true);
+            }
             PersonalizarBarraTitulo();
         }
 
         public MainMenu(Usuario usuario, ConexionInfo conexion)
         {
             InitializeComponent();
+            if (SERVICES.ConfiguracionService.ObtenerAjusteVentanaPantallaLogica())
+            {
+                SERVICES.ConfiguracionService.AplicarPerfilPantallaLogica(this, true);
+            }
             usuarioActual = usuario;
             conexionActual = conexion;
             InicializarMenuDesplegable();
@@ -63,11 +74,13 @@ namespace Retorno360Tacna.FORMS
             PersonalizarBarraTitulo();
 
             // Aplicar escalado de UI
-            decimal escala = SERVICES.ConfiguracionService.ObtenerEscalaUI();
-            if (escala != 1.0m)
+            escalaUiActual = SERVICES.ConfiguracionService.ObtenerEscalaUI();
+            if (escalaUiActual != 1.0m)
             {
-                SERVICES.ConfiguracionService.AplicarEscalaFormulario(this, escala);
+                SERVICES.ConfiguracionService.AplicarEscalaFormulario(this, escalaUiActual);
             }
+
+            AplicarEscalaMenuLateral();
 
             if (usuarioActual != null)
             {
@@ -140,7 +153,7 @@ namespace Retorno360Tacna.FORMS
             {
                 // Expandir sub-menú
                 panelSubMenuAdmin.Visible = true;
-                panelSubMenuAdmin.Height = 120; // 2 botones x 60px
+                panelSubMenuAdmin.Height = ObtenerAlturaSubmenu(panelSubMenuAdmin);
                 btnAdministracion.Text = "Administración";
             }
             else
@@ -159,7 +172,7 @@ namespace Retorno360Tacna.FORMS
             if (sidebarColapsado)
             {
                 // Colapsar sidebar
-                panelSidebar.Width = ANCHO_SIDEBAR_COLAPSADO;
+                panelSidebar.Width = anchoSidebarColapsadoActual;
 
                 // Ocultar sub-menú de Administración si está expandido
                 if (menuAdminExpandido)
@@ -189,7 +202,7 @@ namespace Retorno360Tacna.FORMS
             else
             {
                 // Expandir sidebar
-                panelSidebar.Width = ANCHO_SIDEBAR_EXPANDIDO;
+                panelSidebar.Width = anchoSidebarExpandidoActual;
 
                 // Mostrar textos de botones
                 btnDiagramas.Text = "Inicio";
@@ -216,7 +229,7 @@ namespace Retorno360Tacna.FORMS
             if (menuInventariosExpandido)
             {
                 panelSubMenuInventarios.Visible = true;
-                panelSubMenuInventarios.Height = 120;
+                panelSubMenuInventarios.Height = ObtenerAlturaSubmenu(panelSubMenuInventarios);
                 btnInventarios.Text = "Inventarios";
             }
             else
@@ -422,6 +435,26 @@ namespace Retorno360Tacna.FORMS
         private void panelSidebar_Paint(object sender, PaintEventArgs e)
         {
 
+        }
+
+        private void AplicarEscalaMenuLateral()
+        {
+            float factor = Math.Max(1f, (float)escalaUiActual);
+
+            anchoSidebarExpandidoActual = (int)Math.Round(ANCHO_SIDEBAR_EXPANDIDO * factor);
+            anchoSidebarColapsadoActual = Math.Max(60, (int)Math.Round(ANCHO_SIDEBAR_COLAPSADO * factor));
+
+            panelSidebar.Width = sidebarColapsado ? anchoSidebarColapsadoActual : anchoSidebarExpandidoActual;
+            panelSubMenuAdmin.Height = menuAdminExpandido ? ObtenerAlturaSubmenu(panelSubMenuAdmin) : 0;
+            panelSubMenuInventarios.Height = menuInventariosExpandido ? ObtenerAlturaSubmenu(panelSubMenuInventarios) : 0;
+        }
+
+        private static int ObtenerAlturaSubmenu(Panel panelSubMenu)
+        {
+            return panelSubMenu.Controls
+                .OfType<Control>()
+                .Where(control => control.Visible)
+                .Sum(control => control.Height);
         }
 
  

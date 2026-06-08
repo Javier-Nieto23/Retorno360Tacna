@@ -6,6 +6,7 @@ namespace Retorno360Tacna.MODELS
         public string NombreUsuario { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public decimal EscalaUI { get; set; } = 1.0m; // 1.0 = 100%, 1.25 = 125%, 1.5 = 150%
+        public bool AjustarVentanaPantallaLogica { get; set; } = false;
         public string TemaColor { get; set; } = "Default";
         public bool ModoOscuro { get; set; } = false;
 

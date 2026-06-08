@@ -87,6 +87,8 @@ namespace Retorno360Tacna.FORMS
             else
                 cmbEscalaUI.SelectedIndex = 0; // Default 100%
 
+            configuracion.AjustarVentanaPantallaLogica = SERVICES.ConfiguracionService.ObtenerAjusteVentanaPantallaLogica();
+            chkAjustarPantallaLogica.Checked = configuracion.AjustarVentanaPantallaLogica;
             lblEscalaActual.Text = $"Escala actual: {(configuracion.EscalaUI * 100):0}%";
         }
 
@@ -97,12 +99,13 @@ namespace Retorno360Tacna.FORMS
                 // Guardar escala seleccionada
                 decimal nuevaEscala = ObtenerEscalaSeleccionada();
                 configuracion.EscalaUI = nuevaEscala;
+                configuracion.AjustarVentanaPantallaLogica = chkAjustarPantallaLogica.Checked;
 
                 // Verificar si cambió la escala
-                if (nuevaEscala != escalaOriginal)
+                if (nuevaEscala != escalaOriginal || configuracion.AjustarVentanaPantallaLogica != SERVICES.ConfiguracionService.ObtenerAjusteVentanaPantallaLogica())
                 {
                     var result = MessageBox.Show(
-                        "Se ha cambiado la escala de la interfaz.\n\n" +
+                        "Se ha cambiado la configuración visual de la interfaz.\n\n" +
                         "La aplicación debe reiniciarse para aplicar los cambios.\n\n" +
                         "¿Desea reiniciar ahora?",
                         "Reinicio requerido",
@@ -171,7 +174,8 @@ namespace Retorno360Tacna.FORMS
 
                 string[] lineas = new[]
                 {
-                    $"EscalaUI={configuracion.EscalaUI}"
+                    $"EscalaUI={configuracion.EscalaUI}",
+                    $"AjustarPantallaLogica={configuracion.AjustarVentanaPantallaLogica}"
                 };
 
                 File.WriteAllLines(rutaConfig, lineas);

@@ -192,7 +192,7 @@ namespace Retorno360Tacna.SERVICES
 
         /// <summary>
         /// Obtiene las bases de datos de una razón social con información de conexión externa
-        /// Lee directamente de NOM_TABLARAZON y cruza con Conexiones si es necesario
+        /// Lee de NOM_TABLARAZON (bases seleccionables del cliente) con su IdConexion
         /// </summary>
         public List<ConexionExternaInfo> ObtenerBasesDatosConConexion(int idRazon)
         {
@@ -207,19 +207,24 @@ namespace Retorno360Tacna.SERVICES
                     "RetornoMaster"
                 );
 
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"\n📋 Obteniendo bases para IdRazon: {idRazon}");
+#endif
+
+                // Consultar NOM_TABLARAZON para obtener las bases seleccionables
+                // y sus conexiones externas
                 string sql = @"
                     SELECT 
                         NT.NOMBRE_TABLA AS BaseDatos,
-                        R.ConnExterna,
-                        R.IdConexion,
+                        NT.IdConexion,
                         C.NombreConexion,
                         C.Servidor,
                         C.UsuarioSQL,
                         C.PasswordSQL
                     FROM NOM_TABLARAZON NT
-                    LEFT JOIN RAZONXTABLA R ON R.DB = NT.NOMBRE_TABLA AND R.IdRazon = NT.IdRazon
-                    LEFT JOIN Conexiones C ON R.IdConexion = C.IdConexion
-                    WHERE NT.IdRazon = @IdRazon AND NT.NOMBRE_TABLA IS NOT NULL
+                    LEFT JOIN Conexiones C ON NT.IdConexion = C.IdConexion
+                    WHERE NT.IdRazon = @IdRazon 
+                      AND NT.NOMBRE_TABLA IS NOT NULL
                     ORDER BY NT.NOMBRE_TABLA";
 
                 using var cn = conexion.ObtenerConexion();
@@ -235,32 +240,38 @@ namespace Retorno360Tacna.SERVICES
                         BaseDatos = reader.GetString(0)
                     };
 
-                    // ConnExterna
+                    // Leer IdConexion
                     if (!reader.IsDBNull(1))
                     {
-                        string connExterna = reader.GetString(1);
-                        info.TieneConexionExterna = connExterna.Equals("S", StringComparison.OrdinalIgnoreCase);
-                    }
+                        info.IdConexion = reader.GetInt32(1);
+                        info.TieneConexionExterna = true;
 
-                    // IdConexion
-                    if (!reader.IsDBNull(2))
-                    {
-                        info.IdConexion = reader.GetInt32(2);
-                    }
+                        // Leer información de la tabla Conexiones (del JOIN)
+                        if (!reader.IsDBNull(2))
+                        {
+                            info.NombreConexion = reader.GetString(2);
+                            info.Servidor = reader.IsDBNull(3) ? null : reader.GetString(3);
+                            info.UsuarioSQL = reader.IsDBNull(4) ? null : reader.GetString(4);
+                            info.PasswordSQL = reader.IsDBNull(5) ? null : reader.GetString(5);
+                        }
 
-                    // Si tiene conexión externa, leer la información de la conexión
-                    if (info.TieneConexionExterna && info.IdConexion.HasValue)
+#if DEBUG
+                        System.Diagnostics.Debug.WriteLine(
+                            $"   ✅ {info.BaseDatos} → Servidor: {info.Servidor} (IdConexion: {info.IdConexion})");
+#endif
+                    }
+                    else
                     {
-                        if (!reader.IsDBNull(3)) info.NombreConexion = reader.GetString(3);
-                        if (!reader.IsDBNull(4)) info.Servidor = reader.GetString(4);
-                        if (!reader.IsDBNull(5)) info.UsuarioSQL = reader.GetString(5);
-                        if (!reader.IsDBNull(6)) info.PasswordSQL = reader.GetString(6);
+                        // IdConexion NULL = usar conexión principal
+                        info.TieneConexionExterna = false;
+
+#if DEBUG
+                        System.Diagnostics.Debug.WriteLine(
+                            $"   🔌 {info.BaseDatos} → Conexión principal (IdConexion: NULL)");
+#endif
                     }
 
                     basesDatos.Add(info);
-
-                    // Log de diagnóstico
-                    System.Diagnostics.Debug.WriteLine($"Base encontrada: {info.BaseDatos}, ConexionExterna: {info.TieneConexionExterna}");
 
                     // Cachear la información
                     if (!cacheConexiones.ContainsKey(info.BaseDatos))
@@ -269,10 +280,15 @@ namespace Retorno360Tacna.SERVICES
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"Total de bases de datos encontradas para IdRazon {idRazon}: {basesDatos.Count}");
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"   📊 Total: {basesDatos.Count} bases encontradas\n");
+#endif
             }
             catch (Exception ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"   ❌ Error: {ex.Message}\n");
+#endif
                 throw new Exception($"Error al obtener bases de datos con conexión: {ex.Message}", ex);
             }
 
@@ -281,7 +297,9 @@ namespace Retorno360Tacna.SERVICES
 
         /// <summary>
         /// Obtiene la información de conexión externa para una base de datos
-        /// Busca primero en RAZONXTABLA (bases origen/glosa) y luego en NOM_TABLARAZON (bases seleccionables)
+        /// Lógica corregida:
+        /// 1. Busca primero en NOM_TABLARAZON (bases seleccionables del cliente) con IdRazon correcto
+        /// 2. Si no encuentra, busca en RAZONXTABLA (base de glosa)
         /// Template Method: puede ser sobrescrito por clases derivadas
         /// </summary>
         protected virtual ConexionExternaInfo ObtenerConexionExterna(string baseDatos)
@@ -289,6 +307,9 @@ namespace Retorno360Tacna.SERVICES
             // Verificar cache
             if (cacheConexiones.TryGetValue(baseDatos, out var conexionCacheada))
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"💾 Usando conexión cacheada para '{baseDatos}'");
+#endif
                 return conexionCacheada;
             }
 
@@ -308,21 +329,26 @@ namespace Retorno360Tacna.SERVICES
 
                 bool encontrado = false;
 
-                // PASO 1: Buscar en RAZONXTABLA (bases origen/glosa)
-                string sqlRazonXTabla = @"
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"\n🔍 Buscando conexión para '{baseDatos}'...");
+#endif
+
+                // PASO 1: Buscar en NOM_TABLARAZON (bases seleccionables - bases del cliente)
+                // Esta tabla tiene IdConexion que indica el servidor donde está la base
+                string sqlNomTablaRazon = @"
                     SELECT TOP 1 
-                        R.ConnExterna,
-                        R.IdConexion,
+                        NT.IdRazon,
+                        NT.IdConexion,
                         C.NombreConexion,
                         C.Servidor,
                         C.UsuarioSQL,
                         C.PasswordSQL
-                    FROM RAZONXTABLA R
-                    LEFT JOIN Conexiones C ON R.IdConexion = C.IdConexion
-                    WHERE R.DB = @BaseDatos
-                    ORDER BY R.IdRazon";
+                    FROM NOM_TABLARAZON NT
+                    LEFT JOIN Conexiones C ON NT.IdConexion = C.IdConexion
+                    WHERE NT.NOMBRE_TABLA = @BaseDatos
+                    ORDER BY NT.IdTabla";
 
-                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(sqlRazonXTabla, cn))
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(sqlNomTablaRazon, cn))
                 {
                     cmd.Parameters.AddWithValue("@BaseDatos", baseDatos);
 
@@ -330,45 +356,67 @@ namespace Retorno360Tacna.SERVICES
                     if (reader.Read())
                     {
                         encontrado = true;
+                        int idRazonEncontrado = reader.GetInt32(0);
 
-                        string? connExterna = reader.IsDBNull(0) ? null : reader.GetString(0);
-                        conexionExterna.TieneConexionExterna = connExterna?.Trim().Equals("S", StringComparison.OrdinalIgnoreCase) == true;
+#if DEBUG
+                        System.Diagnostics.Debug.WriteLine($"   ✅ Encontrado en NOM_TABLARAZON");
+                        System.Diagnostics.Debug.WriteLine($"   📋 IdRazon: {idRazonEncontrado}");
+#endif
 
+                        // Leer IdConexion (si es NULL = conexión principal, si tiene valor = externa)
                         if (!reader.IsDBNull(1))
                         {
                             conexionExterna.IdConexion = reader.GetInt32(1);
-                        }
-
-                        if (!reader.IsDBNull(2))
-                        {
-                            conexionExterna.NombreConexion = reader.GetString(2);
-                            conexionExterna.Servidor = reader.IsDBNull(3) ? null : reader.GetString(3);
-                            conexionExterna.UsuarioSQL = reader.IsDBNull(4) ? null : reader.GetString(4);
-                            conexionExterna.PasswordSQL = reader.IsDBNull(5) ? null : reader.GetString(5);
-                        }
+                            conexionExterna.TieneConexionExterna = true;
 
 #if DEBUG
-                        System.Diagnostics.Debug.WriteLine($"📡 Conexión encontrada en RAZONXTABLA para '{baseDatos}'");
+                            System.Diagnostics.Debug.WriteLine($"   🔗 IdConexion: {conexionExterna.IdConexion}");
 #endif
+
+                            // Leer datos de la tabla Conexiones (si existe el JOIN)
+                            if (!reader.IsDBNull(2))
+                            {
+                                conexionExterna.NombreConexion = reader.GetString(2);
+                                conexionExterna.Servidor = reader.IsDBNull(3) ? null : reader.GetString(3);
+                                conexionExterna.UsuarioSQL = reader.IsDBNull(4) ? null : reader.GetString(4);
+                                conexionExterna.PasswordSQL = reader.IsDBNull(5) ? null : reader.GetString(5);
+
+#if DEBUG
+                                System.Diagnostics.Debug.WriteLine($"   🌐 Servidor: {conexionExterna.Servidor}");
+                                System.Diagnostics.Debug.WriteLine($"   👤 Usuario: {conexionExterna.UsuarioSQL}");
+#endif
+                            }
+                        }
+                        else
+                        {
+                            // IdConexion es NULL = usar conexión principal
+                            conexionExterna.TieneConexionExterna = false;
+#if DEBUG
+                            System.Diagnostics.Debug.WriteLine($"   🔌 IdConexion: NULL (usar conexión principal)");
+#endif
+                        }
                     }
                 }
 
-                // PASO 2: Si no se encontró en RAZONXTABLA, buscar en NOM_TABLARAZON
+                // PASO 2: Si no se encontró en NOM_TABLARAZON, buscar en RAZONXTABLA (base de glosa)
+                // Esta tabla tiene ConnExterna='S' o 'N' y también IdConexion
                 if (!encontrado)
                 {
-                    string sqlNomTablaRazon = @"
+                    string sqlRazonXTabla = @"
                         SELECT TOP 1 
-                            N.IdConexion,
+                            R.IdRazon,
+                            R.ConnExterna,
+                            R.IdConexion,
                             C.NombreConexion,
                             C.Servidor,
                             C.UsuarioSQL,
                             C.PasswordSQL
-                        FROM NOM_TABLARAZON N
-                        LEFT JOIN Conexiones C ON N.IdConexion = C.IdConexion
-                        WHERE N.NOMBRE_TABLA = @BaseDatos
-                        ORDER BY N.IdTabla";
+                        FROM RAZONXTABLA R
+                        LEFT JOIN Conexiones C ON R.IdConexion = C.IdConexion
+                        WHERE R.DB = @BaseDatos
+                        ORDER BY R.IdRazon";
 
-                    using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(sqlNomTablaRazon, cn))
+                    using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(sqlRazonXTabla, cn))
                     {
                         cmd.Parameters.AddWithValue("@BaseDatos", baseDatos);
 
@@ -376,30 +424,51 @@ namespace Retorno360Tacna.SERVICES
                         if (reader.Read())
                         {
                             encontrado = true;
+                            int idRazonEncontrado = reader.GetInt32(0);
 
-                            // Leer IdConexion (si es NULL = conexión principal, si tiene valor = externa)
-                            if (!reader.IsDBNull(0))
+#if DEBUG
+                            System.Diagnostics.Debug.WriteLine($"   ✅ Encontrado en RAZONXTABLA (base de glosa)");
+                            System.Diagnostics.Debug.WriteLine($"   📋 IdRazon: {idRazonEncontrado}");
+#endif
+
+                            // Leer ConnExterna
+                            string? connExterna = reader.IsDBNull(1) ? null : reader.GetString(1);
+
+                            // Leer IdConexion
+                            if (!reader.IsDBNull(2))
                             {
-                                conexionExterna.IdConexion = reader.GetInt32(0);
+                                conexionExterna.IdConexion = reader.GetInt32(2);
+
+                                // Si tiene IdConexion, es conexión externa
                                 conexionExterna.TieneConexionExterna = true;
+
+#if DEBUG
+                                System.Diagnostics.Debug.WriteLine($"   🔗 IdConexion: {conexionExterna.IdConexion}");
+                                System.Diagnostics.Debug.WriteLine($"   📌 ConnExterna: {connExterna}");
+#endif
+
+                                // Leer datos de la tabla Conexiones
+                                if (!reader.IsDBNull(3))
+                                {
+                                    conexionExterna.NombreConexion = reader.GetString(3);
+                                    conexionExterna.Servidor = reader.IsDBNull(4) ? null : reader.GetString(4);
+                                    conexionExterna.UsuarioSQL = reader.IsDBNull(5) ? null : reader.GetString(5);
+                                    conexionExterna.PasswordSQL = reader.IsDBNull(6) ? null : reader.GetString(6);
+
+#if DEBUG
+                                    System.Diagnostics.Debug.WriteLine($"   🌐 Servidor: {conexionExterna.Servidor}");
+                                    System.Diagnostics.Debug.WriteLine($"   👤 Usuario: {conexionExterna.UsuarioSQL}");
+#endif
+                                }
                             }
                             else
                             {
+                                // IdConexion es NULL = usar conexión principal
                                 conexionExterna.TieneConexionExterna = false;
-                            }
-
-                            // Leer datos de la tabla Conexiones (si existe el JOIN)
-                            if (!reader.IsDBNull(1))
-                            {
-                                conexionExterna.NombreConexion = reader.GetString(1);
-                                conexionExterna.Servidor = reader.IsDBNull(2) ? null : reader.GetString(2);
-                                conexionExterna.UsuarioSQL = reader.IsDBNull(3) ? null : reader.GetString(3);
-                                conexionExterna.PasswordSQL = reader.IsDBNull(4) ? null : reader.GetString(4);
-                            }
-
 #if DEBUG
-                            System.Diagnostics.Debug.WriteLine($"📡 Conexión encontrada en NOM_TABLARAZON para '{baseDatos}'");
+                                System.Diagnostics.Debug.WriteLine($"   🔌 IdConexion: NULL (usar conexión principal)");
 #endif
+                            }
                         }
                     }
                 }
@@ -407,20 +476,13 @@ namespace Retorno360Tacna.SERVICES
 #if DEBUG
                 if (!encontrado)
                 {
-                    System.Diagnostics.Debug.WriteLine($"⚠️ Base de datos '{baseDatos}' no encontrada en RAZONXTABLA ni en NOM_TABLARAZON. Usando conexión principal.");
-                }
-                else if (conexionExterna.TieneConexionExterna)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"📡 Conexión Externa para '{baseDatos}':\n" +
-                        $"   Servidor: {conexionExterna.Servidor}\n" +
-                        $"   IdConexion: {conexionExterna.IdConexion}"
-                    );
+                    System.Diagnostics.Debug.WriteLine($"   ⚠️ '{baseDatos}' NO encontrada en ninguna tabla. Usando conexión principal.");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"🔌 Base de datos '{baseDatos}' usará conexión principal (sin IdConexion)");
+                    System.Diagnostics.Debug.WriteLine($"   ✅ Resultado: {(conexionExterna.TieneConexionExterna ? "EXTERNA" : "PRINCIPAL")}");
                 }
+                System.Diagnostics.Debug.WriteLine("");
 #endif
 
                 // Guardar en cache
@@ -428,6 +490,9 @@ namespace Retorno360Tacna.SERVICES
             }
             catch (Exception ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"   ❌ Error: {ex.Message}\n");
+#endif
                 throw new Exception($"Error al obtener conexión externa para '{baseDatos}': {ex.Message}", ex);
             }
 
