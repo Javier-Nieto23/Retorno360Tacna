@@ -1,12 +1,15 @@
 using Retorno360Tacna.CNX;
+using Retorno360Tacna.HELPERS;
 using Retorno360Tacna.MODELS;
 using Retorno360Tacna.SERVICES;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ClosedXML.Excel;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
@@ -25,7 +28,6 @@ namespace Retorno360Tacna.FORMS
         private List<MateriaPrimaBOM> datosConsultadosOtros;
         private Control chartControl; // Control genérico para manejar ambos tipos de gráficas
         private int vistaActual = 0; // 0 = MP, 1 = Otros tipos
-
         public FrmCatalogoPartes(ConexionInfo conexion)
         {
             InitializeComponent();
@@ -34,6 +36,9 @@ namespace Retorno360Tacna.FORMS
             datosConsultadosMP = new List<MateriaPrimaBOM>();
             datosConsultadosOtros = new List<MateriaPrimaBOM>();
             chartControl = chartEstatus; // Inicialmente es PieChart
+            DataGridViewManualCopyHelper.ConfigurarControles(this);
+            dgvMateriaPrima.CellDoubleClick += dgvMateriaPrima_CellDoubleClick;
+            DataGridViewManualCopyHelper.Configurar(dgvMateriaPrima);
         }
 
         private void FrmCatalogoPartes_Load(object sender, EventArgs e)
@@ -218,8 +223,13 @@ namespace Retorno360Tacna.FORMS
                 dgvMateriaPrima.Columns["Par_DescripcionEsp"].HeaderText = "Descripción";
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
                 dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
+                dgvMateriaPrima.Columns["DetallePedimentosGlosa"].HeaderText = "En Pedimento";
+                dgvMateriaPrima.Columns["DetallePedimentosInfo"].Visible = false;
+                dgvMateriaPrima.Columns["Par_Consecutivo"].Visible = false;
                 dgvMateriaPrima.Columns["Clave"].Visible = false;
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
+                dgvMateriaPrima.Columns["DetallePedimentosGlosa"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                dgvMateriaPrima.Columns["DetallePedimentosGlosa"].MinimumWidth = 80;
             }
 
             // Actualizar gráfico
@@ -257,9 +267,14 @@ namespace Retorno360Tacna.FORMS
                 dgvMateriaPrima.Columns["Par_DescripcionEsp"].HeaderText = "Descripción";
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
                 dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
+                dgvMateriaPrima.Columns["DetallePedimentosGlosa"].HeaderText = "En Pedimento";
+                dgvMateriaPrima.Columns["DetallePedimentosInfo"].Visible = false;
+                dgvMateriaPrima.Columns["Par_Consecutivo"].Visible = false;
                 dgvMateriaPrima.Columns["Clave"].Visible = true; // Mostrar columna de tipo
                 dgvMateriaPrima.Columns["Clave"].HeaderText = "Tipo";
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
+                dgvMateriaPrima.Columns["DetallePedimentosGlosa"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                dgvMateriaPrima.Columns["DetallePedimentosGlosa"].MinimumWidth = 80;
             }
 
             // Actualizar gráfico de barras
@@ -662,6 +677,7 @@ namespace Retorno360Tacna.FORMS
                             columns.RelativeColumn(4);  // Descripción
                             columns.RelativeColumn(1.5f);  // Fecha Inserción
                             columns.RelativeColumn(1.5f);  // Estatus
+                            columns.RelativeColumn(4);  // Pedimentos en Glosa
                         });
 
                         // Header
@@ -671,6 +687,7 @@ namespace Retorno360Tacna.FORMS
                             header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
                             header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
                             header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
+                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Pedimentos en Glosa").FontColor(Colors.White).Bold();
                         });
 
                         // Data rows - Ordenados por Número de Parte
@@ -686,6 +703,8 @@ namespace Retorno360Tacna.FORMS
 
                             table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
                                 .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                                .Text(item.DetallePedimentosGlosa).FontSize(8);
                         }
                     });
 
@@ -748,6 +767,7 @@ namespace Retorno360Tacna.FORMS
                                 columns.RelativeColumn(3.5f);  // Descripción
                                 columns.RelativeColumn(1.5f);  // Fecha Inserción
                                 columns.RelativeColumn(1.5f);  // Estatus
+                                columns.RelativeColumn(4);     // Pedimentos en Glosa
                             });
 
                             // Header
@@ -758,6 +778,7 @@ namespace Retorno360Tacna.FORMS
                                 header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
                                 header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
                                 header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Pedimentos en Glosa").FontColor(Colors.White).Bold();
                             });
 
                             // Data rows - Ordenados por Tipo y luego por Número de Parte
@@ -774,6 +795,8 @@ namespace Retorno360Tacna.FORMS
 
                                 table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
                                     .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
+                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                                    .Text(item.DetallePedimentosGlosa).FontSize(8);
                             }
                         });
 
@@ -1030,6 +1053,196 @@ namespace Retorno360Tacna.FORMS
             }
 
             MostrarVistaOtros();
+        }
+
+        private void dgvMateriaPrima_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+                return;
+
+            if (dgvMateriaPrima.Rows[e.RowIndex].DataBoundItem is not MateriaPrimaBOM item)
+                return;
+
+            if (item.PedimentosRelacionados == null || item.PedimentosRelacionados.Count == 0)
+            {
+                MessageBox.Show("Este número de parte no tiene pedimentos encontrados en glosa.",
+                    "Detalle de pedimentos", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var tablaDetalle = new DataTable();
+            tablaDetalle.Columns.Add("Pedimento", typeof(string));
+            tablaDetalle.Columns.Add("Tipo Operación", typeof(string));
+            tablaDetalle.Columns.Add("Clave Pedimento", typeof(string));
+            tablaDetalle.Columns.Add("Cantidad Igual", typeof(int));
+
+            foreach (var detalle in item.PedimentosRelacionados.OrderBy(x => x.Pedimento))
+            {
+                tablaDetalle.Rows.Add(detalle.Pedimento, detalle.TipoOperacion, detalle.ClavePedimento, detalle.CantidadPartidasMismaParte);
+            }
+
+            using var frmDetalle = CrearVentanaDetallePedimentos(item.Par_NoParte, tablaDetalle);
+            frmDetalle.ShowDialog(this);
+        }
+
+        private Form CrearVentanaDetallePedimentos(string numeroParte, DataTable tablaDetalle)
+        {
+            var frmDetalle = new Form
+            {
+                Text = $"Pedimentos del número de parte: {numeroParte}",
+                StartPosition = FormStartPosition.CenterParent,
+                Size = new System.Drawing.Size(980, 560),
+                MinimumSize = new System.Drawing.Size(820, 420),
+                BackColor = System.Drawing.Color.White,
+                FormBorderStyle = FormBorderStyle.None,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+
+            var panelHeader = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 90,
+                BackColor = System.Drawing.Color.FromArgb(52, 73, 94)
+            };
+
+            var lblTituloDetalle = new Label
+            {
+                Dock = DockStyle.Left,
+                Width = 620,
+                Text = $"Pedimentos del número de parte: {numeroParte}",
+                ForeColor = System.Drawing.Color.White,
+                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
+                Padding = new Padding(20, 0, 0, 0),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            var panelAcciones = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 290
+            };
+
+            var btnExportar = new Button
+            {
+                BackColor = System.Drawing.Color.FromArgb(39, 174, 96),
+                FlatStyle = FlatStyle.Flat,
+                FlatAppearance = { BorderSize = 0 },
+                ForeColor = System.Drawing.Color.White,
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                Text = "Exportar",
+                Size = new System.Drawing.Size(110, 50),
+                Location = new Point(20, 20),
+                Cursor = Cursors.Hand
+            };
+
+            var btnCerrar = new Button
+            {
+                BackColor = System.Drawing.Color.FromArgb(231, 76, 60),
+                FlatStyle = FlatStyle.Flat,
+                FlatAppearance = { BorderSize = 0 },
+                ForeColor = System.Drawing.Color.White,
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                Text = "Cerrar",
+                Size = new System.Drawing.Size(110, 50),
+                Location = new Point(150, 20),
+                Cursor = Cursors.Hand
+            };
+
+            var dgvDetalle = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                RowHeadersVisible = false,
+                BackgroundColor = System.Drawing.Color.White,
+                BorderStyle = BorderStyle.None,
+                DataSource = tablaDetalle
+            };
+
+            DataGridViewManualCopyHelper.Configurar(dgvDetalle);
+
+            dgvDetalle.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.FromArgb(52, 152, 219);
+            dgvDetalle.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.White;
+            dgvDetalle.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            dgvDetalle.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvDetalle.EnableHeadersVisualStyles = false;
+            dgvDetalle.AlternatingRowsDefaultCellStyle.BackColor = System.Drawing.Color.FromArgb(236, 240, 241);
+            dgvDetalle.DefaultCellStyle.SelectionBackColor = System.Drawing.Color.FromArgb(41, 128, 185);
+            dgvDetalle.DefaultCellStyle.SelectionForeColor = System.Drawing.Color.White;
+            dgvDetalle.DefaultCellStyle.Font = new Font("Segoe UI", 9F);
+            dgvDetalle.RowTemplate.Height = 30;
+
+            if (dgvDetalle.Columns.Contains("Cantidad Igual"))
+            {
+                dgvDetalle.Columns["Cantidad Igual"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                dgvDetalle.Columns["Cantidad Igual"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            }
+
+            var panelFooter = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 38,
+                BackColor = System.Drawing.Color.FromArgb(236, 240, 241)
+            };
+
+            var lblTotal = new Label
+            {
+                AutoSize = true,
+                Location = new Point(20, 10),
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                ForeColor = System.Drawing.Color.FromArgb(52, 73, 94),
+                Text = $"Total registros: {tablaDetalle.Rows.Count:N0}"
+            };
+
+            panelAcciones.Controls.Add(btnExportar);
+            panelAcciones.Controls.Add(btnCerrar);
+            panelHeader.Controls.Add(lblTituloDetalle);
+            panelHeader.Controls.Add(panelAcciones);
+            panelFooter.Controls.Add(lblTotal);
+
+            btnCerrar.Click += (_, _) => frmDetalle.Close();
+            btnExportar.Click += (_, _) => ExportarDetallePedimentos(numeroParte, tablaDetalle);
+
+            frmDetalle.Controls.Add(dgvDetalle);
+            frmDetalle.Controls.Add(panelFooter);
+            frmDetalle.Controls.Add(panelHeader);
+
+            return frmDetalle;
+        }
+
+        private void ExportarDetallePedimentos(string numeroParte, DataTable tablaDetalle)
+        {
+            try
+            {
+                using var saveDialog = new SaveFileDialog
+                {
+                    Filter = "Archivos Excel (*.xlsx)|*.xlsx",
+                    Title = "Guardar detalle de pedimentos",
+                    FileName = $"Detalle_Pedimentos_{numeroParte}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
+                };
+
+                if (saveDialog.ShowDialog() != DialogResult.OK)
+                    return;
+
+                using var workbook = new XLWorkbook();
+                var worksheet = workbook.Worksheets.Add("Detalle Pedimentos");
+                worksheet.Cell(1, 1).InsertTable(tablaDetalle);
+                worksheet.Columns().AdjustToContents();
+                workbook.SaveAs(saveDialog.FileName);
+
+                MessageBox.Show("Archivo exportado exitosamente.",
+                    "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al exportar el detalle: {ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

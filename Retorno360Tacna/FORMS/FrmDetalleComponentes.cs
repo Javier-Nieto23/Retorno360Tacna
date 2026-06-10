@@ -1,4 +1,5 @@
 using Retorno360Tacna.MODELS;
+using Retorno360Tacna.HELPERS;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -91,6 +92,7 @@ namespace Retorno360Tacna.FORMS
             dgvDetalles.DefaultCellStyle.Font = new Font("Segoe UI", 9F);
             dgvDetalles.DefaultCellStyle.Padding = new Padding(5, 3, 5, 3);
             dgvDetalles.RowTemplate.Height = 30;
+            DataGridViewManualCopyHelper.Configurar(dgvDetalles);
 
             dgvDetalles.Columns.Clear();
 

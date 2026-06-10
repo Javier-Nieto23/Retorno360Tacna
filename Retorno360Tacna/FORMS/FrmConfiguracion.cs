@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Forms;
+using Retorno360Tacna.HELPERS;
 using Retorno360Tacna.MODELS;
 using Retorno360Tacna.CNX;
 using Microsoft.Data.SqlClient;
@@ -24,6 +25,7 @@ namespace Retorno360Tacna.FORMS
             usuarioActual = usuario;
             configuracion = new ConfiguracionUsuario();
             escalaOriginal = configuracion.EscalaUI;
+            DataGridViewManualCopyHelper.ConfigurarControles(this);
         }
 
         private void FrmConfiguracion_Load(object sender, EventArgs e)

@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using Retorno360Tacna.HELPERS;
 
 namespace Retorno360Tacna.FORMS
 {
@@ -54,6 +55,7 @@ namespace Retorno360Tacna.FORMS
             dgvDetalle.RowTemplate.Height = 30;
             dgvDetalle.BackgroundColor = Color.White;
             dgvDetalle.BorderStyle = BorderStyle.None;
+            DataGridViewManualCopyHelper.Configurar(dgvDetalle);
         }
 
         private void FiltrarYCargarDatos()

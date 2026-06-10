@@ -16,6 +16,7 @@ namespace Retorno360Tacna.MODELS
     public class ReporteIGIPagado : ReporteBase
     {
         public int IdPedimento { get; set; }
+        public string Clave { get; set; } = string.Empty;
         public string Pedimento { get; set; } = string.Empty;
         public DateTime? FechaPago { get; set; }
         public decimal IGI_Pagado { get; set; }

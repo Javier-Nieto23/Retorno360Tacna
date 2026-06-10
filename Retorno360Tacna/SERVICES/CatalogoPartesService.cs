@@ -3,6 +3,7 @@ using Retorno360Tacna.CNX;
 using Retorno360Tacna.MODELS;
 using System;
 using System.Collections.Generic;
+using System.Data;
 
 namespace Retorno360Tacna.SERVICES
 {
@@ -14,124 +15,30 @@ namespace Retorno360Tacna.SERVICES
 
         private ConexionExternaInfo ObtenerConexionExterna(string baseDatos)
         {
-            if (cacheConexiones.TryGetValue(baseDatos, out var conexionCacheada))
-            {
-                return conexionCacheada;
-            }
+            return base.ObtenerConexionExterna(baseDatos);
+        }
 
-            var conexionExterna = new ConexionExternaInfo { BaseDatos = baseDatos };
-
+        private string ObtenerBaseGlosa(string baseDatosCliente)
+        {
             try
             {
-                var conexion = new Conexion(
-                    conexionPrincipal.Servidor ?? string.Empty,
-                    conexionPrincipal.UsuarioSQL ?? string.Empty,
-                    conexionPrincipal.PasswordSQL ?? string.Empty,
-                    "RetornoMaster"
-                );
+                int idRazon = ObtenerIdRazonDesdeBaseDatos(baseDatosCliente);
+                var razonSocial = ObtenerRazonSocial(idRazon);
 
-                using var cn = conexion.ObtenerConexion();
-                cn.Open();
-
-                bool encontrado = false;
-
-                string sqlRazonXTabla = @"
-                    SELECT TOP 1 
-                        R.ConnExterna,
-                        R.IdConexion,
-                        C.NombreConexion,
-                        C.Servidor,
-                        C.UsuarioSQL,
-                        C.PasswordSQL
-                    FROM RAZONXTABLA R
-                    LEFT JOIN Conexiones C ON R.IdConexion = C.IdConexion
-                    WHERE R.DB = @BaseDatos
-                    ORDER BY R.IdRazon";
-
-                using (var cmd = new SqlCommand(sqlRazonXTabla, cn))
-                {
-                    cmd.Parameters.AddWithValue("@BaseDatos", baseDatos);
-
-                    using var reader = cmd.ExecuteReader();
-                    if (reader.Read())
-                    {
-                        encontrado = true;
-
-                        string? connExterna = reader.IsDBNull(0) ? null : reader.GetString(0);
-                        conexionExterna.TieneConexionExterna = connExterna?.Trim().Equals("S", StringComparison.OrdinalIgnoreCase) == true;
-
-                        if (!reader.IsDBNull(1))
-                        {
-                            conexionExterna.IdConexion = reader.GetInt32(1);
-                        }
-
-                        if (!reader.IsDBNull(2))
-                        {
-                            conexionExterna.NombreConexion = reader.GetString(2);
-                            conexionExterna.Servidor = reader.IsDBNull(3) ? null : reader.GetString(3);
-                            conexionExterna.UsuarioSQL = reader.IsDBNull(4) ? null : reader.GetString(4);
-                            conexionExterna.PasswordSQL = reader.IsDBNull(5) ? null : reader.GetString(5);
-                        }
-                    }
-                }
-
-                if (!encontrado)
-                {
-                    string sqlNomTablaRazon = @"
-                        SELECT TOP 1 
-                            N.IdConexion,
-                            C.NombreConexion,
-                            C.Servidor,
-                            C.UsuarioSQL,
-                            C.PasswordSQL
-                        FROM NOM_TABLARAZON N
-                        LEFT JOIN Conexiones C ON N.IdConexion = C.IdConexion
-                        WHERE N.NOMBRE_TABLA = @BaseDatos
-                        ORDER BY N.IdTabla";
-
-                    using (var cmd = new SqlCommand(sqlNomTablaRazon, cn))
-                    {
-                        cmd.Parameters.AddWithValue("@BaseDatos", baseDatos);
-
-                        using var reader = cmd.ExecuteReader();
-                        if (reader.Read())
-                        {
-                            encontrado = true;
-
-                            if (!reader.IsDBNull(0))
-                            {
-                                conexionExterna.IdConexion = reader.GetInt32(0);
-                                conexionExterna.TieneConexionExterna = true;
-                            }
-                            else
-                            {
-                                conexionExterna.TieneConexionExterna = false;
-                            }
-
-                            if (!reader.IsDBNull(1))
-                            {
-                                conexionExterna.NombreConexion = reader.GetString(1);
-                                conexionExterna.Servidor = reader.IsDBNull(2) ? null : reader.GetString(2);
-                                conexionExterna.UsuarioSQL = reader.IsDBNull(3) ? null : reader.GetString(3);
-                                conexionExterna.PasswordSQL = reader.IsDBNull(4) ? null : reader.GetString(4);
-                            }
-                        }
-                    }
-                }
-
-                cacheConexiones[baseDatos] = conexionExterna;
+                if (!string.IsNullOrWhiteSpace(razonSocial.BaseDatosOrigen))
+                    return razonSocial.BaseDatosOrigen.Trim();
             }
-            catch (Exception ex)
+            catch
             {
-                throw new Exception($"Error al obtener información de conexión para '{baseDatos}': {ex.Message}", ex);
             }
 
-            return conexionExterna;
+            return baseDatosCliente;
         }
 
         public List<MateriaPrimaBOM> ObtenerMateriaPrimaBOM(string nombreBaseDatos, string tipoClave, DateTime fechaInicio, DateTime fechaFin)
         {
             var materiaPrima = new List<MateriaPrimaBOM>();
+            var detallePedimentos = ObtenerDetallePedimentosPorParte(nombreBaseDatos, fechaInicio, fechaFin);
 
             string query = @"
                 -- Tabla temporal con componentes vigentes en BOM
@@ -150,6 +57,7 @@ namespace Retorno360Tacna.SERVICES
 
                 -- Consulta principal de materia prima
                 SELECT 
+                    cp.Par_Consecutivo,
                     cp.Par_NoParte,
                     cp.Par_DescripcionEsp,
                     cp.Tim_Clave AS Clave,
@@ -213,12 +121,22 @@ namespace Retorno360Tacna.SERVICES
                             {
                                 var mp = new MateriaPrimaBOM
                                 {
+                                    Par_Consecutivo = reader["Par_Consecutivo"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Par_Consecutivo"]),
                                     Par_NoParte = reader["Par_NoParte"]?.ToString() ?? string.Empty,
                                     Par_DescripcionEsp = reader["Par_DescripcionEsp"]?.ToString() ?? string.Empty,
                                     Clave = reader["Clave"]?.ToString() ?? string.Empty,
                                     Par_InsercionFecha = reader["Par_InsercionFecha"] == DBNull.Value ? null : (DateTime?)reader["Par_InsercionFecha"],
-                                    EstatusComponente = reader["EstatusComponente"]?.ToString() ?? string.Empty
+                                    EstatusComponente = reader["EstatusComponente"]?.ToString() ?? string.Empty,
+                                    DetallePedimentosGlosa = "NO",
+                                    DetallePedimentosInfo = string.Empty
                                 };
+
+                                if (detallePedimentos.TryGetValue(mp.Par_Consecutivo, out var detalles))
+                                {
+                                    mp.PedimentosRelacionados = detalles;
+                                    mp.DetallePedimentosGlosa = detalles.Count > 0 ? "SI" : "NO";
+                                    mp.DetallePedimentosInfo = string.Join(" ; ", detalles.Select(d => $"{d.Pedimento} | {d.TipoOperacion} | Clave: {d.ClavePedimento} | Cantidad: {d.CantidadPartidasMismaParte}"));
+                                }
 
                                 materiaPrima.Add(mp);
                             }
@@ -248,6 +166,7 @@ namespace Retorno360Tacna.SERVICES
         public List<MateriaPrimaBOM> ObtenerMateriaPrimaBOMMultiple(string nombreBaseDatos, DateTime fechaInicio, DateTime fechaFin)
         {
             var materiaPrima = new List<MateriaPrimaBOM>();
+            var detallePedimentos = ObtenerDetallePedimentosPorParte(nombreBaseDatos, fechaInicio, fechaFin);
 
             string query = @"
                 -- Tabla temporal con componentes vigentes en BOM
@@ -266,6 +185,7 @@ namespace Retorno360Tacna.SERVICES
 
                 -- Consulta principal con múltiples tipos de clave
                 SELECT 
+                    cp.Par_Consecutivo,
                     cp.Par_NoParte,
                     cp.Par_DescripcionEsp,
                     cp.Tim_Clave AS Clave,
@@ -328,12 +248,22 @@ namespace Retorno360Tacna.SERVICES
                             {
                                 var mp = new MateriaPrimaBOM
                                 {
+                                    Par_Consecutivo = reader["Par_Consecutivo"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Par_Consecutivo"]),
                                     Par_NoParte = reader["Par_NoParte"]?.ToString() ?? string.Empty,
                                     Par_DescripcionEsp = reader["Par_DescripcionEsp"]?.ToString() ?? string.Empty,
                                     Clave = reader["Clave"]?.ToString() ?? string.Empty,
                                     Par_InsercionFecha = reader["Par_InsercionFecha"] == DBNull.Value ? null : (DateTime?)reader["Par_InsercionFecha"],
-                                    EstatusComponente = reader["EstatusComponente"]?.ToString() ?? string.Empty
+                                    EstatusComponente = reader["EstatusComponente"]?.ToString() ?? string.Empty,
+                                    DetallePedimentosGlosa = "NO",
+                                    DetallePedimentosInfo = string.Empty
                                 };
+
+                                if (detallePedimentos.TryGetValue(mp.Par_Consecutivo, out var detalles))
+                                {
+                                    mp.PedimentosRelacionados = detalles;
+                                    mp.DetallePedimentosGlosa = detalles.Count > 0 ? "SI" : "NO";
+                                    mp.DetallePedimentosInfo = string.Join(" ; ", detalles.Select(d => $"{d.Pedimento} | {d.TipoOperacion} | Clave: {d.ClavePedimento} | Cantidad: {d.CantidadPartidasMismaParte}"));
+                                }
 
                                 materiaPrima.Add(mp);
                             }
@@ -358,6 +288,121 @@ namespace Retorno360Tacna.SERVICES
             }
 
             return materiaPrima;
+        }
+
+        private Dictionary<int, List<DetallePedimentoParte>> ObtenerDetallePedimentosPorParte(string nombreBaseDatos, DateTime fechaInicio, DateTime fechaFin)
+        {
+            var resultado = new Dictionary<int, List<DetallePedimentoParte>>();
+
+            string queryCliente = @"
+                SELECT
+                    dpd.Par_Consecutivo,
+                    dp.Adu_AduanaSecc + '-' + dp.AgP_Patente + '-' + dp.Pim_Folio AS Pedimento,
+                    dp.CLP_CLAVE AS ClavePedimento,
+                    COUNT(*) AS CantidadPartidasMismaParte
+                FROM Di_PedimentoDet dpd WITH (NOLOCK)
+                INNER JOIN Di_Pedimento dp WITH (NOLOCK)
+                    ON dp.Pim_Consecutivo = dpd.Pim_Consecutivo
+                WHERE CONVERT(DATE, IIF(dp.CLP_CLAVE='R1', dp.Pim_FechaPagoR1, dp.Pim_FechaPago)) BETWEEN @FechaInicio AND @FechaFin
+                GROUP BY
+                    dpd.Par_Consecutivo,
+                    dp.Adu_AduanaSecc,
+                    dp.AgP_Patente,
+                    dp.Pim_Folio,
+                    dp.CLP_CLAVE
+                ORDER BY Pedimento;";
+
+            string queryGlosa = @"
+                SELECT DISTINCT
+                    Gl_Aduana + '-' + Gl_Patente + '-' + Gl_Pedimento AS Pedimento,
+                    Gl_TOper
+                FROM TR_Glosa WITH (NOLOCK)
+                WHERE CONVERT(DATE, Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin;";
+
+            ConexionExternaInfo? infoConexion = null;
+            string baseGlosa = ObtenerBaseGlosa(nombreBaseDatos);
+
+            try
+            {
+                infoConexion = ObtenerConexionExterna(nombreBaseDatos);
+                var detallesCliente = new List<(int ParConsecutivo, string Pedimento, string ClavePedimento, int Cantidad)>();
+                var mapaGlosa = new Dictionary<string, HashSet<int>>(StringComparer.OrdinalIgnoreCase);
+
+                using (var connCliente = ObtenerConexionParaBaseDatos(nombreBaseDatos).ObtenerConexion())
+                {
+                    connCliente.Open();
+                    using var cmdCliente = new SqlCommand(queryCliente, connCliente);
+                    cmdCliente.CommandTimeout = 300;
+                    cmdCliente.Parameters.AddWithValue("@FechaInicio", fechaInicio.Date);
+                    cmdCliente.Parameters.AddWithValue("@FechaFin", fechaFin.Date);
+
+                    using var readerCliente = cmdCliente.ExecuteReader();
+                    while (readerCliente.Read())
+                    {
+                        detallesCliente.Add((
+                            readerCliente["Par_Consecutivo"] == DBNull.Value ? 0 : Convert.ToInt32(readerCliente["Par_Consecutivo"]),
+                            readerCliente["Pedimento"]?.ToString() ?? string.Empty,
+                            readerCliente["ClavePedimento"]?.ToString() ?? string.Empty,
+                            readerCliente["CantidadPartidasMismaParte"] == DBNull.Value ? 0 : Convert.ToInt32(readerCliente["CantidadPartidasMismaParte"])
+                        ));
+                    }
+                }
+
+                using (var connGlosa = ObtenerConexionParaBaseDatos(baseGlosa).ObtenerConexion())
+                {
+                    connGlosa.Open();
+                    using var cmdGlosa = new SqlCommand(queryGlosa, connGlosa);
+                    cmdGlosa.CommandTimeout = 300;
+                    cmdGlosa.Parameters.AddWithValue("@FechaInicio", fechaInicio.Date);
+                    cmdGlosa.Parameters.AddWithValue("@FechaFin", fechaFin.Date);
+
+                    using var readerGlosa = cmdGlosa.ExecuteReader();
+                    while (readerGlosa.Read())
+                    {
+                        string pedimento = readerGlosa["Pedimento"]?.ToString() ?? string.Empty;
+                        int tipoOper = readerGlosa["Gl_TOper"] == DBNull.Value ? 0 : Convert.ToInt32(readerGlosa["Gl_TOper"]);
+
+                        if (!mapaGlosa.TryGetValue(pedimento, out var tipos))
+                        {
+                            tipos = new HashSet<int>();
+                            mapaGlosa[pedimento] = tipos;
+                        }
+
+                        tipos.Add(tipoOper);
+                    }
+                }
+
+                foreach (var detalleCliente in detallesCliente)
+                {
+                    if (!mapaGlosa.TryGetValue(detalleCliente.Pedimento, out var tiposOperacion))
+                        continue;
+
+                    foreach (var tipoOper in tiposOperacion.OrderBy(x => x))
+                    {
+                        var detalle = new DetallePedimentoParte
+                        {
+                            Pedimento = detalleCliente.Pedimento,
+                            TipoOperacion = tipoOper == 1 ? "Importación" : tipoOper == 2 ? "Exportación" : $"Operación {tipoOper}",
+                            ClavePedimento = detalleCliente.ClavePedimento,
+                            CantidadPartidasMismaParte = detalleCliente.Cantidad
+                        };
+
+                        if (!resultado.TryGetValue(detalleCliente.ParConsecutivo, out var lista))
+                        {
+                            lista = new List<DetallePedimentoParte>();
+                            resultado[detalleCliente.ParConsecutivo] = lista;
+                        }
+
+                        lista.Add(detalle);
+                    }
+                }
+            }
+            catch
+            {
+                return new Dictionary<int, List<DetallePedimentoParte>>();
+            }
+
+            return resultado;
         }
     }
 }

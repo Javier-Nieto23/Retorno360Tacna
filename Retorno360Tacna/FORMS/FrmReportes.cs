@@ -1,5 +1,6 @@
 using Retorno360Tacna.MODELS;
 using Retorno360Tacna.SERVICES;
+using Retorno360Tacna.HELPERS;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
@@ -301,6 +302,8 @@ namespace Retorno360Tacna.FORMS
 
                 System.Data.DataTable tablaIGI;
                 System.Data.DataTable tablaIVA;
+                bool faltaGlosaIva = false;
+                var basesSinGlosaIva = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 if (sinValidacionGlosa)
                 {
@@ -327,6 +330,12 @@ namespace Retorno360Tacna.FORMS
                             try
                             {
                                 var conciliacion = reporteService.ObtenerConciliacionIGI(baseDb, fechaInicio, fechaFin);
+
+                                if (conciliacion.FaltaGlosaIVA)
+                                {
+                                    faltaGlosaIva = true;
+                                    basesSinGlosaIva.Add(string.IsNullOrWhiteSpace(conciliacion.BaseDatosGlosa) ? baseDb : conciliacion.BaseDatosGlosa);
+                                }
 
                                 // Agregar resúmenes IGI
                                 foreach (System.Data.DataRow r in conciliacion.ResumenIGI.Rows)
@@ -432,6 +441,12 @@ namespace Retorno360Tacna.FORMS
 
                     var resultado = await Task.Run(() => reporteService.ObtenerConciliacionIGI(baseDatos, fechaInicio, fechaFin));
 
+                    if (resultado.FaltaGlosaIVA)
+                    {
+                        faltaGlosaIva = true;
+                        basesSinGlosaIva.Add(string.IsNullOrWhiteSpace(resultado.BaseDatosGlosa) ? baseDatos : resultado.BaseDatosGlosa);
+                    }
+
                     // Guardar las tablas de detalle para uso posterior (doble clic)
                     detalleIGIActual = resultado.DetalleIGI;
                     detalleIVAActual = resultado.DetalleIVA;
@@ -470,6 +485,16 @@ namespace Retorno360Tacna.FORMS
                 lblProgreso.Text = "Consulta completada";
                 btnGenerarPDF.Enabled = true;
                 btnExportarExcel.Enabled = true;
+
+                if (faltaGlosaIva)
+                {
+                    string basesAviso = string.Join(", ", basesSinGlosaIva.OrderBy(x => x));
+                    MessageBox.Show(
+                        $"No está cargada la glosa para obtener el IVA pagado{(string.IsNullOrWhiteSpace(basesAviso) ? string.Empty : $" en: {basesAviso}") }.",
+                        "Aviso de glosa IVA",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
             }
             catch (Exception ex)
             {
@@ -527,6 +552,7 @@ namespace Retorno360Tacna.FORMS
                     var item = new ReporteIGIPagado
                     {
                         BaseDatos = baseDatosPredeterminada,
+                        Clave = row.Table.Columns.Contains("Clave") ? row["Clave"]?.ToString()?.Trim() ?? string.Empty : string.Empty,
                         Pedimento = pedimento,
                         FechaPago = fechaPago,
                         FormaPago_IGI = formaPagoIGI,
@@ -891,6 +917,7 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIGI.MultiSelect = false;
             dgvReporteIGI.RowHeadersVisible = false;
             dgvReporteIGI.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
+            DataGridViewManualCopyHelper.Configurar(dgvReporteIGI);
 
             // Configurar grid IVA
             dgvReporteIVA.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
@@ -901,6 +928,7 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIVA.MultiSelect = false;
             dgvReporteIVA.RowHeadersVisible = false;
             dgvReporteIVA.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
+            DataGridViewManualCopyHelper.Configurar(dgvReporteIVA);
 
             // Abrir detalle solo con doble clic
             dgvReporteIGI.CellDoubleClick += DgvReporteIGI_CellDoubleClick;
@@ -1886,7 +1914,7 @@ namespace Retorno360Tacna.FORMS
                             // Encabezados de detalle
                             var detalleHeaders = new[]
                             {
-                                "Base Datos", "ID Pedimento", "Pedimento", "Fecha Pago", "IGI Pagado", "IGI Calculado", "Diferencia IGI",
+                                "Base Datos", "Clave", "Pedimento", "Fecha Pago", "IGI Pagado", "IGI Calculado", "Diferencia IGI",
                                 "IVA Pagado", "Forma Pago IGI", "Forma Pago IVA", "Estatus Glosa", "Estatus Origen"
                             };
 
@@ -1904,7 +1932,7 @@ namespace Retorno360Tacna.FORMS
                             foreach (var r in reporteActual)
                             {
                                 worksheetDetalle.Cell(fila, 1).Value = r.BaseDatos ?? string.Empty;
-                                worksheetDetalle.Cell(fila, 2).Value = r.IdPedimento;
+                                worksheetDetalle.Cell(fila, 2).Value = r.Clave ?? string.Empty;
                                 worksheetDetalle.Cell(fila, 3).Value = r.Pedimento ?? string.Empty;
                                 worksheetDetalle.Cell(fila, 4).Value = r.FechaPago.HasValue ? r.FechaPago.Value.ToString("dd/MM/yyyy") : string.Empty;
 

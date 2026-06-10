@@ -1,4 +1,5 @@
 using Retorno360Tacna.CNX;
+using Retorno360Tacna.HELPERS;
 using Retorno360Tacna.MODELS;
 using Retorno360Tacna.SERVICES;
 using System;
@@ -24,6 +25,7 @@ namespace Retorno360Tacna.FORMS
             InitializeComponent();
             conexionActual = conexion;
             catalogoService = new CatalogoPartesService(conexion);
+            DataGridViewManualCopyHelper.ConfigurarControles(this);
         }
 
         private void InicializarImageList()

@@ -72,6 +72,8 @@ namespace Retorno360Tacna.SERVICES
             public System.Data.DataTable ResumenIGI { get; set; } = new System.Data.DataTable();
             public System.Data.DataTable DetalleIVA { get; set; } = new System.Data.DataTable();
             public System.Data.DataTable ResumenIVA { get; set; } = new System.Data.DataTable();
+            public bool FaltaGlosaIVA { get; set; }
+            public string BaseDatosGlosa { get; set; } = string.Empty;
         }
 
         /// <summary>
@@ -165,7 +167,7 @@ namespace Retorno360Tacna.SERVICES
                 System.Diagnostics.Debug.WriteLine($"Rango: {fechaInicio:yyyy-MM-dd} a {fechaFin:yyyy-MM-dd}");
 #endif
 
-                var pedimentosCliente = new List<(string Pedimento, DateTime FechaPago, string FormaPagoIGI, decimal IGICalculado)>();
+                var pedimentosCliente = new List<(string Pedimento, DateTime FechaPago, string ClpClave, string FormaPagoIGI, decimal IGICalculado)>();
                 var pedimentosGlosaIGI = new List<(string Pedimento, DateTime FechaPago, string FormaPagoIGI, decimal IGIPagado)>();
                 var pedimentosGlosaIVA = new List<(string Pedimento, DateTime FechaPago, string FormaPagoIVA, decimal IVAPagado)>();
 
@@ -173,6 +175,7 @@ namespace Retorno360Tacna.SERVICES
 SELECT
     DP.Adu_AduanaSecc + '-' + DP.AgP_Patente + '-' + DP.Pim_Folio AS Pedimento,
     CONVERT(date, IIF(DP.CLP_CLAVE='R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)) AS FechaPago,
+    DP.CLP_CLAVE AS Clave,
     DI.FoP_Clave AS FormaPago_IGI,
     SUM(ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100.0, 0)) AS IGI_Calculado
 FROM {SqlHelper.Quotename(baseDatos)}.dbo.Di_Pedimento DP
@@ -189,6 +192,7 @@ GROUP BY
     DP.AgP_Patente,
     DP.Pim_Folio,
     CONVERT(date, IIF(DP.CLP_CLAVE='R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)),
+    DP.CLP_CLAVE,
     DI.FoP_Clave;";
 
                 string sqlGlosaIGI = $@"
@@ -242,15 +246,16 @@ HAVING SUM(ISNULL(TR.Gl_ImporteIVA, 0)) > 0;";
                         using var readerCliente = cmdCliente.ExecuteReader();
                         while (readerCliente.Read())
                         {
-                            string formaPagoIGI = readerCliente.IsDBNull(2) ? string.Empty : readerCliente.GetString(2).Trim();
+                            string formaPagoIGI = readerCliente.IsDBNull(3) ? string.Empty : readerCliente.GetString(3).Trim();
 
                             if (formaPagoIGI == "0" || formaPagoIGI == "5")
                             {
                                 pedimentosCliente.Add((
                                     readerCliente.IsDBNull(0) ? string.Empty : readerCliente.GetString(0),
                                     readerCliente.IsDBNull(1) ? DateTime.MinValue : readerCliente.GetDateTime(1),
+                                    readerCliente.IsDBNull(2) ? string.Empty : readerCliente.GetString(2).Trim(),
                                     formaPagoIGI,
-                                    readerCliente.IsDBNull(3) ? 0m : readerCliente.GetDecimal(3)
+                                    readerCliente.IsDBNull(4) ? 0m : readerCliente.GetDecimal(4)
                                 ));
                             }
                         }
@@ -310,6 +315,7 @@ HAVING SUM(ISNULL(TR.Gl_ImporteIVA, 0)) > 0;";
                 var detalleIGI = new System.Data.DataTable();
                 detalleIGI.Columns.Add("Pedimento", typeof(string));
                 detalleIGI.Columns.Add("FechaPago", typeof(DateTime));
+                detalleIGI.Columns.Add("Clave", typeof(string));
                 detalleIGI.Columns.Add("FormaPago_IGI", typeof(string));
                 detalleIGI.Columns.Add("IGI_Pagado", typeof(decimal));
                 detalleIGI.Columns.Add("IGI_Calculado", typeof(decimal));
@@ -327,6 +333,7 @@ HAVING SUM(ISNULL(TR.Gl_ImporteIVA, 0)) > 0;";
                 var detalleIVA = new System.Data.DataTable();
                 detalleIVA.Columns.Add("Pedimento", typeof(string));
                 detalleIVA.Columns.Add("FechaPago", typeof(DateTime));
+                detalleIVA.Columns.Add("Clave", typeof(string));
                 detalleIVA.Columns.Add("FormaPago_IVA", typeof(string));
                 detalleIVA.Columns.Add("IVA_Pagado", typeof(decimal));
 
@@ -357,6 +364,7 @@ HAVING SUM(ISNULL(TR.Gl_ImporteIVA, 0)) > 0;";
                     detalleIGI.Rows.Add(
                         cliente.Pedimento,
                         cliente.FechaPago,
+                        cliente.ClpClave,
                         cliente.FormaPagoIGI,
                         igiPagadoMostrado,
                         cliente.IGICalculado,
@@ -398,12 +406,23 @@ HAVING SUM(ISNULL(TR.Gl_ImporteIVA, 0)) > 0;";
                     .Select(x => x.Pedimento)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+                var clavePedimentoPorNumero = pedimentosCliente
+                    .GroupBy(x => x.Pedimento, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(x => x.ClpClave).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? string.Empty,
+                        StringComparer.OrdinalIgnoreCase);
+
+                bool existeGlosaIVAParaPedimentos = pedimentosGlosaIVA
+                    .Any(x => pedimentosClienteDistinct.Contains(x.Pedimento));
+
                 foreach (var row in pedimentosGlosaIVA
                     .Where(x => pedimentosClienteDistinct.Contains(x.Pedimento))
                     .OrderBy(x => x.Pedimento)
                     .ThenBy(x => x.FormaPagoIVA))
                 {
-                    detalleIVA.Rows.Add(row.Pedimento, row.FechaPago, row.FormaPagoIVA, row.IVAPagado);
+                    string clpClave = clavePedimentoPorNumero.TryGetValue(row.Pedimento, out var clave) ? clave : string.Empty;
+                    detalleIVA.Rows.Add(row.Pedimento, row.FechaPago, clpClave, row.FormaPagoIVA, row.IVAPagado);
                 }
 
                 var resumenIVAGroups = detalleIVA.Rows.Cast<System.Data.DataRow>()
@@ -427,6 +446,8 @@ HAVING SUM(ISNULL(TR.Gl_ImporteIVA, 0)) > 0;";
                 resultado.ResumenIGI = resumenIGI;
                 resultado.DetalleIVA = detalleIVA;
                 resultado.ResumenIVA = resumenIVA;
+                resultado.BaseDatosGlosa = baseGlosa;
+                resultado.FaltaGlosaIVA = pedimentosClienteDistinct.Count > 0 && !existeGlosaIVAParaPedimentos;
 
 #if DEBUG
                 System.Diagnostics.Debug.WriteLine($">> Pedimentos cliente: {pedimentosCliente.Count} registros");
