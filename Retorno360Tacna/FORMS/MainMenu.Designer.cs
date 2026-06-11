@@ -451,7 +451,7 @@ namespace Retorno360Tacna.FORMS
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainMenu";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto";
+            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto    |  Version: 2.6.0";
             WindowState = FormWindowState.Maximized;
             Load += MainMenu_Load;
             panelSidebar.ResumeLayout(false);

@@ -87,6 +87,8 @@ namespace Retorno360Tacna.FORMS
                 lblUsuario.Text = $"Usuario: {usuarioActual.NombreCompleto}";
             }
 
+            ConfigurarAccesosPorRol();
+
             // Cargar automáticamente pantalla de bienvenida al iniciar
             if (conexionActual != null)
             {
@@ -137,6 +139,17 @@ namespace Retorno360Tacna.FORMS
         private void LimpiarPanel()
         {
             panelContenido.Controls.Clear();
+        }
+
+        private void ConfigurarAccesosPorRol()
+        {
+            bool esAdmin = usuarioActual?.NombreRol?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true;
+            btnReportesInventario.Visible = esAdmin;
+
+            if (!esAdmin)
+            {
+                panelSubMenuInventarios.Height = ObtenerAlturaSubmenu(panelSubMenuInventarios);
+            }
         }
 
         private void btnAdministracion_Click(object sender, EventArgs e)
@@ -217,6 +230,17 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Escape && !sidebarColapsado)
+            {
+                btnToggleSidebar_Click(this, EventArgs.Empty);
+                return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
         private void btnInventarios_Click(object sender, EventArgs e)
         {
             if (sidebarColapsado)
@@ -272,6 +296,13 @@ namespace Retorno360Tacna.FORMS
 
         private void btnReportesInventario_Click(object sender, EventArgs e)
         {
+            if (usuarioActual?.NombreRol?.Equals("Admin", StringComparison.OrdinalIgnoreCase) != true)
+            {
+                MessageBox.Show("Esta opción solo está disponible para usuarios administradores.",
+                    "Acceso restringido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             ActivarBoton(btnReportesInventario);
             lblTitulo.Text = "Reportes de Inventario";
             LimpiarPanel();

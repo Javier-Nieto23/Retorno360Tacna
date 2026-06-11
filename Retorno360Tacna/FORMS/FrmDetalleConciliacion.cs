@@ -1,5 +1,4 @@
 using System.Data;
-using System.Globalization;
 using Retorno360Tacna.HELPERS;
 
 namespace Retorno360Tacna.FORMS
@@ -8,14 +7,25 @@ namespace Retorno360Tacna.FORMS
     {
         private readonly DataTable detalleOriginal;
         private readonly string formaPago;
+        private readonly string periodo;
+        private readonly int anioSeleccionado;
+        private readonly int mesSeleccionado;
         private readonly string tipoReporte;
         private DataTable detalleFiltrado;
 
-        public FrmDetalleConciliacion(DataTable detalle, string formaPago, string tipoReporte = "IGI")
+        public FrmDetalleConciliacion(DataTable detalle, string formaPago, string tipoReporte)
+            : this(detalle, formaPago, string.Empty, 0, 0, tipoReporte)
+        {
+        }
+
+        public FrmDetalleConciliacion(DataTable detalle, string formaPago, string periodo = "", int anioSeleccionado = 0, int mesSeleccionado = 0, string tipoReporte = "IGI")
         {
             InitializeComponent();
             this.detalleOriginal = detalle ?? new DataTable();
             this.formaPago = formaPago;
+            this.periodo = periodo;
+            this.anioSeleccionado = anioSeleccionado;
+            this.mesSeleccionado = mesSeleccionado;
             this.tipoReporte = tipoReporte;
             this.detalleFiltrado = detalleOriginal.Copy();
 
@@ -62,11 +72,12 @@ namespace Retorno360Tacna.FORMS
         {
             try
             {
-                // Filtrar por forma de pago
+                // Filtrar por forma de pago y período
                 string columnaFormaPago = tipoReporte == "IGI" ? "FormaPago_IGI" : "FormaPago_IVA";
 
                 var filasFiltradas = detalleOriginal.AsEnumerable()
-                    .Where(r => r[columnaFormaPago]?.ToString()?.Trim() == formaPago?.Trim());
+                    .Where(r => r[columnaFormaPago]?.ToString()?.Trim() == formaPago?.Trim())
+                    .Where(CorrespondeAlPeriodoSeleccionado);
 
                 if (filasFiltradas.Any())
                 {
@@ -108,7 +119,31 @@ namespace Retorno360Tacna.FORMS
 
         private void ActualizarTitulo()
         {
-            lblTitulo.Text = $"Detalle de {tipoReporte} - Forma de Pago: {formaPago}";
+            lblTitulo.Text = string.IsNullOrWhiteSpace(periodo)
+                ? $"Detalle de {tipoReporte} - Forma de Pago: {formaPago}"
+                : $"Detalle de {tipoReporte} - Forma de Pago: {formaPago} - {periodo}";
+        }
+
+        private bool CorrespondeAlPeriodoSeleccionado(DataRow row)
+        {
+            if (anioSeleccionado <= 0 || mesSeleccionado <= 0 || !row.Table.Columns.Contains("FechaPago"))
+                return true;
+
+            if (row["FechaPago"] == DBNull.Value)
+                return false;
+
+            DateTime fechaPago;
+
+            try
+            {
+                fechaPago = Convert.ToDateTime(row["FechaPago"]);
+            }
+            catch
+            {
+                return false;
+            }
+
+            return fechaPago.Year == anioSeleccionado && fechaPago.Month == mesSeleccionado;
         }
 
         private void btnCerrar_Click(object sender, EventArgs e)

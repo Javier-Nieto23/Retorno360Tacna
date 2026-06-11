@@ -26,8 +26,10 @@ namespace Retorno360Tacna.FORMS
         private CatalogoPartesService catalogoService;
         private List<MateriaPrimaBOM> datosConsultadosMP;
         private List<MateriaPrimaBOM> datosConsultadosOtros;
+        private List<MateriaPrimaBOM> datosOtrosFiltrados;
+        private readonly LiveChartsCore.SkiaSharpView.WinForms.PieChart chartPedimentosMP;
         private Control chartControl; // Control genérico para manejar ambos tipos de gráficas
-        private int vistaActual = 0; // 0 = MP, 1 = Otros tipos
+        private int vistaActual = 0; // 0 = MP BOM, 1 = Otros tipos, 2 = MP Pedimentos
         public FrmCatalogoPartes(ConexionInfo conexion)
         {
             InitializeComponent();
@@ -35,16 +37,66 @@ namespace Retorno360Tacna.FORMS
             catalogoService = new CatalogoPartesService(conexion);
             datosConsultadosMP = new List<MateriaPrimaBOM>();
             datosConsultadosOtros = new List<MateriaPrimaBOM>();
-            chartControl = chartEstatus; // Inicialmente es PieChart
+            datosOtrosFiltrados = new List<MateriaPrimaBOM>();
+            chartPedimentosMP = CrearChartPedimentos();
+            chartControl = chartEstatus;
             DataGridViewManualCopyHelper.ConfigurarControles(this);
             dgvMateriaPrima.CellDoubleClick += dgvMateriaPrima_CellDoubleClick;
             DataGridViewManualCopyHelper.Configurar(dgvMateriaPrima);
         }
 
+        private LiveChartsCore.SkiaSharpView.WinForms.PieChart CrearChartPedimentos()
+        {
+            return new LiveChartsCore.SkiaSharpView.WinForms.PieChart
+            {
+                Dock = DockStyle.Fill,
+                InitialRotation = 0D,
+                IsClockwise = true,
+                MaxAngle = 360D,
+                MaxValue = null,
+                MinValue = 0D,
+                Name = "chartPedimentosMP"
+            };
+        }
+
+        private void MostrarControlGrafico(Control control)
+        {
+            if (chartControl == control && panelGrafico.Controls.Contains(control))
+            {
+                control.BringToFront();
+                return;
+            }
+
+            if (chartControl != null && panelGrafico.Controls.Contains(chartControl))
+            {
+                panelGrafico.Controls.Remove(chartControl);
+            }
+
+            if (!panelGrafico.Controls.Contains(control))
+            {
+                panelGrafico.Controls.Add(control);
+                panelGrafico.Controls.SetChildIndex(control, 0);
+            }
+
+            chartControl = control;
+            control.Dock = DockStyle.Fill;
+            control.BringToFront();
+        }
+
         private void FrmCatalogoPartes_Load(object sender, EventArgs e)
         {
             CargarRazonesSociales();
+            ConfigurarFiltroTipoParte();
             lblTotalPartes.Text = "Total de partes: 0";
+        }
+
+        private void ConfigurarFiltroTipoParte()
+        {
+            cboTipoParte.Items.Clear();
+            cboTipoParte.Items.Add("Todos");
+            cboTipoParte.Items.AddRange(new object[] { "EQ", "MAQ", "SUB", "RT", "AUX", "PT" });
+            cboTipoParte.SelectedIndex = 0;
+            cboTipoParte.Enabled = false;
         }
 
         private void CargarRazonesSociales()
@@ -178,6 +230,7 @@ namespace Retorno360Tacna.FORMS
 
                 datosConsultadosMP = tareaMP.Result;
                 datosConsultadosOtros = tareaOtros.Result;
+                datosOtrosFiltrados = new List<MateriaPrimaBOM>(datosConsultadosOtros);
 
                 // Mostrar vista de MP por defecto
                 vistaActual = 0;
@@ -203,16 +256,8 @@ namespace Retorno360Tacna.FORMS
         private void MostrarVistaMP()
         {
             vistaActual = 0;
-
-            // Restaurar gráfica de pie
-            if (chartControl != chartEstatus)
-            {
-                panelGrafico.Controls.Remove(chartControl);
-                chartControl = chartEstatus;
-                panelGrafico.Controls.Add(chartEstatus);
-                chartEstatus.Dock = DockStyle.Fill;
-                chartEstatus.BringToFront();
-            }
+            cboTipoParte.Enabled = false;
+            MostrarControlGrafico(chartEstatus);
 
             // Actualizar grid
             dgvMateriaPrima.DataSource = datosConsultadosMP;
@@ -239,27 +284,13 @@ namespace Retorno360Tacna.FORMS
             lblTotalPartes.Text = $"Total de partes MP: {datosConsultadosMP.Count:N0}";
         }
 
-        private void MostrarVistaOtros()
+        private void MostrarVistaPedimentosMP()
         {
-            vistaActual = 1;
+            vistaActual = 2;
+            cboTipoParte.Enabled = false;
+            MostrarControlGrafico(chartPedimentosMP);
 
-            // Cambiar a gráfica de barras si es necesario
-            if (chartControl == chartEstatus)
-            {
-                panelGrafico.Controls.Remove(chartEstatus);
-
-                var cartesianChart = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart
-                {
-                    Dock = DockStyle.Fill
-                };
-
-                panelGrafico.Controls.Add(cartesianChart);
-                chartControl = cartesianChart;
-                cartesianChart.BringToFront();
-            }
-
-            // Actualizar grid
-            dgvMateriaPrima.DataSource = datosConsultadosOtros;
+            dgvMateriaPrima.DataSource = datosConsultadosMP;
 
             if (dgvMateriaPrima.Columns.Count > 0)
             {
@@ -270,18 +301,69 @@ namespace Retorno360Tacna.FORMS
                 dgvMateriaPrima.Columns["DetallePedimentosGlosa"].HeaderText = "En Pedimento";
                 dgvMateriaPrima.Columns["DetallePedimentosInfo"].Visible = false;
                 dgvMateriaPrima.Columns["Par_Consecutivo"].Visible = false;
-                dgvMateriaPrima.Columns["Clave"].Visible = true; // Mostrar columna de tipo
-                dgvMateriaPrima.Columns["Clave"].HeaderText = "Tipo";
+                dgvMateriaPrima.Columns["Clave"].Visible = false;
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
                 dgvMateriaPrima.Columns["DetallePedimentosGlosa"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                 dgvMateriaPrima.Columns["DetallePedimentosGlosa"].MinimumWidth = 80;
             }
 
+            ActualizarGraficoPedimentosMP(datosConsultadosMP);
+            lblTotalPartes.Text = $"Total de partes MP: {datosConsultadosMP.Count:N0}";
+        }
+
+        private void MostrarVistaOtros()
+        {
+            vistaActual = 1;
+            cboTipoParte.Enabled = true;
+            AplicarFiltroTipoParte();
+        }
+
+        private void AplicarFiltroTipoParte()
+        {
+            string tipoSeleccionado = cboTipoParte.SelectedItem?.ToString() ?? "Todos";
+
+            datosOtrosFiltrados = tipoSeleccionado == "Todos"
+                ? new List<MateriaPrimaBOM>(datosConsultadosOtros)
+                : datosConsultadosOtros
+                    .Where(x => string.Equals(x.Clave, tipoSeleccionado, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+            // Cambiar a gráfica de barras si es necesario
+            if (chartControl == chartEstatus || chartControl == chartPedimentosMP)
+            {
+                var cartesianChart = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart
+                {
+                    Dock = DockStyle.Fill
+                };
+
+                MostrarControlGrafico(cartesianChart);
+            }
+
+            // Actualizar grid
+            dgvMateriaPrima.DataSource = null;
+            dgvMateriaPrima.DataSource = datosOtrosFiltrados;
+
+            if (dgvMateriaPrima.Columns.Count > 0)
+            {
+                dgvMateriaPrima.Columns["Par_NoParte"].HeaderText = "Número de Parte";
+                dgvMateriaPrima.Columns["Par_DescripcionEsp"].HeaderText = "Descripción";
+                dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
+                dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
+                dgvMateriaPrima.Columns["DetallePedimentosGlosa"].Visible = false;
+                dgvMateriaPrima.Columns["DetallePedimentosInfo"].Visible = false;
+                dgvMateriaPrima.Columns["Par_Consecutivo"].Visible = false;
+                dgvMateriaPrima.Columns["Clave"].Visible = true; // Mostrar columna de tipo
+                dgvMateriaPrima.Columns["Clave"].HeaderText = "Tipo";
+                dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
+            }
+
             // Actualizar gráfico de barras
-            ActualizarGraficoBarras(datosConsultadosOtros);
+            ActualizarGraficoBarras(datosOtrosFiltrados);
 
             // Actualizar total
-            lblTotalPartes.Text = $"Total de partes (EQ, MAQ, SUB, RT, AUX, PT): {datosConsultadosOtros.Count:N0}";
+            lblTotalPartes.Text = tipoSeleccionado == "Todos"
+                ? $"Total de partes (EQ, MAQ, SUB, RT, AUX, PT): {datosOtrosFiltrados.Count:N0}"
+                : $"Total de partes {tipoSeleccionado}: {datosOtrosFiltrados.Count:N0}";
         }
 
         private void ActualizarGrafico(List<MateriaPrimaBOM> datos)
@@ -325,6 +407,47 @@ namespace Retorno360Tacna.FORMS
 
             // Ocultar tooltip para evitar duplicación
             chartEstatus.TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Hidden;
+        }
+
+        private void ActualizarGraficoPedimentosMP(List<MateriaPrimaBOM> datos)
+        {
+            var enPedimento = datos.Count(d => string.Equals(d.DetallePedimentosGlosa, "SI", StringComparison.OrdinalIgnoreCase));
+            var sinPedimento = datos.Count - enPedimento;
+
+            var serieEnPedimento = new PieSeries<int>
+            {
+                Values = new[] { enPedimento },
+                Name = $"En pedimento: {enPedimento}",
+                Fill = new SolidColorPaint(SKColor.Parse("#3498db")),
+                DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                DataLabelsSize = 16,
+                DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                DataLabelsFormatter = point => $"{enPedimento}"
+            };
+
+            var serieSinPedimento = new PieSeries<int>
+            {
+                Values = new[] { sinPedimento },
+                Name = $"Sin pedimento: {sinPedimento}",
+                Fill = new SolidColorPaint(SKColor.Parse("#95a5a6")),
+                DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                DataLabelsSize = 16,
+                DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                DataLabelsFormatter = point => $"{sinPedimento}"
+            };
+
+            chartPedimentosMP.Series = new ISeries[] { serieEnPedimento, serieSinPedimento };
+
+            chartPedimentosMP.Title = new LiveChartsCore.SkiaSharpView.VisualElements.LabelVisual
+            {
+                Text = "Partes en Pedimento",
+                TextSize = 16,
+                Padding = new LiveChartsCore.Drawing.Padding(15),
+                Paint = new SolidColorPaint(SKColor.Parse("#2c3e50"))
+            };
+
+            chartPedimentosMP.LegendPosition = LiveChartsCore.Measure.LegendPosition.Bottom;
+            chartPedimentosMP.TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Hidden;
         }
 
         private void ActualizarGraficoBarras(List<MateriaPrimaBOM> datos)
@@ -471,7 +594,10 @@ namespace Retorno360Tacna.FORMS
             // Generar imágenes de ambos gráficos
             var vigentesMP = datosConsultadosMP.Count(d => d.EstatusComponente == "VIGENTE EN BOM");
             var noVigentesMP = datosConsultadosMP.Count(d => d.EstatusComponente == "NO ESTA EN BOM");
-            byte[] imagenGraficoMP = GenerarImagenGrafico(vigentesMP, noVigentesMP);
+            var enPedimentoMP = datosConsultadosMP.Count(d => string.Equals(d.DetallePedimentosGlosa, "SI", StringComparison.OrdinalIgnoreCase));
+            var sinPedimentoMP = datosConsultadosMP.Count - enPedimentoMP;
+            byte[] imagenGraficoMP = GenerarImagenGrafico(vigentesMP, noVigentesMP, "Estatus de Componentes en BOM", "Vigentes en BOM", "No vigentes en BOM", "#2ecc71", "#e74c3c");
+            byte[] imagenGraficoPedimentosMP = GenerarImagenGrafico(enPedimentoMP, sinPedimentoMP, "Partes en Pedimento", "En pedimento", "Sin pedimento", "#3498db", "#95a5a6");
             byte[] imagenGraficoBarras = GenerarImagenGraficoBarras(datosConsultadosOtros);
 
             var agrupado = datosConsultadosOtros.GroupBy(d => d.Clave)
@@ -532,7 +658,7 @@ namespace Retorno360Tacna.FORMS
                     // Content - PRIMERA PÁGINA CON AMBOS GRÁFICOS
                     page.Content().PaddingTop(5).Column(column =>
                     {
-                        // AMBOS GRÁFICOS EN LA MISMA PÁGINA - LADO A LADO
+                        // GRÁFICAS DE MP Y OTROS EN LA MISMA PÁGINA
                         column.Item().Row(row =>
                         {
                             // Sección Materia Prima - Izquierda
@@ -565,8 +691,11 @@ namespace Retorno360Tacna.FORMS
                                     });
                                 });
 
-                                // Gráfico MP - tamaño fijo reducido
-                                seccionMP.Item().PaddingTop(3).AlignCenter().Width(280).Image(imagenGraficoMP);
+                                seccionMP.Item().PaddingTop(3).Row(rowGraficasMP =>
+                                {
+                                    rowGraficasMP.RelativeItem().AlignCenter().Width(200).Image(imagenGraficoMP);
+                                    rowGraficasMP.RelativeItem().AlignCenter().Width(200).Image(imagenGraficoPedimentosMP);
+                                });
                             });
 
                             // Sección Otros Tipos - Derecha
@@ -813,7 +942,7 @@ namespace Retorno360Tacna.FORMS
             }).GeneratePdf(rutaArchivo);
         }
 
-        private byte[] GenerarImagenGrafico(int vigentes, int noVigentes)
+        private byte[] GenerarImagenGrafico(int valorPrimario, int valorSecundario, string titulo, string etiquetaPrimaria, string etiquetaSecundaria, string colorPrimarioHex, string colorSecundarioHex)
         {
             int width = 350;
             int height = 350;
@@ -827,40 +956,45 @@ namespace Retorno360Tacna.FORMS
             float centerY = height / 2.2f;
             float radius = Math.Min(width, height) / 3.2f;
 
-            int total = vigentes + noVigentes;
+            int total = valorPrimario + valorSecundario;
             if (total == 0) total = 1;
 
-            float vigentesPorcentaje = (float)vigentes / total;
-            float noVigentesPorcentaje = (float)noVigentes / total;
+            float porcentajePrimario = (float)valorPrimario / total;
+            float porcentajeSecundario = (float)valorSecundario / total;
 
-            SKColor colorVigentes = SKColor.Parse("#2ecc71");
-            SKColor colorNoVigentes = SKColor.Parse("#e74c3c");
+            SKColor colorPrimario = SKColor.Parse(colorPrimarioHex);
+            SKColor colorSecundario = SKColor.Parse(colorSecundarioHex);
 
             float startAngle = -90;
-            float sweepAngleVigentes = 360 * vigentesPorcentaje;
+            float sweepAnglePrimario = 360 * porcentajePrimario;
 
-            // Dibujar sector de vigentes
-            using (var paint = new SKPaint { Color = colorVigentes, Style = SKPaintStyle.Fill, IsAntialias = true })
+            using (var titlePaint = new SKPaint { Color = SKColor.Parse("#2c3e50"), TextSize = 18, TextAlign = SKTextAlign.Center, IsAntialias = true, FakeBoldText = true })
+            {
+                canvas.DrawText(titulo, width / 2f, 28, titlePaint);
+            }
+
+            // Dibujar sector primario
+            using (var paint = new SKPaint { Color = colorPrimario, Style = SKPaintStyle.Fill, IsAntialias = true })
             {
                 using (var path = new SKPath())
                 {
                     path.MoveTo(centerX, centerY);
                     path.ArcTo(new SKRect(centerX - radius, centerY - radius, centerX + radius, centerY + radius),
-                              startAngle, sweepAngleVigentes, false);
+                              startAngle, sweepAnglePrimario, false);
                     path.Close();
                     canvas.DrawPath(path, paint);
                 }
             }
 
-            // Dibujar sector de no vigentes
-            float sweepAngleNoVigentes = 360 * noVigentesPorcentaje;
-            using (var paint = new SKPaint { Color = colorNoVigentes, Style = SKPaintStyle.Fill, IsAntialias = true })
+            // Dibujar sector secundario
+            float sweepAngleSecundario = 360 * porcentajeSecundario;
+            using (var paint = new SKPaint { Color = colorSecundario, Style = SKPaintStyle.Fill, IsAntialias = true })
             {
                 using (var path = new SKPath())
                 {
                     path.MoveTo(centerX, centerY);
                     path.ArcTo(new SKRect(centerX - radius, centerY - radius, centerX + radius, centerY + radius),
-                              startAngle + sweepAngleVigentes, sweepAngleNoVigentes, false);
+                              startAngle + sweepAnglePrimario, sweepAngleSecundario, false);
                     path.Close();
                     canvas.DrawPath(path, paint);
                 }
@@ -869,20 +1003,20 @@ namespace Retorno360Tacna.FORMS
             // Dibujar etiquetas de valores
             using (var textPaint = new SKPaint { Color = SKColors.White, TextSize = 16, TextAlign = SKTextAlign.Center, IsAntialias = true, FakeBoldText = true })
             {
-                if (vigentes > 0)
+                if (valorPrimario > 0)
                 {
-                    float angle1 = (startAngle + sweepAngleVigentes / 2) * (float)Math.PI / 180;
+                    float angle1 = (startAngle + sweepAnglePrimario / 2) * (float)Math.PI / 180;
                     float labelX1 = centerX + (radius * 0.6f) * (float)Math.Cos(angle1);
                     float labelY1 = centerY + (radius * 0.6f) * (float)Math.Sin(angle1);
-                    canvas.DrawText($"{vigentes}", labelX1, labelY1, textPaint);
+                    canvas.DrawText($"{valorPrimario}", labelX1, labelY1, textPaint);
                 }
 
-                if (noVigentes > 0)
+                if (valorSecundario > 0)
                 {
-                    float angle2 = (startAngle + sweepAngleVigentes + sweepAngleNoVigentes / 2) * (float)Math.PI / 180;
+                    float angle2 = (startAngle + sweepAnglePrimario + sweepAngleSecundario / 2) * (float)Math.PI / 180;
                     float labelX2 = centerX + (radius * 0.6f) * (float)Math.Cos(angle2);
                     float labelY2 = centerY + (radius * 0.6f) * (float)Math.Sin(angle2);
-                    canvas.DrawText($"{noVigentes}", labelX2, labelY2, textPaint);
+                    canvas.DrawText($"{valorSecundario}", labelX2, labelY2, textPaint);
                 }
             }
 
@@ -891,25 +1025,25 @@ namespace Retorno360Tacna.FORMS
             float legendX = 50;
             float boxSize = 15;
 
-            using (var paint = new SKPaint { Color = colorVigentes, Style = SKPaintStyle.Fill, IsAntialias = true })
+            using (var paint = new SKPaint { Color = colorPrimario, Style = SKPaintStyle.Fill, IsAntialias = true })
             {
                 canvas.DrawRect(legendX, legendY, boxSize, boxSize, paint);
             }
 
             using (var textPaint = new SKPaint { Color = SKColors.Black, TextSize = 12, IsAntialias = true })
             {
-                canvas.DrawText($"Vigentes en BOM: {vigentes:N0}", legendX + boxSize + 10, legendY + 12, textPaint);
+                canvas.DrawText($"{etiquetaPrimaria}: {valorPrimario:N0}", legendX + boxSize + 10, legendY + 12, textPaint);
             }
 
             legendY += 25;
-            using (var paint = new SKPaint { Color = colorNoVigentes, Style = SKPaintStyle.Fill, IsAntialias = true })
+            using (var paint = new SKPaint { Color = colorSecundario, Style = SKPaintStyle.Fill, IsAntialias = true })
             {
                 canvas.DrawRect(legendX, legendY, boxSize, boxSize, paint);
             }
 
             using (var textPaint = new SKPaint { Color = SKColors.Black, TextSize = 12, IsAntialias = true })
             {
-                canvas.DrawText($"No vigentes en BOM: {noVigentes:N0}", legendX + boxSize + 10, legendY + 12, textPaint);
+                canvas.DrawText($"{etiquetaSecundaria}: {valorSecundario:N0}", legendX + boxSize + 10, legendY + 12, textPaint);
             }
 
             using (var image = surface.Snapshot())
@@ -1033,26 +1167,58 @@ namespace Retorno360Tacna.FORMS
 
         private void btnGraficaIndividual_Click(object sender, EventArgs e)
         {
-            if (datosConsultadosMP == null || datosConsultadosMP.Count == 0)
+            if ((vistaActual == 1 || vistaActual == 2) && (datosConsultadosMP == null || datosConsultadosMP.Count == 0))
             {
                 MessageBox.Show("Primero debe realizar una consulta.",
                     "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            MostrarVistaMP();
+            if (vistaActual == 0)
+            {
+                MostrarVistaOtros();
+            }
+            else if (vistaActual == 1)
+            {
+                MostrarVistaPedimentosMP();
+            }
+            else
+            {
+                MostrarVistaMP();
+            }
         }
 
         private void btnGraficaTodos_Click(object sender, EventArgs e)
         {
-            if (datosConsultadosOtros == null || datosConsultadosOtros.Count == 0)
+            if ((vistaActual == 0 && (datosConsultadosOtros == null || datosConsultadosOtros.Count == 0))
+                || (vistaActual == 1 && (datosConsultadosMP == null || datosConsultadosMP.Count == 0))
+                || (vistaActual == 2 && (datosConsultadosMP == null || datosConsultadosMP.Count == 0)))
             {
                 MessageBox.Show("Primero debe realizar una consulta.",
                     "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            MostrarVistaOtros();
+            if (vistaActual == 0)
+            {
+                MostrarVistaPedimentosMP();
+            }
+            else if (vistaActual == 1)
+            {
+                MostrarVistaMP();
+            }
+            else
+            {
+                MostrarVistaOtros();
+            }
+        }
+
+        private void cboTipoParte_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (vistaActual == 1)
+            {
+                AplicarFiltroTipoParte();
+            }
         }
 
         private void dgvMateriaPrima_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)

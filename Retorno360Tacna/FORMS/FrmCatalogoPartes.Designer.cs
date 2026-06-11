@@ -27,16 +27,18 @@ namespace Retorno360Tacna.FORMS
             dtpFechaInicio = new DateTimePicker();
             lblFechaFin = new Label();
             dtpFechaFin = new DateTimePicker();
+            lblTipoParte = new Label();
+            cboTipoParte = new ComboBox();
             btnConsultar = new Button();
             btnExportarPdf = new Button();
             lblTotalPartes = new Label();
             panelContenido = new Panel();
             dgvMateriaPrima = new DataGridView();
             panelGrafico = new Panel();
+            chartEstatus = new LiveChartsCore.SkiaSharpView.WinForms.PieChart();
             panelBotonesGrafica = new Panel();
             btnGraficaTodos = new Button();
             btnGraficaIndividual = new Button();
-            chartEstatus = new LiveChartsCore.SkiaSharpView.WinForms.PieChart();
             panelCargando = new Panel();
             lblCargando = new Label();
             progressBarCargando = new ProgressBar();
@@ -60,13 +62,15 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.Controls.Add(dtpFechaInicio);
             panelFiltros.Controls.Add(lblFechaFin);
             panelFiltros.Controls.Add(dtpFechaFin);
+            panelFiltros.Controls.Add(lblTipoParte);
+            panelFiltros.Controls.Add(cboTipoParte);
             panelFiltros.Controls.Add(btnConsultar);
             panelFiltros.Controls.Add(btnExportarPdf);
             panelFiltros.Controls.Add(lblTotalPartes);
             panelFiltros.Dock = DockStyle.Top;
             panelFiltros.Location = new Point(0, 0);
             panelFiltros.Name = "panelFiltros";
-            panelFiltros.Size = new Size(1231, 120);
+            panelFiltros.Size = new Size(1231, 147);
             panelFiltros.TabIndex = 0;
             // 
             // lblTitulo
@@ -124,7 +128,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblFechaInicio.AutoSize = true;
             lblFechaInicio.Font = new Font("Segoe UI", 9F);
-            lblFechaInicio.Location = new Point(504, 22);
+            lblFechaInicio.Location = new Point(504, 9);
             lblFechaInicio.Name = "lblFechaInicio";
             lblFechaInicio.Size = new Size(73, 15);
             lblFechaInicio.TabIndex = 5;
@@ -133,7 +137,7 @@ namespace Retorno360Tacna.FORMS
             // dtpFechaInicio
             // 
             dtpFechaInicio.Format = DateTimePickerFormat.Short;
-            dtpFechaInicio.Location = new Point(504, 42);
+            dtpFechaInicio.Location = new Point(504, 29);
             dtpFechaInicio.Name = "dtpFechaInicio";
             dtpFechaInicio.Size = new Size(120, 23);
             dtpFechaInicio.TabIndex = 6;
@@ -142,7 +146,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblFechaFin.AutoSize = true;
             lblFechaFin.Font = new Font("Segoe UI", 9F);
-            lblFechaFin.Location = new Point(639, 22);
+            lblFechaFin.Location = new Point(639, 9);
             lblFechaFin.Name = "lblFechaFin";
             lblFechaFin.Size = new Size(60, 15);
             lblFechaFin.TabIndex = 7;
@@ -151,10 +155,31 @@ namespace Retorno360Tacna.FORMS
             // dtpFechaFin
             // 
             dtpFechaFin.Format = DateTimePickerFormat.Short;
-            dtpFechaFin.Location = new Point(639, 42);
+            dtpFechaFin.Location = new Point(639, 29);
             dtpFechaFin.Name = "dtpFechaFin";
             dtpFechaFin.Size = new Size(120, 23);
             dtpFechaFin.TabIndex = 8;
+            // 
+            // lblTipoParte
+            // 
+            lblTipoParte.AutoSize = true;
+            lblTipoParte.Font = new Font("Segoe UI", 9F);
+            lblTipoParte.Location = new Point(504, 60);
+            lblTipoParte.Name = "lblTipoParte";
+            lblTipoParte.Size = new Size(120, 15);
+            lblTipoParte.TabIndex = 12;
+            lblTipoParte.Text = "Tipo N° de Parte (all):";
+            // 
+            // cboTipoParte
+            // 
+            cboTipoParte.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboTipoParte.Enabled = false;
+            cboTipoParte.FormattingEnabled = true;
+            cboTipoParte.Location = new Point(504, 78);
+            cboTipoParte.Name = "cboTipoParte";
+            cboTipoParte.Size = new Size(255, 23);
+            cboTipoParte.TabIndex = 13;
+            cboTipoParte.SelectedIndexChanged += cboTipoParte_SelectedIndexChanged;
             // 
             // btnConsultar
             // 
@@ -166,7 +191,7 @@ namespace Retorno360Tacna.FORMS
             btnConsultar.ForeColor = Color.White;
             btnConsultar.Image = Properties.Resources.search_magnifying_glass_icon_1926311;
             btnConsultar.ImageAlign = ContentAlignment.MiddleRight;
-            btnConsultar.Location = new Point(796, 31);
+            btnConsultar.Location = new Point(920, 29);
             btnConsultar.Name = "btnConsultar";
             btnConsultar.Size = new Size(151, 50);
             btnConsultar.TabIndex = 9;
@@ -186,7 +211,7 @@ namespace Retorno360Tacna.FORMS
             btnExportarPdf.ForeColor = Color.White;
             btnExportarPdf.Image = Properties.Resources.applicationpdf_1036141;
             btnExportarPdf.ImageAlign = ContentAlignment.MiddleRight;
-            btnExportarPdf.Location = new Point(953, 31);
+            btnExportarPdf.Location = new Point(1077, 29);
             btnExportarPdf.Name = "btnExportarPdf";
             btnExportarPdf.Size = new Size(151, 50);
             btnExportarPdf.TabIndex = 11;
@@ -200,7 +225,7 @@ namespace Retorno360Tacna.FORMS
             lblTotalPartes.AutoSize = true;
             lblTotalPartes.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblTotalPartes.ForeColor = Color.FromArgb(41, 128, 185);
-            lblTotalPartes.Location = new Point(808, 93);
+            lblTotalPartes.Location = new Point(504, 114);
             lblTotalPartes.Name = "lblTotalPartes";
             lblTotalPartes.Size = new Size(125, 19);
             lblTotalPartes.TabIndex = 10;
@@ -211,9 +236,9 @@ namespace Retorno360Tacna.FORMS
             panelContenido.Controls.Add(dgvMateriaPrima);
             panelContenido.Controls.Add(panelGrafico);
             panelContenido.Dock = DockStyle.Fill;
-            panelContenido.Location = new Point(0, 120);
+            panelContenido.Location = new Point(0, 147);
             panelContenido.Name = "panelContenido";
-            panelContenido.Size = new Size(1231, 541);
+            panelContenido.Size = new Size(1231, 514);
             panelContenido.TabIndex = 2;
             // 
             // dgvMateriaPrima
@@ -229,7 +254,7 @@ namespace Retorno360Tacna.FORMS
             dgvMateriaPrima.ReadOnly = true;
             dgvMateriaPrima.RowHeadersWidth = 51;
             dgvMateriaPrima.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvMateriaPrima.Size = new Size(831, 541);
+            dgvMateriaPrima.Size = new Size(831, 514);
             dgvMateriaPrima.TabIndex = 1;
             // 
             // panelGrafico
@@ -242,8 +267,21 @@ namespace Retorno360Tacna.FORMS
             panelGrafico.Location = new Point(0, 0);
             panelGrafico.Name = "panelGrafico";
             panelGrafico.Padding = new Padding(10);
-            panelGrafico.Size = new Size(400, 541);
+            panelGrafico.Size = new Size(400, 514);
             panelGrafico.TabIndex = 0;
+            // 
+            // chartEstatus
+            // 
+            chartEstatus.Dock = DockStyle.Fill;
+            chartEstatus.InitialRotation = 0D;
+            chartEstatus.IsClockwise = true;
+            chartEstatus.Location = new Point(10, 59);
+            chartEstatus.MaxAngle = 360D;
+            chartEstatus.MaxValue = null;
+            chartEstatus.MinValue = 0D;
+            chartEstatus.Name = "chartEstatus";
+            chartEstatus.Size = new Size(378, 443);
+            chartEstatus.TabIndex = 0;
             // 
             // panelBotonesGrafica
             // 
@@ -252,7 +290,7 @@ namespace Retorno360Tacna.FORMS
             panelBotonesGrafica.Dock = DockStyle.Top;
             panelBotonesGrafica.Location = new Point(10, 10);
             panelBotonesGrafica.Name = "panelBotonesGrafica";
-            panelBotonesGrafica.Size = new Size(378, 40);
+            panelBotonesGrafica.Size = new Size(378, 49);
             panelBotonesGrafica.TabIndex = 1;
             // 
             // btnGraficaTodos
@@ -264,9 +302,9 @@ namespace Retorno360Tacna.FORMS
             btnGraficaTodos.FlatStyle = FlatStyle.Flat;
             btnGraficaTodos.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
             btnGraficaTodos.ForeColor = Color.White;
-            btnGraficaTodos.Location = new Point(200, 5);
+            btnGraficaTodos.Location = new Point(326, 5);
             btnGraficaTodos.Name = "btnGraficaTodos";
-            btnGraficaTodos.Size = new Size(40, 30);
+            btnGraficaTodos.Size = new Size(40, 38);
             btnGraficaTodos.TabIndex = 1;
             btnGraficaTodos.Text = "▶";
             btnGraficaTodos.UseVisualStyleBackColor = false;
@@ -281,26 +319,13 @@ namespace Retorno360Tacna.FORMS
             btnGraficaIndividual.FlatStyle = FlatStyle.Flat;
             btnGraficaIndividual.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
             btnGraficaIndividual.ForeColor = Color.White;
-            btnGraficaIndividual.Location = new Point(158, 5);
+            btnGraficaIndividual.Location = new Point(22, 5);
             btnGraficaIndividual.Name = "btnGraficaIndividual";
-            btnGraficaIndividual.Size = new Size(40, 30);
+            btnGraficaIndividual.Size = new Size(40, 38);
             btnGraficaIndividual.TabIndex = 0;
             btnGraficaIndividual.Text = "◀";
             btnGraficaIndividual.UseVisualStyleBackColor = false;
             btnGraficaIndividual.Click += btnGraficaIndividual_Click;
-            // 
-            // chartEstatus
-            // 
-            chartEstatus.Dock = DockStyle.Fill;
-            chartEstatus.InitialRotation = 0D;
-            chartEstatus.IsClockwise = true;
-            chartEstatus.Location = new Point(10, 50);
-            chartEstatus.MaxAngle = 360D;
-            chartEstatus.MaxValue = null;
-            chartEstatus.MinValue = 0D;
-            chartEstatus.Name = "chartEstatus";
-            chartEstatus.Size = new Size(378, 479);
-            chartEstatus.TabIndex = 0;
             // 
             // panelCargando
             // 
@@ -368,6 +393,8 @@ namespace Retorno360Tacna.FORMS
         private DateTimePicker dtpFechaInicio;
         private Label lblFechaFin;
         private DateTimePicker dtpFechaFin;
+        private Label lblTipoParte;
+        private ComboBox cboTipoParte;
         private Button btnConsultar;
         private Button btnExportarPdf;
         private Label lblTotalPartes;

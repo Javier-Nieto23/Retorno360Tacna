@@ -85,5 +85,7 @@ namespace Retorno360Tacna
         /// Obtiene el MainMenu pre-cargado (si existe)
         /// </summary>
         public Retorno360Tacna.FORMS.MainMenu? ObtenerMainMenuPrecargado() => mainMenuPrecargado;
+
+
     }
 }

@@ -8,6 +8,7 @@ using SkiaSharp;
 using LiveChartsCore.SkiaSharpView.WinForms;
 using System.Linq;
 using System.Diagnostics;
+using System.Data;
 using ClosedXML.Excel;
 
 namespace Retorno360Tacna.FORMS
@@ -1108,6 +1109,15 @@ namespace Retorno360Tacna.FORMS
                 DataGridViewRow row = dgvReporteIGI.Rows[e.RowIndex];
 
                 string formaPago = ObtenerValorCelda(row, "FormaPago_IGI", "FORMA DE PAGO IGI");
+                string periodo = ObtenerValorCelda(row, "Periodo", "MES");
+                int anio = 0;
+                int mes = 0;
+
+                if (row.DataBoundItem is System.Data.DataRowView rowView)
+                {
+                    anio = ObtenerValorEntero(rowView.Row, "Año", "A�o");
+                    mes = ObtenerValorEntero(rowView.Row, "Mes");
+                }
 
                 if (string.IsNullOrEmpty(formaPago))
                 {
@@ -1125,7 +1135,7 @@ namespace Retorno360Tacna.FORMS
                 }
 
                 // Abrir formulario de detalle con la tabla filtrada por forma de pago
-                var frmDetalle = new FrmDetalleConciliacion(detalleIGIActual, formaPago, "IGI");
+                var frmDetalle = new FrmDetalleConciliacion(detalleIGIActual, formaPago, periodo: periodo, anioSeleccionado: anio, mesSeleccionado: mes, tipoReporte: "IGI");
                 frmDetalle.ShowDialog(this);
                 frmDetalle.Dispose();
             }
@@ -1169,6 +1179,15 @@ namespace Retorno360Tacna.FORMS
                 DataGridViewRow row = dgvReporteIVA.Rows[e.RowIndex];
 
                 string formaPago = ObtenerValorCelda(row, "FormaPago_IVA", "FORMA DE PAGO IVA");
+                string periodo = ObtenerValorCelda(row, "Periodo", "MES");
+                int anio = 0;
+                int mes = 0;
+
+                if (row.DataBoundItem is System.Data.DataRowView rowView)
+                {
+                    anio = ObtenerValorEntero(rowView.Row, "Año", "A�o");
+                    mes = ObtenerValorEntero(rowView.Row, "Mes");
+                }
 
                 if (string.IsNullOrEmpty(formaPago))
                 {
@@ -1186,7 +1205,7 @@ namespace Retorno360Tacna.FORMS
                 }
 
                 // Abrir formulario de detalle con la tabla filtrada por forma de pago
-                var frmDetalle = new FrmDetalleConciliacion(detalleIVAActual, formaPago, "IVA");
+                var frmDetalle = new FrmDetalleConciliacion(detalleIVAActual, formaPago, periodo: periodo, anioSeleccionado: anio, mesSeleccionado: mes, tipoReporte: "IVA");
                 frmDetalle.ShowDialog(this);
                 frmDetalle.Dispose();
             }
