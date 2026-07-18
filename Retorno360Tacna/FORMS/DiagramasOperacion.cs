@@ -41,15 +41,20 @@ namespace Retorno360Tacna.FORMS
             {
                 if (Properties.Resources.ChatGPT_Image_Apr_21__2026__12_48_04_PM != null)
                 {
-                    pictureBoxLogo.Image = Properties.Resources.ChatGPT_Image_Apr_21__2026__12_48_04_PM;
+                    //pictureBoxLogo.Image = Properties.Resources.ChatGPT_Image_Apr_21__2026__12_48_04_PM;
                 }
             }
             catch
             {
                 // Si no hay logo, ocultar el PictureBox
-                pictureBoxLogo.Visible = false;
+                //pictureBoxLogo.Visible = false;
                 lblBienvenida.Location = new Point(0, 200);
             }
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

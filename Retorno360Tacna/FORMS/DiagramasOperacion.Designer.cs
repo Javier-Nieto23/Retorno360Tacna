@@ -32,18 +32,18 @@
             lblVersion = new Label();
             lblSubtitulo = new Label();
             lblBienvenida = new Label();
-            pictureBoxLogo = new PictureBox();
+            pictureBox1 = new PictureBox();
             panelPrincipal.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxLogo).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
             // 
             // panelPrincipal
             // 
             panelPrincipal.BackColor = Color.White;
+            panelPrincipal.Controls.Add(pictureBox1);
             panelPrincipal.Controls.Add(lblVersion);
             panelPrincipal.Controls.Add(lblSubtitulo);
             panelPrincipal.Controls.Add(lblBienvenida);
-            panelPrincipal.Controls.Add(pictureBoxLogo);
             panelPrincipal.Dock = DockStyle.Fill;
             panelPrincipal.Location = new Point(0, 0);
             panelPrincipal.Name = "panelPrincipal";
@@ -59,7 +59,7 @@
             lblVersion.Name = "lblVersion";
             lblVersion.Size = new Size(180, 20);
             lblVersion.TabIndex = 3;
-            lblVersion.Text = "Versión 3.0 - 2026";
+            lblVersion.Text = "Versión 2.6 - 2026";
             lblVersion.TextAlign = ContentAlignment.MiddleRight;
             // 
             // lblSubtitulo
@@ -67,7 +67,7 @@
             lblSubtitulo.Anchor = AnchorStyles.None;
             lblSubtitulo.Font = new Font("Segoe UI", 14F);
             lblSubtitulo.ForeColor = Color.FromArgb(127, 140, 141);
-            lblSubtitulo.Location = new Point(0, 340);
+            lblSubtitulo.Location = new Point(12, 70);
             lblSubtitulo.Name = "lblSubtitulo";
             lblSubtitulo.Size = new Size(1271, 30);
             lblSubtitulo.TabIndex = 2;
@@ -79,23 +79,24 @@
             lblBienvenida.Anchor = AnchorStyles.None;
             lblBienvenida.Font = new Font("Segoe UI", 32F, FontStyle.Bold);
             lblBienvenida.ForeColor = Color.FromArgb(44, 62, 80);
-            lblBienvenida.Location = new Point(0, 270);
+            lblBienvenida.Location = new Point(12, 0);
             lblBienvenida.Name = "lblBienvenida";
             lblBienvenida.Size = new Size(1271, 60);
             lblBienvenida.TabIndex = 1;
             lblBienvenida.Text = "¡Bienvenido al Sistema!";
             lblBienvenida.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            // pictureBoxLogo
+            // pictureBox1
             // 
-            pictureBoxLogo.Anchor = AnchorStyles.None;
-            pictureBoxLogo.BackColor = Color.Transparent;
-            pictureBoxLogo.Location = new Point(486, 100);
-            pictureBoxLogo.Name = "pictureBoxLogo";
-            pictureBoxLogo.Size = new Size(300, 150);
-            pictureBoxLogo.SizeMode = PictureBoxSizeMode.Zoom;
-            pictureBoxLogo.TabIndex = 0;
-            pictureBoxLogo.TabStop = false;
+            pictureBox1.Anchor = AnchorStyles.None;
+            pictureBox1.BackColor = Color.Transparent;
+            pictureBox1.Image = Properties.Resources.Gemini_Generated_Image_o36ilto36ilto36i;
+            pictureBox1.Location = new Point(248, 103);
+            pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new Size(792, 506);
+            pictureBox1.SizeMode = PictureBoxSizeMode.StretchImage;
+            pictureBox1.TabIndex = 4;
+            pictureBox1.TabStop = false;
             // 
             // DiagramasOperacion
             // 
@@ -109,7 +110,7 @@
             Text = "Bienvenida";
             Load += DiagramasOperacion_Load;
             panelPrincipal.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)pictureBoxLogo).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             ResumeLayout(false);
         }
 
@@ -119,6 +120,6 @@
         private Label lblBienvenida;
         private Label lblSubtitulo;
         private Label lblVersion;
-        private PictureBox pictureBoxLogo;
+        private PictureBox pictureBox1;
     }
 }

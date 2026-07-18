@@ -4,9 +4,11 @@ using Retorno360Tacna.HELPERS;
 using Retorno360Tacna.MODELS;
 using Retorno360Tacna.CNX;
 using Microsoft.Data.SqlClient;
+using Npgsql;
 using System.Security.Cryptography;
 using System.Text;
 using System.Data;
+using System.Linq;
 
 namespace Retorno360Tacna.FORMS
 {
@@ -17,6 +19,7 @@ namespace Retorno360Tacna.FORMS
         private Usuario? usuarioActual;
         private ConexionInfo? conexionActual;
         private int usuarioEditandoId = 0;
+        private const string ConexionPortalWeb = "Host=localhost;Port=5432;Database=retorno360db;Username=postgres;Password=admin1234;Timeout=5;Command Timeout=5;";
 
         public FrmConfiguracion(ConexionInfo conexion, Usuario? usuario = null)
         {
@@ -39,6 +42,8 @@ namespace Retorno360Tacna.FORMS
         private void InicializarCombos()
         {
             cmbActivo.SelectedIndex = 0; // Activo por defecto
+            cmbIdWebEditar.DisplayMember = "Display";
+            cmbIdWebEditar.ValueMember = "Id";
         }
 
         private void OcultarPanelAgregarUsuario()
@@ -142,11 +147,11 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ErrorMessageHelper.ShowError(
                     $"Error al guardar la configuración: {ex.Message}",
                     "Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                    ex,
+                    "Guardado de configuración visual");
             }
         }
 
@@ -295,6 +300,7 @@ namespace Retorno360Tacna.FORMS
         {
             txtUserAlias.Clear();
             txtPasswordHash.Clear();
+            txtConfirmarPassword.Clear();
             txtNombreUsuario.Clear();
             txtApellidoUsuario.Clear();
             cmbActivo.SelectedIndex = 0; // Activo por defecto
@@ -318,6 +324,21 @@ namespace Retorno360Tacna.FORMS
                 {
                     MessageBox.Show("El campo Password es requerido.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtPasswordHash.Focus();
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(txtConfirmarPassword.Text))
+                {
+                    MessageBox.Show("Debe confirmar la contraseña.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    txtConfirmarPassword.Focus();
+                    return;
+                }
+
+                if (!string.Equals(txtPasswordHash.Text, txtConfirmarPassword.Text, StringComparison.Ordinal))
+                {
+                    MessageBox.Show("La contraseña y su confirmación no coinciden.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    txtConfirmarPassword.Focus();
+                    txtConfirmarPassword.SelectAll();
                     return;
                 }
 
@@ -637,6 +658,7 @@ namespace Retorno360Tacna.FORMS
                             u.ApellidoUsuario,
                             u.Activo,
                             u.IdRol,
+                            u.idweb,
                             r.NombreRol
                         FROM Usuarios u
                         INNER JOIN Roles r ON u.IdRol = r.IdRol
@@ -655,6 +677,7 @@ namespace Retorno360Tacna.FORMS
                                 txtNombreEditar.Text = reader.IsDBNull(2) ? "" : reader.GetString(2);
                                 txtApellidoEditar.Text = reader.IsDBNull(3) ? "" : reader.GetString(3);
                                 cmbActivoEditar.SelectedIndex = reader.GetBoolean(4) ? 0 : 1;
+                                int? idWebActual = reader.IsDBNull(6) ? null : reader.GetInt32(6);
 
                                 // Guardar el IdRol para seleccionarlo después
                                 int idRolActual = reader.GetInt32(5);
@@ -663,6 +686,7 @@ namespace Retorno360Tacna.FORMS
 
                                 // Cargar roles
                                 CargarRolesEditar();
+                                CargarUsuariosWeb(idWebActual);
 
                                 // Seleccionar el rol actual
                                 for (int i = 0; i < cmbRolEditar.Items.Count; i++)
@@ -738,6 +762,53 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
+        private void CargarUsuariosWeb(int? idWebSeleccionado = null)
+        {
+            try
+            {
+                var usuariosWeb = new List<UsuarioWebComboItem>
+                {
+                    new UsuarioWebComboItem { Id = null, Display = "Sin vincular" }
+                };
+
+                using var conn = new NpgsqlConnection(ConexionPortalWeb);
+                conn.Open();
+
+                const string query = @"
+                    SELECT id, alias
+                    FROM usuarios
+                    ORDER BY alias";
+
+                using var cmd = new NpgsqlCommand(query, conn);
+                using var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    int id = reader.GetInt32(0);
+                    string usuario = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
+                    usuariosWeb.Add(new UsuarioWebComboItem
+                    {
+                        Id = id,
+                        Display = $"{id} - {usuario}"
+                    });
+                }
+
+                cmbIdWebEditar.DataSource = null;
+                cmbIdWebEditar.DataSource = usuariosWeb;
+                cmbIdWebEditar.DisplayMember = "Display";
+                cmbIdWebEditar.ValueMember = "Id";
+
+                var itemSeleccionado = usuariosWeb.FirstOrDefault(x => x.Id == idWebSeleccionado);
+                cmbIdWebEditar.SelectedItem = itemSeleccionado ?? usuariosWeb[0];
+            }
+            catch (Exception ex)
+            {
+                cmbIdWebEditar.DataSource = null;
+                cmbIdWebEditar.Items.Clear();
+                MessageBox.Show($"Error al cargar usuarios web: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void chkCambiarPassword_CheckedChanged(object sender, EventArgs e)
         {
             lblNuevaPassword.Visible = chkCambiarPassword.Checked;
@@ -793,6 +864,7 @@ namespace Retorno360Tacna.FORMS
                                 ApellidoUsuario = @ApellidoUsuario,
                                 Activo = @Activo,
                                 IdRol = @IdRol,
+                                idweb = @IdWeb,
                                 PasswordHash = @PasswordHash
                             WHERE IdUsuario = @IdUsuario";
                     }
@@ -804,7 +876,8 @@ namespace Retorno360Tacna.FORMS
                             SET NombreUsuario = @NombreUsuario,
                                 ApellidoUsuario = @ApellidoUsuario,
                                 Activo = @Activo,
-                                IdRol = @IdRol
+                                IdRol = @IdRol,
+                                idweb = @IdWeb
                             WHERE IdUsuario = @IdUsuario";
                     }
 
@@ -815,6 +888,8 @@ namespace Retorno360Tacna.FORMS
                         cmd.Parameters.AddWithValue("@ApellidoUsuario", txtApellidoEditar.Text.Trim());
                         cmd.Parameters.AddWithValue("@Activo", cmbActivoEditar.SelectedIndex == 0 ? 1 : 0);
                         cmd.Parameters.AddWithValue("@IdRol", cmbRolEditar.SelectedValue ?? 1);
+                        object idWebSeleccionado = cmbIdWebEditar.SelectedValue is int idWeb ? idWeb : DBNull.Value;
+                        cmd.Parameters.AddWithValue("@IdWeb", idWebSeleccionado);
 
                         if (chkCambiarPassword.Checked)
                         {
@@ -845,6 +920,63 @@ namespace Retorno360Tacna.FORMS
             panelEditarUsuario.Visible = false;
             panelListaUsuarios.Visible = true;
             usuarioEditandoId = 0;
+        }
+
+        private void btnVincularUsuarioWeb_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (usuarioEditandoId <= 0)
+                {
+                    MessageBox.Show("No hay un usuario seleccionado para vincular.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (cmbIdWebEditar.SelectedValue is not int idWeb || idWeb <= 0)
+                {
+                    MessageBox.Show("Seleccione un usuario web válido.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    cmbIdWebEditar.Focus();
+                    return;
+                }
+
+                if (conexionActual == null) return;
+
+                Conexion conexion = new Conexion(
+                    conexionActual.Servidor!,
+                    conexionActual.UsuarioSQL!,
+                    conexionActual.PasswordSQL!,
+                    "RetornoMaster"
+                );
+
+                using (SqlConnection conn = conexion.ObtenerConexion())
+                {
+                    conn.Open();
+                    string query = "UPDATE Usuarios SET idweb = @IdWeb WHERE IdUsuario = @IdUsuario";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@IdWeb", idWeb);
+                        cmd.Parameters.AddWithValue("@IdUsuario", usuarioEditandoId);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                        {
+                            MessageBox.Show("Usuario web vinculado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            CargarListaUsuarios();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al vincular el usuario web: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private sealed class UsuarioWebComboItem
+        {
+            public int? Id { get; set; }
+            public string Display { get; set; } = string.Empty;
         }
     }
 }

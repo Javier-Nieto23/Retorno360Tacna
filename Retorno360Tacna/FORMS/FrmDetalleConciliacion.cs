@@ -97,7 +97,7 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar datos: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al cargar datos: {ex.Message}", "Error", ex, "Carga de detalle de conciliación");
             }
         }
 
@@ -169,7 +169,7 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al exportar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al exportar: {ex.Message}", "Error", ex, "Exportación de detalle de conciliación");
             }
         }
 

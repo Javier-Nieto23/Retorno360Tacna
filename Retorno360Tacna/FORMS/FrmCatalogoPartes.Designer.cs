@@ -30,7 +30,9 @@ namespace Retorno360Tacna.FORMS
             lblTipoParte = new Label();
             cboTipoParte = new ComboBox();
             btnConsultar = new Button();
+            btnExportarExcel = new Button();
             btnExportarPdf = new Button();
+            chkPdfTodasEmpresas = new CheckBox();
             lblTotalPartes = new Label();
             panelContenido = new Panel();
             dgvMateriaPrima = new DataGridView();
@@ -65,12 +67,14 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.Controls.Add(lblTipoParte);
             panelFiltros.Controls.Add(cboTipoParte);
             panelFiltros.Controls.Add(btnConsultar);
+            panelFiltros.Controls.Add(btnExportarExcel);
             panelFiltros.Controls.Add(btnExportarPdf);
+            panelFiltros.Controls.Add(chkPdfTodasEmpresas);
             panelFiltros.Controls.Add(lblTotalPartes);
             panelFiltros.Dock = DockStyle.Top;
             panelFiltros.Location = new Point(0, 0);
             panelFiltros.Name = "panelFiltros";
-            panelFiltros.Size = new Size(1231, 147);
+            panelFiltros.Size = new Size(1495, 147);
             panelFiltros.TabIndex = 0;
             // 
             // lblTitulo
@@ -191,7 +195,7 @@ namespace Retorno360Tacna.FORMS
             btnConsultar.ForeColor = Color.White;
             btnConsultar.Image = Properties.Resources.search_magnifying_glass_icon_1926311;
             btnConsultar.ImageAlign = ContentAlignment.MiddleRight;
-            btnConsultar.Location = new Point(920, 29);
+            btnConsultar.Location = new Point(851, 16);
             btnConsultar.Name = "btnConsultar";
             btnConsultar.Size = new Size(151, 50);
             btnConsultar.TabIndex = 9;
@@ -199,6 +203,26 @@ namespace Retorno360Tacna.FORMS
             btnConsultar.TextAlign = ContentAlignment.MiddleLeft;
             btnConsultar.UseVisualStyleBackColor = false;
             btnConsultar.Click += btnConsultar_Click;
+            // 
+            // btnExportarExcel
+            // 
+            btnExportarExcel.BackColor = Color.FromArgb(39, 174, 96);
+            btnExportarExcel.Cursor = Cursors.Hand;
+            btnExportarExcel.Enabled = false;
+            btnExportarExcel.FlatAppearance.BorderSize = 0;
+            btnExportarExcel.FlatStyle = FlatStyle.Flat;
+            btnExportarExcel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnExportarExcel.ForeColor = Color.White;
+            btnExportarExcel.Image = Properties.Resources.ext_xlsx_icon_176245;
+            btnExportarExcel.ImageAlign = ContentAlignment.MiddleRight;
+            btnExportarExcel.Location = new Point(1187, 16);
+            btnExportarExcel.Name = "btnExportarExcel";
+            btnExportarExcel.Size = new Size(151, 50);
+            btnExportarExcel.TabIndex = 14;
+            btnExportarExcel.Text = "Exportar Excel";
+            btnExportarExcel.TextAlign = ContentAlignment.MiddleLeft;
+            btnExportarExcel.UseVisualStyleBackColor = false;
+            btnExportarExcel.Click += btnExportarExcel_Click;
             // 
             // btnExportarPdf
             // 
@@ -211,7 +235,7 @@ namespace Retorno360Tacna.FORMS
             btnExportarPdf.ForeColor = Color.White;
             btnExportarPdf.Image = Properties.Resources.applicationpdf_1036141;
             btnExportarPdf.ImageAlign = ContentAlignment.MiddleRight;
-            btnExportarPdf.Location = new Point(1077, 29);
+            btnExportarPdf.Location = new Point(1019, 16);
             btnExportarPdf.Name = "btnExportarPdf";
             btnExportarPdf.Size = new Size(151, 50);
             btnExportarPdf.TabIndex = 11;
@@ -220,12 +244,23 @@ namespace Retorno360Tacna.FORMS
             btnExportarPdf.UseVisualStyleBackColor = false;
             btnExportarPdf.Click += btnExportarPdf_Click;
             // 
+            // chkPdfTodasEmpresas
+            // 
+            chkPdfTodasEmpresas.AutoSize = true;
+            chkPdfTodasEmpresas.Location = new Point(1019, 82);
+            chkPdfTodasEmpresas.Name = "chkPdfTodasEmpresas";
+            chkPdfTodasEmpresas.Size = new Size(231, 19);
+            chkPdfTodasEmpresas.TabIndex = 15;
+            chkPdfTodasEmpresas.Text = "Consultar todas las empresas de la razón";
+            chkPdfTodasEmpresas.UseVisualStyleBackColor = true;
+            chkPdfTodasEmpresas.CheckedChanged += chkPdfTodasEmpresas_CheckedChanged;
+            // 
             // lblTotalPartes
             // 
             lblTotalPartes.AutoSize = true;
             lblTotalPartes.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblTotalPartes.ForeColor = Color.FromArgb(41, 128, 185);
-            lblTotalPartes.Location = new Point(504, 114);
+            lblTotalPartes.Location = new Point(851, 112);
             lblTotalPartes.Name = "lblTotalPartes";
             lblTotalPartes.Size = new Size(125, 19);
             lblTotalPartes.TabIndex = 10;
@@ -238,7 +273,7 @@ namespace Retorno360Tacna.FORMS
             panelContenido.Dock = DockStyle.Fill;
             panelContenido.Location = new Point(0, 147);
             panelContenido.Name = "panelContenido";
-            panelContenido.Size = new Size(1231, 514);
+            panelContenido.Size = new Size(1495, 514);
             panelContenido.TabIndex = 2;
             // 
             // dgvMateriaPrima
@@ -254,7 +289,7 @@ namespace Retorno360Tacna.FORMS
             dgvMateriaPrima.ReadOnly = true;
             dgvMateriaPrima.RowHeadersWidth = 51;
             dgvMateriaPrima.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvMateriaPrima.Size = new Size(831, 514);
+            dgvMateriaPrima.Size = new Size(1095, 514);
             dgvMateriaPrima.TabIndex = 1;
             // 
             // panelGrafico
@@ -363,7 +398,7 @@ namespace Retorno360Tacna.FORMS
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1231, 661);
+            ClientSize = new Size(1495, 661);
             Controls.Add(panelContenido);
             Controls.Add(panelCargando);
             Controls.Add(panelFiltros);
@@ -396,7 +431,9 @@ namespace Retorno360Tacna.FORMS
         private Label lblTipoParte;
         private ComboBox cboTipoParte;
         private Button btnConsultar;
+        private Button btnExportarExcel;
         private Button btnExportarPdf;
+        private CheckBox chkPdfTodasEmpresas;
         private Label lblTotalPartes;
         private Panel panelContenido;
         private DataGridView dgvMateriaPrima;

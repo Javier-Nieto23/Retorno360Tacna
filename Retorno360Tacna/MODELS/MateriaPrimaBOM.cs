@@ -5,6 +5,7 @@ namespace Retorno360Tacna.MODELS
     public class MateriaPrimaBOM
     {
         public int Par_Consecutivo { get; set; }
+        public string BaseDatosOrigenConsulta { get; set; } = string.Empty;
         public string Par_NoParte { get; set; } = string.Empty;
         public string Par_DescripcionEsp { get; set; } = string.Empty;
         public string Clave { get; set; } = string.Empty;

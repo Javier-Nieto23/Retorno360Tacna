@@ -46,6 +46,8 @@ namespace Retorno360Tacna.FORMS
             lblNombreUsuario = new Label();
             txtPasswordHash = new TextBox();
             lblPasswordHash = new Label();
+            txtConfirmarPassword = new TextBox();
+            lblConfirmarPassword = new Label();
             txtUserAlias = new TextBox();
             lblUserAlias = new Label();
             lblTituloPanel = new Label();
@@ -65,6 +67,9 @@ namespace Retorno360Tacna.FORMS
             lblApellidoEditar = new Label();
             txtNombreEditar = new TextBox();
             lblNombreEditar = new Label();
+            btnVincularUsuarioWeb = new Button();
+            cmbIdWebEditar = new ComboBox();
+            lblIdWebEditar = new Label();
             txtUserAliasEditar = new TextBox();
             lblUserAliasEditar = new Label();
             lblTituloEditar = new Label();
@@ -287,6 +292,8 @@ namespace Retorno360Tacna.FORMS
             panelAgregarUsuario.Controls.Add(lblNombreUsuario);
             panelAgregarUsuario.Controls.Add(txtPasswordHash);
             panelAgregarUsuario.Controls.Add(lblPasswordHash);
+            panelAgregarUsuario.Controls.Add(txtConfirmarPassword);
+            panelAgregarUsuario.Controls.Add(lblConfirmarPassword);
             panelAgregarUsuario.Controls.Add(txtUserAlias);
             panelAgregarUsuario.Controls.Add(lblUserAlias);
             panelAgregarUsuario.Controls.Add(lblTituloPanel);
@@ -333,7 +340,7 @@ namespace Retorno360Tacna.FORMS
             cmbRol.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbRol.Font = new Font("Segoe UI", 10F);
             cmbRol.FormattingEnabled = true;
-            cmbRol.Location = new Point(180, 257);
+            cmbRol.Location = new Point(180, 297);
             cmbRol.Name = "cmbRol";
             cmbRol.Size = new Size(350, 25);
             cmbRol.TabIndex = 12;
@@ -343,7 +350,7 @@ namespace Retorno360Tacna.FORMS
             lblRol.AutoSize = true;
             lblRol.Font = new Font("Segoe UI", 10F);
             lblRol.ForeColor = Color.FromArgb(52, 73, 94);
-            lblRol.Location = new Point(30, 260);
+            lblRol.Location = new Point(30, 300);
             lblRol.Name = "lblRol";
             lblRol.Size = new Size(31, 19);
             lblRol.TabIndex = 11;
@@ -355,7 +362,7 @@ namespace Retorno360Tacna.FORMS
             cmbActivo.Font = new Font("Segoe UI", 10F);
             cmbActivo.FormattingEnabled = true;
             cmbActivo.Items.AddRange(new object[] { "Sí", "No" });
-            cmbActivo.Location = new Point(180, 217);
+            cmbActivo.Location = new Point(180, 257);
             cmbActivo.Name = "cmbActivo";
             cmbActivo.Size = new Size(150, 25);
             cmbActivo.TabIndex = 10;
@@ -365,7 +372,7 @@ namespace Retorno360Tacna.FORMS
             lblActivo.AutoSize = true;
             lblActivo.Font = new Font("Segoe UI", 10F);
             lblActivo.ForeColor = Color.FromArgb(52, 73, 94);
-            lblActivo.Location = new Point(30, 220);
+            lblActivo.Location = new Point(30, 260);
             lblActivo.Name = "lblActivo";
             lblActivo.Size = new Size(50, 19);
             lblActivo.TabIndex = 9;
@@ -374,7 +381,7 @@ namespace Retorno360Tacna.FORMS
             // txtApellidoUsuario
             // 
             txtApellidoUsuario.Font = new Font("Segoe UI", 10F);
-            txtApellidoUsuario.Location = new Point(180, 177);
+            txtApellidoUsuario.Location = new Point(180, 217);
             txtApellidoUsuario.Name = "txtApellidoUsuario";
             txtApellidoUsuario.Size = new Size(350, 25);
             txtApellidoUsuario.TabIndex = 8;
@@ -384,7 +391,7 @@ namespace Retorno360Tacna.FORMS
             lblApellidoUsuario.AutoSize = true;
             lblApellidoUsuario.Font = new Font("Segoe UI", 10F);
             lblApellidoUsuario.ForeColor = Color.FromArgb(52, 73, 94);
-            lblApellidoUsuario.Location = new Point(30, 180);
+            lblApellidoUsuario.Location = new Point(30, 220);
             lblApellidoUsuario.Name = "lblApellidoUsuario";
             lblApellidoUsuario.Size = new Size(61, 19);
             lblApellidoUsuario.TabIndex = 7;
@@ -393,7 +400,7 @@ namespace Retorno360Tacna.FORMS
             // txtNombreUsuario
             // 
             txtNombreUsuario.Font = new Font("Segoe UI", 10F);
-            txtNombreUsuario.Location = new Point(180, 137);
+            txtNombreUsuario.Location = new Point(180, 177);
             txtNombreUsuario.Name = "txtNombreUsuario";
             txtNombreUsuario.Size = new Size(350, 25);
             txtNombreUsuario.TabIndex = 6;
@@ -403,7 +410,7 @@ namespace Retorno360Tacna.FORMS
             lblNombreUsuario.AutoSize = true;
             lblNombreUsuario.Font = new Font("Segoe UI", 10F);
             lblNombreUsuario.ForeColor = Color.FromArgb(52, 73, 94);
-            lblNombreUsuario.Location = new Point(30, 140);
+            lblNombreUsuario.Location = new Point(30, 180);
             lblNombreUsuario.Name = "lblNombreUsuario";
             lblNombreUsuario.Size = new Size(62, 19);
             lblNombreUsuario.TabIndex = 5;
@@ -428,6 +435,26 @@ namespace Retorno360Tacna.FORMS
             lblPasswordHash.Size = new Size(82, 19);
             lblPasswordHash.TabIndex = 3;
             lblPasswordHash.Text = "Contraseña:";
+            // 
+            // txtConfirmarPassword
+            // 
+            txtConfirmarPassword.Font = new Font("Segoe UI", 10F);
+            txtConfirmarPassword.Location = new Point(180, 137);
+            txtConfirmarPassword.Name = "txtConfirmarPassword";
+            txtConfirmarPassword.PasswordChar = '●';
+            txtConfirmarPassword.Size = new Size(350, 25);
+            txtConfirmarPassword.TabIndex = 16;
+            // 
+            // lblConfirmarPassword
+            // 
+            lblConfirmarPassword.AutoSize = true;
+            lblConfirmarPassword.Font = new Font("Segoe UI", 10F);
+            lblConfirmarPassword.ForeColor = Color.FromArgb(52, 73, 94);
+            lblConfirmarPassword.Location = new Point(30, 140);
+            lblConfirmarPassword.Name = "lblConfirmarPassword";
+            lblConfirmarPassword.Size = new Size(144, 19);
+            lblConfirmarPassword.TabIndex = 15;
+            lblConfirmarPassword.Text = "Confirmar contraseña:";
             // 
             // txtUserAlias
             // 
@@ -504,6 +531,9 @@ namespace Retorno360Tacna.FORMS
             panelEditarUsuario.Controls.Add(lblApellidoEditar);
             panelEditarUsuario.Controls.Add(txtNombreEditar);
             panelEditarUsuario.Controls.Add(lblNombreEditar);
+            panelEditarUsuario.Controls.Add(btnVincularUsuarioWeb);
+            panelEditarUsuario.Controls.Add(cmbIdWebEditar);
+            panelEditarUsuario.Controls.Add(lblIdWebEditar);
             panelEditarUsuario.Controls.Add(txtUserAliasEditar);
             panelEditarUsuario.Controls.Add(lblUserAliasEditar);
             panelEditarUsuario.Controls.Add(lblTituloEditar);
@@ -661,6 +691,43 @@ namespace Retorno360Tacna.FORMS
             lblNombreEditar.TabIndex = 3;
             lblNombreEditar.Text = "Nombre:";
             // 
+            // btnVincularUsuarioWeb
+            // 
+            btnVincularUsuarioWeb.BackColor = Color.FromArgb(142, 68, 173);
+            btnVincularUsuarioWeb.Cursor = Cursors.Hand;
+            btnVincularUsuarioWeb.FlatAppearance.BorderSize = 0;
+            btnVincularUsuarioWeb.FlatStyle = FlatStyle.Flat;
+            btnVincularUsuarioWeb.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnVincularUsuarioWeb.ForeColor = Color.White;
+            btnVincularUsuarioWeb.Location = new Point(560, 355);
+            btnVincularUsuarioWeb.Name = "btnVincularUsuarioWeb";
+            btnVincularUsuarioWeb.Size = new Size(180, 35);
+            btnVincularUsuarioWeb.TabIndex = 14;
+            btnVincularUsuarioWeb.Text = "Vincular usuario web";
+            btnVincularUsuarioWeb.UseVisualStyleBackColor = false;
+            btnVincularUsuarioWeb.Click += btnVincularUsuarioWeb_Click;
+            // 
+            // cmbIdWebEditar
+            // 
+            cmbIdWebEditar.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbIdWebEditar.Font = new Font("Segoe UI", 10F);
+            cmbIdWebEditar.FormattingEnabled = true;
+            cmbIdWebEditar.Location = new Point(180, 355);
+            cmbIdWebEditar.Name = "cmbIdWebEditar";
+            cmbIdWebEditar.Size = new Size(350, 25);
+            cmbIdWebEditar.TabIndex = 14;
+            // 
+            // lblIdWebEditar
+            // 
+            lblIdWebEditar.AutoSize = true;
+            lblIdWebEditar.Font = new Font("Segoe UI", 10F);
+            lblIdWebEditar.ForeColor = Color.FromArgb(52, 73, 94);
+            lblIdWebEditar.Location = new Point(30, 358);
+            lblIdWebEditar.Name = "lblIdWebEditar";
+            lblIdWebEditar.Size = new Size(56, 19);
+            lblIdWebEditar.TabIndex = 13;
+            lblIdWebEditar.Text = "ID Web:";
+            // 
             // txtUserAliasEditar
             // 
             txtUserAliasEditar.BackColor = Color.FromArgb(220, 220, 220);
@@ -748,6 +815,8 @@ namespace Retorno360Tacna.FORMS
         private TextBox txtUserAlias;
         private Label lblPasswordHash;
         private TextBox txtPasswordHash;
+        private Label lblConfirmarPassword;
+        private TextBox txtConfirmarPassword;
         private Label lblNombreUsuario;
         private TextBox txtNombreUsuario;
         private Label lblApellidoUsuario;
@@ -777,5 +846,8 @@ namespace Retorno360Tacna.FORMS
         private TextBox txtUserAliasEditar;
         private Label lblUserAliasEditar;
         private Label lblTituloEditar;
+        private Button btnVincularUsuarioWeb;
+        private ComboBox cmbIdWebEditar;
+        private Label lblIdWebEditar;
     }
 }

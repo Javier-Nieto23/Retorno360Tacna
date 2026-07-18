@@ -22,14 +22,28 @@ namespace Retorno360Tacna.FORMS
 {
     public partial class FrmCatalogoPartes : Form
     {
+        private sealed class BaseDatosComboItem
+        {
+            public string NombreReal { get; set; } = string.Empty;
+            public string NombreVisible { get; set; } = string.Empty;
+        }
+
+        private sealed class ResumenTipoParte
+        {
+            public string Tipo { get; set; } = string.Empty;
+            public int Total { get; set; }
+        }
+
         private readonly ConexionInfo conexionActual;
         private CatalogoPartesService catalogoService;
         private List<MateriaPrimaBOM> datosConsultadosMP;
         private List<MateriaPrimaBOM> datosConsultadosOtros;
         private List<MateriaPrimaBOM> datosOtrosFiltrados;
+        private bool consultarTodasEmpresasRazonSocial;
         private readonly LiveChartsCore.SkiaSharpView.WinForms.PieChart chartPedimentosMP;
         private Control chartControl; // Control genérico para manejar ambos tipos de gráficas
         private int vistaActual = 0; // 0 = MP BOM, 1 = Otros tipos, 2 = MP Pedimentos
+        private Dictionary<Button, bool>? estadoBotonesAntesCarga;
         public FrmCatalogoPartes(ConexionInfo conexion)
         {
             InitializeComponent();
@@ -43,6 +57,24 @@ namespace Retorno360Tacna.FORMS
             DataGridViewManualCopyHelper.ConfigurarControles(this);
             dgvMateriaPrima.CellDoubleClick += dgvMateriaPrima_CellDoubleClick;
             DataGridViewManualCopyHelper.Configurar(dgvMateriaPrima);
+        }
+
+        private static List<BaseDatosComboItem> CrearItemsBaseDatos(IEnumerable<string> basesDatos)
+        {
+            return basesDatos
+                .Select(baseDatos => new BaseDatosComboItem
+                {
+                    NombreReal = baseDatos,
+                    NombreVisible = LimpiarNombreBaseDatosVisible(baseDatos)
+                })
+                .ToList();
+        }
+
+        private static string LimpiarNombreBaseDatosVisible(string nombreBaseDatos)
+        {
+            return nombreBaseDatos
+                .Replace("SEERT_", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Trim(' ', '_', '-');
         }
 
         private LiveChartsCore.SkiaSharpView.WinForms.PieChart CrearChartPedimentos()
@@ -137,8 +169,10 @@ namespace Retorno360Tacna.FORMS
 
                 if (basesDatos.Count > 0)
                 {
-                    cboBaseDatos.DataSource = basesDatos;
-                    cboBaseDatos.Enabled = true;
+                    cboBaseDatos.DataSource = CrearItemsBaseDatos(basesDatos);
+                    cboBaseDatos.DisplayMember = nameof(BaseDatosComboItem.NombreVisible);
+                    cboBaseDatos.ValueMember = nameof(BaseDatosComboItem.NombreReal);
+                    cboBaseDatos.Enabled = !chkPdfTodasEmpresas.Checked;
                     cboBaseDatos.SelectedIndex = -1;
                 }
                 else
@@ -191,16 +225,68 @@ namespace Retorno360Tacna.FORMS
             Application.DoEvents();
         }
 
+        private void EstablecerEstadoBotonesDuranteCarga(bool cargando)
+        {
+            if (FindForm() is MainMenu mainMenu)
+            {
+                mainMenu.EstablecerNavegacionLateralHabilitada(!cargando);
+            }
+
+            var botones = ObtenerBotonesRecursivamente(this)
+                .Where(b => b != null)
+                .ToList();
+
+            if (cargando)
+            {
+                estadoBotonesAntesCarga = botones.ToDictionary(b => b, b => b.Enabled);
+                foreach (var boton in botones)
+                {
+                    boton.Enabled = false;
+                }
+            }
+            else if (estadoBotonesAntesCarga != null)
+            {
+                foreach (var item in estadoBotonesAntesCarga)
+                {
+                    if (!item.Key.IsDisposed)
+                    {
+                        item.Key.Enabled = item.Value;
+                    }
+                }
+
+                estadoBotonesAntesCarga = null;
+            }
+        }
+
+        private static IEnumerable<Button> ObtenerBotonesRecursivamente(Control control)
+        {
+            foreach (Control hijo in control.Controls)
+            {
+                if (hijo is Button boton)
+                    yield return boton;
+
+                foreach (var botonHijo in ObtenerBotonesRecursivamente(hijo))
+                    yield return botonHijo;
+            }
+        }
+
         private async void btnConsultar_Click(object sender, EventArgs e)
         {
-            if (cboBaseDatos.SelectedItem == null)
+            if (cboRazonSocial.SelectedValue == null || cboRazonSocial.SelectedValue is not int idRazon)
+            {
+                MessageBox.Show("Por favor seleccione una razón social.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!chkPdfTodasEmpresas.Checked && cboBaseDatos.SelectedItem == null)
             {
                 MessageBox.Show("Por favor seleccione una base de datos.",
                     "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            string baseDatos = cboBaseDatos.SelectedItem.ToString();
+            string baseDatos = cboBaseDatos.SelectedValue?.ToString() ?? string.Empty;
             DateTime fechaInicio = dtpFechaInicio.Value;
             DateTime fechaFin = dtpFechaFin.Value;
 
@@ -211,20 +297,28 @@ namespace Retorno360Tacna.FORMS
                 return;
             }
 
+            bool consultaExitosa = false;
+
             try
             {
                 MostrarPanelCargando(true);
+                EstablecerEstadoBotonesDuranteCarga(true);
                 btnConsultar.Enabled = false;
 
                 // Pequeño delay para asegurar que la UI se actualice
                 await Task.Delay(50);
 
                 // Ejecutar ambas consultas en paralelo
-                var tareaMP = Task.Run(() =>
-                    catalogoService.ObtenerMateriaPrimaBOM(baseDatos, "MP", fechaInicio, fechaFin));
+                bool consultarTodas = chkPdfTodasEmpresas.Checked;
+                consultarTodasEmpresasRazonSocial = consultarTodas;
 
-                var tareaOtros = Task.Run(() =>
-                    catalogoService.ObtenerMateriaPrimaBOMMultiple(baseDatos, fechaInicio, fechaFin));
+                var tareaMP = Task.Run(() => consultarTodas
+                    ? catalogoService.ObtenerMateriaPrimaBOMPorRazonSocial(idRazon, "MP", fechaInicio, fechaFin)
+                    : catalogoService.ObtenerMateriaPrimaBOM(baseDatos, "MP", fechaInicio, fechaFin));
+
+                var tareaOtros = Task.Run(() => consultarTodas
+                    ? catalogoService.ObtenerMateriaPrimaBOMMultiplePorRazonSocial(idRazon, fechaInicio, fechaFin)
+                    : catalogoService.ObtenerMateriaPrimaBOMMultiple(baseDatos, fechaInicio, fechaFin));
 
                 await Task.WhenAll(tareaMP, tareaOtros);
 
@@ -235,22 +329,124 @@ namespace Retorno360Tacna.FORMS
                 // Mostrar vista de MP por defecto
                 vistaActual = 0;
                 MostrarVistaMP();
-
-                // Habilitar botones de navegación
-                btnGraficaIndividual.Enabled = true;
-                btnGraficaTodos.Enabled = true;
-                btnExportarPdf.Enabled = datosConsultadosMP.Count > 0 || datosConsultadosOtros.Count > 0;
+                consultaExitosa = true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al consultar datos:\n{ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al consultar datos:\n{ex.Message}",
+                    "Error", ex, "Consulta de catálogo de partes");
             }
             finally
             {
+                bool estadoExportarExcel = btnExportarExcel.Enabled;
+                bool estadoExportarPdf = btnExportarPdf.Enabled;
+                bool estadoGraficaIndividual = btnGraficaIndividual.Enabled;
+                bool estadoGraficaTodos = btnGraficaTodos.Enabled;
+
                 MostrarPanelCargando(false);
-                btnConsultar.Enabled = true;
+                EstablecerEstadoBotonesDuranteCarga(false);
+
+                btnExportarExcel.Enabled = estadoExportarExcel;
+                btnExportarPdf.Enabled = estadoExportarPdf;
+                btnGraficaIndividual.Enabled = estadoGraficaIndividual;
+                btnGraficaTodos.Enabled = estadoGraficaTodos;
+
+                if (consultaExitosa)
+                {
+                    bool hayDatos = datosConsultadosMP.Count > 0 || datosConsultadosOtros.Count > 0;
+                    btnGraficaIndividual.Enabled = hayDatos;
+                    btnGraficaTodos.Enabled = hayDatos;
+                    btnExportarExcel.Enabled = hayDatos;
+                    btnExportarPdf.Enabled = hayDatos;
+                }
             }
+        }
+
+        private void btnExportarExcel_Click(object sender, EventArgs e)
+        {
+            if ((datosConsultadosMP == null || datosConsultadosMP.Count == 0) && (datosConsultadosOtros == null || datosConsultadosOtros.Count == 0))
+            {
+                MessageBox.Show("No hay datos para exportar.",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var saveDialog = new SaveFileDialog
+            {
+                Filter = "Archivos Excel (*.xlsx)|*.xlsx",
+                Title = "Guardar Catálogo como Excel",
+                FileName = $"Catalogo_Partes_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
+            };
+
+            if (saveDialog.ShowDialog() != DialogResult.OK)
+                return;
+
+            try
+            {
+                using var workbook = new XLWorkbook();
+                ExportarHojaMateriaPrima(workbook);
+                ExportarHojaGeneral(workbook);
+                workbook.SaveAs(saveDialog.FileName);
+
+                MessageBox.Show("Archivo exportado exitosamente.",
+                    "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessageHelper.ShowError($"Error al exportar a Excel: {ex.Message}",
+                    "Error", ex, "Exportación a Excel de catálogo de partes");
+            }
+        }
+
+        private void ExportarHojaMateriaPrima(XLWorkbook workbook)
+        {
+            var worksheet = workbook.Worksheets.Add("Materia Prima MP");
+            worksheet.Cell(1, 1).Value = "Número de Parte";
+            worksheet.Cell(1, 2).Value = "Descripción";
+            worksheet.Cell(1, 3).Value = "Fecha Inserción";
+            worksheet.Cell(1, 4).Value = "Estatus en BOM";
+            worksheet.Cell(1, 5).Value = "En Pedimento";
+
+            int fila = 2;
+            foreach (var item in datosConsultadosMP)
+            {
+                worksheet.Cell(fila, 1).Value = item.Par_NoParte;
+                worksheet.Cell(fila, 2).Value = item.Par_DescripcionEsp;
+                worksheet.Cell(fila, 3).Value = item.Par_InsercionFecha;
+                worksheet.Cell(fila, 4).Value = item.EstatusComponente;
+                worksheet.Cell(fila, 5).Value = item.DetallePedimentosGlosa;
+                fila++;
+            }
+
+            worksheet.Columns().AdjustToContents();
+        }
+
+        private void ExportarHojaGeneral(XLWorkbook workbook)
+        {
+            var worksheet = workbook.Worksheets.Add("General");
+            worksheet.Cell(1, 1).Value = "Tipo";
+            worksheet.Cell(1, 2).Value = "Número de Parte";
+            worksheet.Cell(1, 3).Value = "Descripción";
+            worksheet.Cell(1, 4).Value = "Fecha Inserción";
+            worksheet.Cell(1, 5).Value = "Estatus en BOM";
+
+            int fila = 2;
+            foreach (var item in ObtenerDatosOtrosParaExportacion())
+            {
+                worksheet.Cell(fila, 1).Value = item.Clave;
+                worksheet.Cell(fila, 2).Value = item.Par_NoParte;
+                worksheet.Cell(fila, 3).Value = item.Par_DescripcionEsp;
+                worksheet.Cell(fila, 4).Value = item.Par_InsercionFecha;
+                worksheet.Cell(fila, 5).Value = item.EstatusComponente;
+                fila++;
+            }
+
+            worksheet.Columns().AdjustToContents();
+        }
+
+        private IEnumerable<MateriaPrimaBOM> ObtenerDatosOtrosParaExportacion()
+        {
+            return vistaActual == 1 ? datosOtrosFiltrados : datosConsultadosOtros;
         }
 
         private void MostrarVistaMP()
@@ -269,8 +465,10 @@ namespace Retorno360Tacna.FORMS
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
                 dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
                 dgvMateriaPrima.Columns["DetallePedimentosGlosa"].HeaderText = "En Pedimento";
+                dgvMateriaPrima.Columns["DetallePedimentosGlosa"].Visible = true;
                 dgvMateriaPrima.Columns["DetallePedimentosInfo"].Visible = false;
                 dgvMateriaPrima.Columns["Par_Consecutivo"].Visible = false;
+                dgvMateriaPrima.Columns["BaseDatosOrigenConsulta"].Visible = false;
                 dgvMateriaPrima.Columns["Clave"].Visible = false;
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
                 dgvMateriaPrima.Columns["DetallePedimentosGlosa"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
@@ -299,8 +497,10 @@ namespace Retorno360Tacna.FORMS
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].HeaderText = "Fecha Inserción";
                 dgvMateriaPrima.Columns["EstatusComponente"].HeaderText = "Estatus en BOM";
                 dgvMateriaPrima.Columns["DetallePedimentosGlosa"].HeaderText = "En Pedimento";
+                dgvMateriaPrima.Columns["DetallePedimentosGlosa"].Visible = true;
                 dgvMateriaPrima.Columns["DetallePedimentosInfo"].Visible = false;
                 dgvMateriaPrima.Columns["Par_Consecutivo"].Visible = false;
+                dgvMateriaPrima.Columns["BaseDatosOrigenConsulta"].Visible = false;
                 dgvMateriaPrima.Columns["Clave"].Visible = false;
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
                 dgvMateriaPrima.Columns["DetallePedimentosGlosa"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
@@ -352,6 +552,7 @@ namespace Retorno360Tacna.FORMS
                 dgvMateriaPrima.Columns["DetallePedimentosGlosa"].Visible = false;
                 dgvMateriaPrima.Columns["DetallePedimentosInfo"].Visible = false;
                 dgvMateriaPrima.Columns["Par_Consecutivo"].Visible = false;
+                dgvMateriaPrima.Columns["BaseDatosOrigenConsulta"].Visible = false;
                 dgvMateriaPrima.Columns["Clave"].Visible = true; // Mostrar columna de tipo
                 dgvMateriaPrima.Columns["Clave"].HeaderText = "Tipo";
                 dgvMateriaPrima.Columns["Par_InsercionFecha"].DefaultCellStyle.Format = "dd/MM/yyyy";
@@ -559,7 +760,7 @@ namespace Retorno360Tacna.FORMS
                 try
                 {
                     btnExportarPdf.Enabled = false;
-                    GenerarPdfCatalogo(saveDialog.FileName);
+                    await Task.Run(() => GenerarPdfCatalogo(saveDialog.FileName));
 
                     var result = MessageBox.Show("PDF generado correctamente.\n¿Desea abrirlo ahora?",
                         "Exportación Exitosa",
@@ -591,19 +792,56 @@ namespace Retorno360Tacna.FORMS
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
+            string nombreBaseDatos = ObtenerNombreBaseDatosSeleccionada();
+            string nombreRazonSocial = ObtenerNombreRazonSocialSeleccionada();
+            List<MateriaPrimaBOM> datosMpPdf = datosConsultadosMP;
+            List<MateriaPrimaBOM> datosOtrosPdf = datosConsultadosOtros;
+
+            if (consultarTodasEmpresasRazonSocial)
+            {
+                nombreBaseDatos = "Todas las empresas de la razón social";
+            }
+
+            List<string> basesConsultadas = ObtenerBasesConsultadasPdf(datosMpPdf, datosOtrosPdf, nombreBaseDatos);
+            var mpVigentes = datosMpPdf
+                .Where(d => string.Equals(d.EstatusComponente, "VIGENTE EN BOM", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(d => d.BaseDatosOrigenConsulta)
+                .ThenBy(d => d.Par_NoParte)
+                .ToList();
+            var mpNoVigentes = datosMpPdf
+                .Where(d => !string.Equals(d.EstatusComponente, "VIGENTE EN BOM", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(d => d.BaseDatosOrigenConsulta)
+                .ThenBy(d => d.Par_NoParte)
+                .ToList();
+            var mpConPedimento = datosMpPdf
+                .Where(d => string.Equals(d.DetallePedimentosGlosa, "SI", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(d => d.BaseDatosOrigenConsulta)
+                .ThenBy(d => d.Par_NoParte)
+                .ToList();
+            var mpSinPedimento = datosMpPdf
+                .Where(d => !string.Equals(d.DetallePedimentosGlosa, "SI", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(d => d.BaseDatosOrigenConsulta)
+                .ThenBy(d => d.Par_NoParte)
+                .ToList();
+            var datosOtrosOrdenados = datosOtrosPdf
+                .OrderBy(d => d.Clave)
+                .ThenBy(d => d.BaseDatosOrigenConsulta)
+                .ThenBy(d => d.Par_NoParte)
+                .ToList();
+
             // Generar imágenes de ambos gráficos
-            var vigentesMP = datosConsultadosMP.Count(d => d.EstatusComponente == "VIGENTE EN BOM");
-            var noVigentesMP = datosConsultadosMP.Count(d => d.EstatusComponente == "NO ESTA EN BOM");
-            var enPedimentoMP = datosConsultadosMP.Count(d => string.Equals(d.DetallePedimentosGlosa, "SI", StringComparison.OrdinalIgnoreCase));
-            var sinPedimentoMP = datosConsultadosMP.Count - enPedimentoMP;
+            var vigentesMP = datosMpPdf.Count(d => d.EstatusComponente == "VIGENTE EN BOM");
+            var noVigentesMP = datosMpPdf.Count(d => d.EstatusComponente == "NO ESTA EN BOM");
+            var enPedimentoMP = datosMpPdf.Count(d => string.Equals(d.DetallePedimentosGlosa, "SI", StringComparison.OrdinalIgnoreCase));
+            var sinPedimentoMP = datosMpPdf.Count - enPedimentoMP;
             byte[] imagenGraficoMP = GenerarImagenGrafico(vigentesMP, noVigentesMP, "Estatus de Componentes en BOM", "Vigentes en BOM", "No vigentes en BOM", "#2ecc71", "#e74c3c");
             byte[] imagenGraficoPedimentosMP = GenerarImagenGrafico(enPedimentoMP, sinPedimentoMP, "Partes en Pedimento", "En pedimento", "Sin pedimento", "#3498db", "#95a5a6");
-            byte[] imagenGraficoBarras = GenerarImagenGraficoBarras(datosConsultadosOtros);
+            byte[] imagenGraficoBarras = GenerarImagenGraficoBarras(datosOtrosPdf);
 
-            var agrupado = datosConsultadosOtros.GroupBy(d => d.Clave)
-                                      .Select(g => new { Tipo = g.Key, Total = g.Count() })
-                                      .OrderBy(x => x.Tipo)
-                                      .ToList();
+            List<ResumenTipoParte> agrupado = datosOtrosPdf.GroupBy(d => d.Clave)
+                .Select(g => new ResumenTipoParte { Tipo = g.Key, Total = g.Count() })
+                .OrderBy(x => x.Tipo)
+                .ToList();
 
             Document.Create(container =>
             {
@@ -626,15 +864,22 @@ namespace Retorno360Tacna.FORMS
                         {
                             row.RelativeItem().Text(txt =>
                             {
-                                txt.Span("Base de Datos: ").Bold();
-                                txt.Span(cboBaseDatos.SelectedItem?.ToString() ?? "N/A");
+                                txt.Span("Razón Social: ").Bold();
+                                txt.Span(nombreRazonSocial);
                             });
 
                             row.RelativeItem().AlignRight().Text(txt =>
                             {
-                                txt.Span("Fecha de Generación: ").Bold();
-                                txt.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
+                                txt.Span("Base de Datos: ").Bold();
+                                txt.Span(nombreBaseDatos);
                             });
+                        });
+
+                        column.Item().Text(txt =>
+                        {
+                            txt.DefaultTextStyle(x => x.FontSize(8));
+                            txt.Span("Bases consultadas: ").Bold();
+                            txt.Span(string.Join(", ", basesConsultadas));
                         });
 
                         column.Item().Row(row =>
@@ -647,8 +892,14 @@ namespace Retorno360Tacna.FORMS
 
                             row.RelativeItem().AlignRight().Text(txt =>
                             {
+                                txt.Span("Fecha de Generación: ").Bold();
+                                txt.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
+                            });
+
+                            row.RelativeItem().AlignRight().Text(txt =>
+                            {
                                 txt.Span("Total General: ").Bold();
-                                txt.Span((datosConsultadosMP.Count + datosConsultadosOtros.Count).ToString("N0"));
+                                txt.Span((datosMpPdf.Count + datosOtrosPdf.Count).ToString("N0"));
                             });
                         });
 
@@ -675,7 +926,7 @@ namespace Retorno360Tacna.FORMS
                                     statsRow.RelativeItem().AlignCenter().Text(txt =>
                                     {
                                         txt.Span("Total: ").Bold().FontSize(8);
-                                        txt.Span($"{datosConsultadosMP.Count:N0}").FontSize(8);
+                                        txt.Span($"{datosMpPdf.Count:N0}").FontSize(8);
                                     });
 
                                     statsRow.RelativeItem().AlignCenter().Text(txt =>
@@ -693,8 +944,8 @@ namespace Retorno360Tacna.FORMS
 
                                 seccionMP.Item().PaddingTop(3).Row(rowGraficasMP =>
                                 {
-                                    rowGraficasMP.RelativeItem().AlignCenter().Width(200).Image(imagenGraficoMP);
-                                    rowGraficasMP.RelativeItem().AlignCenter().Width(200).Image(imagenGraficoPedimentosMP);
+                                     rowGraficasMP.RelativeItem().PaddingHorizontal(5).AlignCenter().Image(imagenGraficoMP);
+                                     rowGraficasMP.RelativeItem().PaddingHorizontal(5).AlignCenter().Image(imagenGraficoPedimentosMP);
                                 });
                             });
 
@@ -707,239 +958,301 @@ namespace Retorno360Tacna.FORMS
                                     .FontColor(Colors.Blue.Darken3)
                                     .AlignCenter();
 
-                                seccionOtros.Item().PaddingTop(2).PaddingBottom(2).Row(statsRow =>
+                                seccionOtros.Item().PaddingTop(2).Text(txt =>
                                 {
-                                    statsRow.RelativeItem().AlignCenter().Text(txt =>
-                                    {
-                                        txt.Span("Total: ").Bold().FontSize(8);
-                                        txt.Span($"{datosConsultadosOtros.Count:N0}").FontSize(8);
-                                    });
-
-                                    foreach (var grupo in agrupado.Take(3))
-                                    {
-                                        statsRow.RelativeItem().AlignCenter().Text(txt =>
-                                        {
-                                            txt.Span($"{grupo.Tipo}: ").Bold().FontColor(Colors.Blue.Darken1).FontSize(8);
-                                            txt.Span($"{grupo.Total:N0}").FontSize(8);
-                                        });
-                                    }
-                                });
-
-                                // Segunda fila de estadísticas si hay más de 3 tipos
-                                if (agrupado.Count > 3)
-                                {
-                                    seccionOtros.Item().PaddingBottom(2).Row(statsRow2 =>
-                                    {
-                                        foreach (var grupo in agrupado.Skip(3))
-                                        {
-                                            statsRow2.RelativeItem().AlignCenter().Text(txt =>
-                                            {
-                                                txt.Span($"{grupo.Tipo}: ").Bold().FontColor(Colors.Blue.Darken1).FontSize(8);
-                                                txt.Span($"{grupo.Total:N0}").FontSize(8);
-                                            });
-                                        }
-                                    });
-                                }
-
-                                // Gráfico Barras - tamaño fijo reducido
-                                seccionOtros.Item().PaddingTop(3).AlignCenter().Width(280).Image(imagenGraficoBarras);
-                            });
-                        });
-                    });
-
-                    // Footer
-                    page.Footer().AlignCenter().Text(txt =>
-                    {
-                        txt.Span("Página ");
-                        txt.CurrentPageNumber();
-                        txt.Span(" de ");
-                        txt.TotalPages();
-                    });
-                });
-
-                // SEGUNDA PÁGINA - TABLA DE MATERIA PRIMA
-                container.Page(page =>
-                {
-                    page.Size(PageSizes.A4.Landscape());
-                    page.Margin(1.5f, Unit.Centimetre);
-                    page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Segoe UI"));
-
-                    // Header
-                    page.Header().Column(column =>
-                    {
-                        column.Item().Text("MATERIA PRIMA (MP) - Detalle")
-                            .FontSize(16)
-                            .Bold()
-                            .FontColor(Colors.Blue.Darken3);
-
-                        column.Item().PaddingTop(5).Row(row =>
-                        {
-                            row.RelativeItem().Text(txt =>
-                            {
-                                txt.Span("Total: ").Bold();
-                                txt.Span($"{datosConsultadosMP.Count:N0}");
-                            });
-
-                            row.RelativeItem().Text(txt =>
-                            {
-                                txt.Span("Vigentes: ").Bold().FontColor(Colors.Green.Darken2);
-                                txt.Span($"{vigentesMP:N0}");
-                            });
-
-                            row.RelativeItem().Text(txt =>
-                            {
-                                txt.Span("No vigentes: ").Bold().FontColor(Colors.Red.Darken2);
-                                txt.Span($"{noVigentesMP:N0}");
-                            });
-                        });
-
-                        column.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-                    });
-
-                    // Content - Tabla MP
-                    page.Content().PaddingTop(10).Table(table =>
-                    {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.RelativeColumn(2);  // Número de Parte
-                            columns.RelativeColumn(4);  // Descripción
-                            columns.RelativeColumn(1.5f);  // Fecha Inserción
-                            columns.RelativeColumn(1.5f);  // Estatus
-                            columns.RelativeColumn(4);  // Pedimentos en Glosa
-                        });
-
-                        // Header
-                        table.Header(header =>
-                        {
-                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte").FontColor(Colors.White).Bold();
-                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
-                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
-                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
-                            header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Pedimentos en Glosa").FontColor(Colors.White).Bold();
-                        });
-
-                        // Data rows - Ordenados por Número de Parte
-                        foreach (var item in datosConsultadosMP.OrderBy(x => x.Par_NoParte))
-                        {
-                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_NoParte).FontSize(8);
-                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp).FontSize(8);
-                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A").FontSize(8);
-
-                            var estatusColor = item.EstatusComponente == "VIGENTE EN BOM" 
-                                ? Colors.Green.Darken2 
-                                : Colors.Red.Darken2;
-
-                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
-                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                .Text(item.DetallePedimentosGlosa).FontSize(8);
-                        }
-                    });
-
-                    // Footer
-                    page.Footer().AlignCenter().Text(txt =>
-                    {
-                        txt.Span("Página ");
-                        txt.CurrentPageNumber();
-                        txt.Span(" de ");
-                        txt.TotalPages();
-                    });
-                });
-
-                // TERCERA PÁGINA (o más) - TABLA DE OTROS TIPOS
-                if (datosConsultadosOtros.Count > 0)
-                {
-                    container.Page(page =>
-                    {
-                        page.Size(PageSizes.A4.Landscape());
-                        page.Margin(1.5f, Unit.Centimetre);
-                        page.PageColor(Colors.White);
-                        page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Segoe UI"));
-
-                        // Header
-                        page.Header().Column(column =>
-                        {
-                            column.Item().Text("OTROS TIPOS (EQ, MAQ, SUB, RT, AUX, PT) - Detalle")
-                                .FontSize(16)
-                                .Bold()
-                                .FontColor(Colors.Blue.Darken3);
-
-                            column.Item().PaddingTop(5).Row(row =>
-                            {
-                                row.RelativeItem().Text(txt =>
-                                {
-                                    txt.Span("Total: ").Bold();
-                                    txt.Span($"{datosConsultadosOtros.Count:N0}");
+                                    txt.Span("Total: ").Bold().FontSize(8);
+                                        txt.Span($"{datosOtrosPdf.Count:N0}").FontSize(8);
                                 });
 
                                 foreach (var grupo in agrupado)
                                 {
-                                    row.RelativeItem().Text(txt =>
+                                    seccionOtros.Item().Text(txt =>
                                     {
-                                        txt.Span($"{grupo.Tipo}: ").Bold().FontColor(Colors.Blue.Darken1);
-                                        txt.Span($"{grupo.Total:N0}");
+                                        txt.Span($"{grupo.Tipo}: ").Bold().FontColor(Colors.Blue.Darken1).FontSize(8);
+                                        txt.Span($"{grupo.Total:N0}").FontSize(8);
                                     });
                                 }
-                            });
 
-                            column.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                                seccionOtros.Item().PaddingTop(3).PaddingHorizontal(10).AlignCenter().MaxWidth(280).Image(imagenGraficoBarras);
+                            });
                         });
 
-                        // Content - Tabla Otros
-                        page.Content().PaddingTop(10).Table(table =>
+                        column.Item().PaddingTop(10).Background(Colors.Grey.Lighten4).Padding(8).Column(resumen =>
                         {
-                            table.ColumnsDefinition(columns =>
-                            {
-                                columns.RelativeColumn(1.5f);  // Tipo
-                                columns.RelativeColumn(2);     // Número de Parte
-                                columns.RelativeColumn(3.5f);  // Descripción
-                                columns.RelativeColumn(1.5f);  // Fecha Inserción
-                                columns.RelativeColumn(1.5f);  // Estatus
-                                columns.RelativeColumn(4);     // Pedimentos en Glosa
-                            });
-
-                            // Header
-                            table.Header(header =>
-                            {
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Tipo").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Pedimentos en Glosa").FontColor(Colors.White).Bold();
-                            });
-
-                            // Data rows - Ordenados por Tipo y luego por Número de Parte
-                            foreach (var item in datosConsultadosOtros.OrderBy(x => x.Clave).ThenBy(x => x.Par_NoParte))
-                            {
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Clave).Bold().FontSize(8);
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_NoParte).FontSize(8);
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp).FontSize(8);
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A").FontSize(8);
-
-                                var estatusColor = item.EstatusComponente == "VIGENTE EN BOM" 
-                                    ? Colors.Green.Darken2 
-                                    : Colors.Red.Darken2;
-
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                    .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
-                                table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                                    .Text(item.DetallePedimentosGlosa).FontSize(8);
-                            }
-                        });
-
-                        // Footer
-                        page.Footer().AlignCenter().Text(txt =>
-                        {
-                            txt.Span("Página ");
-                            txt.CurrentPageNumber();
-                            txt.Span(" de ");
-                            txt.TotalPages();
+                            resumen.Item().Text("Secciones incluidas en el reporte").Bold().FontColor(Colors.Blue.Darken2);
+                            resumen.Item().Text($"1. Números de parte vigentes en BOM: {mpVigentes.Count:N0}").FontSize(8);
+                            resumen.Item().Text($"2. Números de parte no vigentes en BOM: {mpNoVigentes.Count:N0}").FontSize(8);
+                            resumen.Item().Text($"3. Números de parte con pedimento: {mpConPedimento.Count:N0}").FontSize(8);
+                            resumen.Item().Text($"4. Números de parte sin pedimento: {mpSinPedimento.Count:N0}").FontSize(8);
+                            resumen.Item().Text($"5. General de otros tipos con gráfico: {datosOtrosOrdenados.Count:N0}").FontSize(8);
                         });
                     });
+
+                    // Footer
+                    page.Footer().AlignCenter().Text(txt =>
+                    {
+                        txt.Span("Página ");
+                        txt.CurrentPageNumber();
+                        txt.Span(" de ");
+                        txt.TotalPages();
+                    });
+                });
+
+                AgregarPaginaDetalleMp(container, "NÚMEROS DE PARTE VIGENTES EN BOM", nombreRazonSocial, basesConsultadas, mpVigentes);
+                AgregarPaginaDetalleMp(container, "NÚMEROS DE PARTE NO VIGENTES EN BOM", nombreRazonSocial, basesConsultadas, mpNoVigentes);
+                AgregarPaginaDetalleMp(container, "NÚMEROS DE PARTE EN PEDIMENTO", nombreRazonSocial, basesConsultadas, mpConPedimento);
+                AgregarPaginaDetalleMp(container, "NÚMEROS DE PARTE SIN PEDIMENTO", nombreRazonSocial, basesConsultadas, mpSinPedimento);
+
+                if (datosOtrosOrdenados.Count > 0)
+                {
+                    AgregarPaginaDetalleGeneral(container, nombreRazonSocial, basesConsultadas, datosOtrosOrdenados, agrupado);
                 }
             }).GeneratePdf(rutaArchivo);
+        }
+
+        private void AgregarPaginaDetalleMp(IDocumentContainer container, string titulo, string razonSocial, List<string> basesConsultadas, List<MateriaPrimaBOM> datos)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(1.5f, Unit.Centimetre);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Segoe UI"));
+
+                page.Header().Column(column =>
+                {
+                    column.Item().Text(titulo)
+                        .FontSize(16)
+                        .Bold()
+                        .FontColor(Colors.Blue.Darken3);
+
+                    column.Item().Text(txt =>
+                    {
+                        txt.Span("Razón Social: ").Bold();
+                        txt.Span(razonSocial);
+                    });
+
+                    column.Item().Text(txt =>
+                    {
+                        txt.DefaultTextStyle(x => x.FontSize(8));
+                        txt.Span("Bases consultadas: ").Bold();
+                        txt.Span(string.Join(", ", basesConsultadas));
+                    });
+
+                    column.Item().Text(txt =>
+                    {
+                        txt.Span("Total: ").Bold();
+                        txt.Span($"{datos.Count:N0}");
+                    });
+
+                    column.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                });
+
+                page.Content().PaddingTop(10).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(2.5f);
+                        columns.RelativeColumn(4);
+                        columns.RelativeColumn(1.5f);
+                        columns.RelativeColumn(2);
+                        columns.RelativeColumn(1.5f);
+                    });
+
+                    table.Header(header =>
+                    {
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte / Empresa").FontColor(Colors.White).Bold();
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("En Pedimento").FontColor(Colors.White).Bold();
+                    });
+
+                    foreach (var item in datos)
+                    {
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(FormatearNumeroPartePdf(item)).FontSize(8);
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp).FontSize(8);
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A").FontSize(8);
+
+                        var estatusColor = string.Equals(item.EstatusComponente, "VIGENTE EN BOM", StringComparison.OrdinalIgnoreCase)
+                            ? Colors.Green.Darken2
+                            : Colors.Red.Darken2;
+
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                            .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                            .Text(item.DetallePedimentosGlosa).FontSize(8);
+                    }
+                });
+
+                page.Footer().AlignCenter().Text(txt =>
+                {
+                    txt.Span("Página ");
+                    txt.CurrentPageNumber();
+                    txt.Span(" de ");
+                    txt.TotalPages();
+                });
+            });
+        }
+
+        private void AgregarPaginaDetalleGeneral(IDocumentContainer container, string razonSocial, List<string> basesConsultadas, List<MateriaPrimaBOM> datos, List<ResumenTipoParte> agrupado)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(1.5f, Unit.Centimetre);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Segoe UI"));
+
+                page.Header().Column(column =>
+                {
+                    column.Item().Text("GENERAL DE NÚMEROS DE PARTE Y OTROS TIPOS")
+                        .FontSize(16)
+                        .Bold()
+                        .FontColor(Colors.Blue.Darken3);
+
+                    column.Item().Text(txt =>
+                    {
+                        txt.Span("Razón Social: ").Bold();
+                        txt.Span(razonSocial);
+                    });
+
+                    column.Item().Text(txt =>
+                    {
+                        txt.DefaultTextStyle(x => x.FontSize(8));
+                        txt.Span("Bases consultadas: ").Bold();
+                        txt.Span(string.Join(", ", basesConsultadas));
+                    });
+
+                    column.Item().Row(row =>
+                    {
+                        row.RelativeItem().Text(txt =>
+                        {
+                            txt.Span("Total general: ").Bold();
+                            txt.Span($"{datos.Count:N0}");
+                        });
+
+                        foreach (var grupo in agrupado)
+                        {
+                            row.RelativeItem().Text(txt =>
+                            {
+                                txt.DefaultTextStyle(x => x.FontSize(8));
+                                txt.Span($"{grupo.Tipo}: ").Bold().FontColor(Colors.Blue.Darken1);
+                                txt.Span($"{grupo.Total:N0}");
+                            });
+                        }
+                    });
+
+                    column.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                });
+
+                page.Content().PaddingTop(10).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(1.3f);
+                        columns.RelativeColumn(2.2f);
+                        columns.RelativeColumn(3.5f);
+                        columns.RelativeColumn(1.4f);
+                        columns.RelativeColumn(1.8f);
+                        columns.RelativeColumn(1.2f);
+                    });
+
+                    table.Header(header =>
+                    {
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Tipo").FontColor(Colors.White).Bold();
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte / Empresa").FontColor(Colors.White).Bold();
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
+                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Pedimento").FontColor(Colors.White).Bold();
+                    });
+
+                    foreach (var item in datos)
+                    {
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Clave).Bold().FontSize(8);
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(FormatearNumeroPartePdf(item)).FontSize(8);
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp).FontSize(8);
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A").FontSize(8);
+
+                        var estatusColor = string.Equals(item.EstatusComponente, "VIGENTE EN BOM", StringComparison.OrdinalIgnoreCase)
+                            ? Colors.Green.Darken2
+                            : Colors.Red.Darken2;
+
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                            .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
+                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
+                            .Text(item.DetallePedimentosGlosa).FontSize(8);
+                    }
+                });
+
+                page.Footer().AlignCenter().Text(txt =>
+                {
+                    txt.Span("Página ");
+                    txt.CurrentPageNumber();
+                    txt.Span(" de ");
+                    txt.TotalPages();
+                });
+            });
+        }
+
+        private List<string> ObtenerBasesConsultadasPdf(List<MateriaPrimaBOM> datosMpPdf, List<MateriaPrimaBOM> datosOtrosPdf, string nombreBaseDatosFallback)
+        {
+            var bases = datosMpPdf
+                .Concat(datosOtrosPdf)
+                .Select(x => x.BaseDatosOrigenConsulta)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(LimpiarNombreBaseDatosVisible)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (bases.Count == 0 && !string.IsNullOrWhiteSpace(nombreBaseDatosFallback))
+            {
+                bases.Add(nombreBaseDatosFallback);
+            }
+
+            return bases;
+        }
+
+        private string ObtenerNombreBaseDatosSeleccionada()
+        {
+            if (cboBaseDatos.InvokeRequired)
+            {
+                return (string)cboBaseDatos.Invoke(new Func<string>(ObtenerNombreBaseDatosSeleccionada));
+            }
+
+            return cboBaseDatos.Text?.Trim() ?? string.Empty;
+        }
+
+        private string ObtenerNombreRazonSocialSeleccionada()
+        {
+            if (cboRazonSocial.InvokeRequired)
+            {
+                return (string)cboRazonSocial.Invoke(new Func<string>(ObtenerNombreRazonSocialSeleccionada));
+            }
+
+            return cboRazonSocial.Text?.Trim() ?? string.Empty;
+        }
+
+        private static string FormatearNumeroPartePdf(MateriaPrimaBOM item)
+        {
+            if (string.IsNullOrWhiteSpace(item.BaseDatosOrigenConsulta))
+                return item.Par_NoParte;
+
+            string empresa = LimpiarNombreBaseDatosVisible(item.BaseDatosOrigenConsulta);
+            return $"{item.Par_NoParte} ({empresa})";
+        }
+
+        private void chkPdfTodasEmpresas_CheckedChanged(object sender, EventArgs e)
+        {
+            bool consultarTodas = chkPdfTodasEmpresas.Checked;
+            cboBaseDatos.Enabled = !consultarTodas && cboBaseDatos.DataSource != null;
+
+            if (consultarTodas)
+            {
+                cboBaseDatos.SelectedIndex = -1;
+            }
         }
 
         private byte[] GenerarImagenGrafico(int valorPrimario, int valorSecundario, string titulo, string etiquetaPrimaria, string etiquetaSecundaria, string colorPrimarioHex, string colorSecundarioHex)

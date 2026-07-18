@@ -1,4 +1,5 @@
 using Retorno360Tacna.CNX;
+using Retorno360Tacna.HELPERS;
 using Retorno360Tacna.MODELS;
 using Retorno360Tacna.SERVICES;
 using LiveChartsCore;
@@ -11,10 +12,17 @@ namespace Retorno360Tacna.FORMS
 {
     public partial class FrmRetorno : Form
     {
+        private sealed class BaseDatosComboItem
+        {
+            public string NombreReal { get; set; } = string.Empty;
+            public string NombreVisible { get; set; } = string.Empty;
+        }
+
         private ConexionInfo? conexionActual;
         private RetornoService? retornoService;
         private int idRazonSeleccionada = 0;
         private ResultadoRetorno? ultimoResultado;
+        private Dictionary<Button, bool>? estadoBotonesAntesCarga;
 
         public FrmRetorno()
         {
@@ -31,9 +39,72 @@ namespace Retorno360Tacna.FORMS
             this.Resize += FrmRetorno_Resize;
         }
 
+        private static List<BaseDatosComboItem> CrearItemsBaseDatos(IEnumerable<string> basesDatos)
+        {
+            return basesDatos
+                .Select(baseDatos => new BaseDatosComboItem
+                {
+                    NombreReal = baseDatos,
+                    NombreVisible = LimpiarNombreBaseDatosVisible(baseDatos)
+                })
+                .ToList();
+        }
+
+        private static string LimpiarNombreBaseDatosVisible(string nombreBaseDatos)
+        {
+            return nombreBaseDatos
+                .Replace("SEERT_", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Trim(' ', '_', '-');
+        }
+
         private void FrmRetorno_Resize(object sender, EventArgs e)
         {
             AjustarControles();
+        }
+
+        private void EstablecerEstadoBotonesDuranteCarga(bool cargando)
+        {
+            if (FindForm() is MainMenu mainMenu)
+            {
+                mainMenu.EstablecerNavegacionLateralHabilitada(!cargando);
+            }
+
+            var botones = ObtenerBotonesRecursivamente(this)
+                .Where(b => b != null)
+                .ToList();
+
+            if (cargando)
+            {
+                estadoBotonesAntesCarga = botones.ToDictionary(b => b, b => b.Enabled);
+                foreach (var boton in botones)
+                {
+                    boton.Enabled = false;
+                }
+            }
+            else if (estadoBotonesAntesCarga != null)
+            {
+                foreach (var item in estadoBotonesAntesCarga)
+                {
+                    if (!item.Key.IsDisposed)
+                    {
+                        item.Key.Enabled = item.Value;
+                    }
+                }
+
+                estadoBotonesAntesCarga = null;
+            }
+        }
+
+        private static IEnumerable<Button> ObtenerBotonesRecursivamente(Control control)
+        {
+            foreach (Control hijo in control.Controls)
+            {
+                if (hijo is Button boton)
+                    yield return boton;
+
+                foreach (var botonHijo in ObtenerBotonesRecursivamente(hijo))
+                    yield return botonHijo;
+            }
         }
 
         private void AjustarControles()
@@ -207,8 +278,8 @@ namespace Retorno360Tacna.FORMS
             {
                 if (retornoService == null)
                 {
-                    MessageBox.Show("El servicio de retorno no está disponible.",
-                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        ErrorMessageHelper.ShowError("El servicio de retorno no está disponible.",
+                            "Error", contexto: "Carga de razones sociales en retorno");
                     return;
                 }
 
@@ -224,8 +295,8 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar razones sociales: {ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al cargar razones sociales: {ex.Message}",
+                    "Error", ex, "Carga de razones sociales en retorno");
             }
         }
 
@@ -288,7 +359,9 @@ namespace Retorno360Tacna.FORMS
 
                 if (basesDatos.Count > 0)
                 {
-                    cmbBaseDatos.DataSource = basesDatos;
+                    cmbBaseDatos.DataSource = CrearItemsBaseDatos(basesDatos);
+                    cmbBaseDatos.DisplayMember = nameof(BaseDatosComboItem.NombreVisible);
+                    cmbBaseDatos.ValueMember = nameof(BaseDatosComboItem.NombreReal);
                     cmbBaseDatos.Enabled = true;
                     cmbBaseDatos.SelectedIndex = -1;
                 }
@@ -302,8 +375,8 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar bases de datos: {ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al cargar bases de datos: {ex.Message}",
+                    "Error", ex, "Carga de bases de datos en retorno");
                 cmbBaseDatos.DataSource = null;
                 cmbBaseDatos.Enabled = false;
             }
@@ -355,13 +428,14 @@ namespace Retorno360Tacna.FORMS
             {
                 if (retornoService == null)
                 {
-                    MessageBox.Show("El servicio de retorno no está disponible.",
-                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    ErrorMessageHelper.ShowError("El servicio de retorno no está disponible.",
+                        "Error", contexto: "Cálculo de retorno sin servicio disponible");
                     return;
                 }
 
                 // Mostrar panel de carga
                 MostrarPanelCargando(true);
+                EstablecerEstadoBotonesDuranteCarga(true);
 
                 btnCalcular.Enabled = false;
                 btnCalcular.Text = "Calculando...";
@@ -385,7 +459,7 @@ namespace Retorno360Tacna.FORMS
                 else
                 {
                     // Cálculo con validación de pedimentos (modo normal)
-                    string baseDatosSeleccionada = cmbBaseDatos.SelectedItem?.ToString() ?? string.Empty;
+                    string baseDatosSeleccionada = cmbBaseDatos.SelectedValue?.ToString() ?? string.Empty;
 
                     resultado = await Task.Run(() => retornoService.CalcularRetorno(
                         idRazonSeleccionada,
@@ -415,15 +489,17 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al calcular el porcentaje de retorno: {ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al calcular el porcentaje de retorno: {ex.Message}",
+                    "Error", ex, "Cálculo de porcentaje de retorno");
             }
             finally
             {
+                bool estadoPdf = btnPDF.Enabled;
+
                 // Ocultar panel de carga
                 MostrarPanelCargando(false);
-
-                btnCalcular.Enabled = true;
+                EstablecerEstadoBotonesDuranteCarga(false);
+                btnPDF.Enabled = estadoPdf;
                 btnCalcular.Text = "Calcular Retorno";
             }
         }
@@ -569,45 +645,41 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
-                // Crear diálogo para guardar archivo
-                using (SaveFileDialog saveDialog = new SaveFileDialog())
+                using SaveFileDialog saveDialog = new SaveFileDialog();
+                saveDialog.Filter = "Archivos PDF (*.pdf)|*.pdf";
+                saveDialog.Title = "Guardar Reporte PDF";
+                saveDialog.FileName = $"Reporte_Retorno_{ultimoResultado.RazonSocial.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+
+                if (saveDialog.ShowDialog() != DialogResult.OK)
+                    return;
+
+                Cursor = Cursors.WaitCursor;
+
+                PdfGeneradorService pdfService = new PdfGeneradorService();
+                pdfService.GenerarReportePDF(ultimoResultado, saveDialog.FileName);
+
+                Cursor = Cursors.Default;
+
+                DialogResult resultado = MessageBox.Show(
+                    "PDF generado exitosamente.\n\n¿Desea abrir el archivo?",
+                    "Éxito",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information);
+
+                if (resultado == DialogResult.Yes)
                 {
-                    saveDialog.Filter = "Archivos PDF (*.pdf)|*.pdf";
-                    saveDialog.Title = "Guardar Reporte PDF";
-                    saveDialog.FileName = $"Reporte_Retorno_{ultimoResultado.RazonSocial.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
-
-                    if (saveDialog.ShowDialog() == DialogResult.OK)
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                     {
-                        Cursor = Cursors.WaitCursor;
-
-                        // Generar PDF
-                        PdfGeneradorService pdfService = new PdfGeneradorService();
-                        pdfService.GenerarReportePDF(ultimoResultado, saveDialog.FileName);
-
-                        Cursor = Cursors.Default;
-
-                        DialogResult resultado = MessageBox.Show(
-                            $"PDF generado exitosamente.\n\n¿Desea abrir el archivo?",
-                            "Éxito",
-                            MessageBoxButtons.YesNo,
-                            MessageBoxIcon.Information);
-
-                        if (resultado == DialogResult.Yes)
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = saveDialog.FileName,
-                                UseShellExecute = true
-                            });
-                        }
-                    }
+                        FileName = saveDialog.FileName,
+                        UseShellExecute = true
+                    });
                 }
             }
             catch (Exception ex)
             {
                 Cursor = Cursors.Default;
-                MessageBox.Show($"Error al generar el PDF: {ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al generar el PDF: {ex.Message}",
+                    "Error", ex, "Generación de PDF de retorno");
             }
         }
     }

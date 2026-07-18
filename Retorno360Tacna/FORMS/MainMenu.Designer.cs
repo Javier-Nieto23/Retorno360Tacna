@@ -30,6 +30,7 @@ namespace Retorno360Tacna.FORMS
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainMenu));
             panelSidebar = new Panel();
+            pictureBox1 = new PictureBox();
             btnConfiguracion = new Button();
             btnCerrarSesion = new Button();
             btnReportes = new Button();
@@ -38,28 +39,42 @@ namespace Retorno360Tacna.FORMS
             btnCatalogoPartes = new Button();
             btnInventarios = new Button();
             panelSubMenuAdmin = new Panel();
+            btnSubMenuContabilidad = new Button();
             btnSubMenuReporteIGI = new Button();
             btnSubMenuPorcentaje = new Button();
             btnAdministracion = new Button();
             btnDiagramas = new Button();
-            pictureBoxLogo = new PictureBox();
             btnToggleSidebar = new Button();
             btnSeleccionRazon = new Button();
             btnRetorno = new Button();
             panelContenido = new Panel();
             panelTop = new Panel();
+            lblContadorNotificaciones = new Label();
+            btnNotificaciones = new Button();
             lblUsuario = new Label();
             lblTitulo = new Label();
+            panelNotificacionesPico = new Panel();
+            panelNotificaciones = new Panel();
+            flpNotificaciones = new FlowLayoutPanel();
+            panelNotificacionesHeader = new Panel();
+            btnEliminarNotificaciones = new LinkLabel();
+            lblTabNoLeidas = new Label();
+            lblTabTodas = new Label();
+            lblTituloNotificaciones = new Label();
+            lblNotificacionesVacias = new Label();
             panelSidebar.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             panelSubMenuInventarios.SuspendLayout();
             panelSubMenuAdmin.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)pictureBoxLogo).BeginInit();
             panelTop.SuspendLayout();
+            panelNotificaciones.SuspendLayout();
+            panelNotificacionesHeader.SuspendLayout();
             SuspendLayout();
             // 
             // panelSidebar
             // 
             panelSidebar.BackColor = Color.FromArgb(44, 62, 80);
+            panelSidebar.Controls.Add(pictureBox1);
             panelSidebar.Controls.Add(btnConfiguracion);
             panelSidebar.Controls.Add(btnCerrarSesion);
             panelSidebar.Controls.Add(btnReportes);
@@ -68,7 +83,6 @@ namespace Retorno360Tacna.FORMS
             panelSidebar.Controls.Add(panelSubMenuAdmin);
             panelSidebar.Controls.Add(btnAdministracion);
             panelSidebar.Controls.Add(btnDiagramas);
-            panelSidebar.Controls.Add(pictureBoxLogo);
             panelSidebar.Controls.Add(btnToggleSidebar);
             panelSidebar.Dock = DockStyle.Left;
             panelSidebar.Location = new Point(0, 0);
@@ -76,6 +90,17 @@ namespace Retorno360Tacna.FORMS
             panelSidebar.Size = new Size(250, 800);
             panelSidebar.TabIndex = 0;
             panelSidebar.Paint += panelSidebar_Paint;
+            // 
+            // pictureBox1
+            // 
+            pictureBox1.Image = (Image)resources.GetObject("pictureBox1.Image");
+            pictureBox1.Location = new Point(23, 29);
+            pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new Size(163, 31);
+            pictureBox1.SizeMode = PictureBoxSizeMode.StretchImage;
+            pictureBox1.TabIndex = 10;
+            pictureBox1.TabStop = false;
+            pictureBox1.Click += pictureBox1_Click;
             // 
             // btnConfiguracion
             // 
@@ -131,7 +156,7 @@ namespace Retorno360Tacna.FORMS
             btnReportes.ForeColor = Color.White;
             btnReportes.Image = Properties.Resources.Sales_report_25411;
             btnReportes.ImageAlign = ContentAlignment.MiddleRight;
-            btnReportes.Location = new Point(0, 712);
+            btnReportes.Location = new Point(0, 510);
             btnReportes.Name = "btnReportes";
             btnReportes.Padding = new Padding(20, 0, 0, 0);
             btnReportes.Size = new Size(250, 60);
@@ -149,7 +174,7 @@ namespace Retorno360Tacna.FORMS
             panelSubMenuInventarios.Controls.Add(btnReportesInventario);
             panelSubMenuInventarios.Controls.Add(btnCatalogoPartes);
             panelSubMenuInventarios.Dock = DockStyle.Top;
-            panelSubMenuInventarios.Location = new Point(0, 592);
+            panelSubMenuInventarios.Location = new Point(0, 390);
             panelSubMenuInventarios.Name = "panelSubMenuInventarios";
             panelSubMenuInventarios.Size = new Size(250, 120);
             panelSubMenuInventarios.TabIndex = 9;
@@ -163,7 +188,7 @@ namespace Retorno360Tacna.FORMS
             btnReportesInventario.FlatStyle = FlatStyle.Flat;
             btnReportesInventario.Font = new Font("Segoe UI", 10F);
             btnReportesInventario.ForeColor = Color.LightGray;
-            btnReportesInventario.Image = Properties.Resources.Sales_report_25411;
+            btnReportesInventario.Image = Properties.Resources.truck_icon_icons_com_52347__1_;
             btnReportesInventario.ImageAlign = ContentAlignment.MiddleRight;
             btnReportesInventario.Location = new Point(0, 60);
             btnReportesInventario.Name = "btnReportesInventario";
@@ -209,7 +234,7 @@ namespace Retorno360Tacna.FORMS
             btnInventarios.ForeColor = Color.White;
             btnInventarios.Image = Properties.Resources.business_inventory_maintenance_product_box_boxes_2326;
             btnInventarios.ImageAlign = ContentAlignment.MiddleRight;
-            btnInventarios.Location = new Point(0, 532);
+            btnInventarios.Location = new Point(0, 330);
             btnInventarios.Name = "btnInventarios";
             btnInventarios.Padding = new Padding(20, 0, 0, 0);
             btnInventarios.Size = new Size(250, 60);
@@ -224,14 +249,37 @@ namespace Retorno360Tacna.FORMS
             // panelSubMenuAdmin
             // 
             panelSubMenuAdmin.BackColor = Color.FromArgb(35, 42, 50);
+            panelSubMenuAdmin.Controls.Add(btnSubMenuContabilidad);
             panelSubMenuAdmin.Controls.Add(btnSubMenuReporteIGI);
             panelSubMenuAdmin.Controls.Add(btnSubMenuPorcentaje);
             panelSubMenuAdmin.Dock = DockStyle.Top;
-            panelSubMenuAdmin.Location = new Point(0, 412);
+            panelSubMenuAdmin.Location = new Point(0, 210);
             panelSubMenuAdmin.Name = "panelSubMenuAdmin";
-            panelSubMenuAdmin.Size = new Size(250, 120);
+            panelSubMenuAdmin.Size = new Size(250, 180);
             panelSubMenuAdmin.TabIndex = 6;
             panelSubMenuAdmin.Visible = false;
+            // 
+            // btnSubMenuContabilidad
+            // 
+            btnSubMenuContabilidad.Cursor = Cursors.Hand;
+            btnSubMenuContabilidad.Dock = DockStyle.Top;
+            btnSubMenuContabilidad.FlatAppearance.BorderSize = 0;
+            btnSubMenuContabilidad.FlatStyle = FlatStyle.Flat;
+            btnSubMenuContabilidad.Font = new Font("Segoe UI", 10F);
+            btnSubMenuContabilidad.ForeColor = Color.LightGray;
+            btnSubMenuContabilidad.Image = Properties.Resources.Earning_statement_253912;
+            btnSubMenuContabilidad.ImageAlign = ContentAlignment.MiddleRight;
+            btnSubMenuContabilidad.Location = new Point(0, 120);
+            btnSubMenuContabilidad.Name = "btnSubMenuContabilidad";
+            btnSubMenuContabilidad.Padding = new Padding(35, 0, 0, 0);
+            btnSubMenuContabilidad.Size = new Size(250, 60);
+            btnSubMenuContabilidad.TabIndex = 2;
+            btnSubMenuContabilidad.Text = "Contabilidad";
+            btnSubMenuContabilidad.TextAlign = ContentAlignment.MiddleLeft;
+            btnSubMenuContabilidad.UseVisualStyleBackColor = true;
+            btnSubMenuContabilidad.Click += btnSubMenuContabilidad_Click;
+            btnSubMenuContabilidad.MouseEnter += MenuButton_MouseEnter;
+            btnSubMenuContabilidad.MouseLeave += MenuButton_MouseLeave;
             // 
             // btnSubMenuReporteIGI
             // 
@@ -287,7 +335,7 @@ namespace Retorno360Tacna.FORMS
             btnAdministracion.ForeColor = Color.White;
             btnAdministracion.Image = Properties.Resources.Teachers_35749;
             btnAdministracion.ImageAlign = ContentAlignment.MiddleRight;
-            btnAdministracion.Location = new Point(0, 352);
+            btnAdministracion.Location = new Point(0, 150);
             btnAdministracion.Name = "btnAdministracion";
             btnAdministracion.Padding = new Padding(20, 0, 0, 0);
             btnAdministracion.Size = new Size(250, 60);
@@ -309,7 +357,7 @@ namespace Retorno360Tacna.FORMS
             btnDiagramas.ForeColor = Color.White;
             btnDiagramas.Image = Properties.Resources.home256_24783;
             btnDiagramas.ImageAlign = ContentAlignment.MiddleRight;
-            btnDiagramas.Location = new Point(0, 282);
+            btnDiagramas.Location = new Point(0, 80);
             btnDiagramas.Name = "btnDiagramas";
             btnDiagramas.Padding = new Padding(20, 0, 0, 0);
             btnDiagramas.Size = new Size(250, 70);
@@ -321,17 +369,6 @@ namespace Retorno360Tacna.FORMS
             btnDiagramas.MouseEnter += MenuButton_MouseEnter;
             btnDiagramas.MouseLeave += MenuButton_MouseLeave;
             // 
-            // pictureBoxLogo
-            // 
-            pictureBoxLogo.Dock = DockStyle.Top;
-            pictureBoxLogo.Image = Properties.Resources.ChatGPT_Image_Apr_21__2026__12_48_04_PM;
-            pictureBoxLogo.Location = new Point(0, 80);
-            pictureBoxLogo.Name = "pictureBoxLogo";
-            pictureBoxLogo.Size = new Size(250, 202);
-            pictureBoxLogo.SizeMode = PictureBoxSizeMode.StretchImage;
-            pictureBoxLogo.TabIndex = 0;
-            pictureBoxLogo.TabStop = false;
-            // 
             // btnToggleSidebar
             // 
             btnToggleSidebar.Cursor = Cursors.Hand;
@@ -340,7 +377,7 @@ namespace Retorno360Tacna.FORMS
             btnToggleSidebar.FlatStyle = FlatStyle.Flat;
             btnToggleSidebar.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
             btnToggleSidebar.ForeColor = Color.White;
-            btnToggleSidebar.Image = Properties.Resources.Menu_Icon_icon_icons_com_69140;
+            btnToggleSidebar.Image = Properties.Resources._1491313929_menu_82986;
             btnToggleSidebar.ImageAlign = ContentAlignment.MiddleRight;
             btnToggleSidebar.Location = new Point(0, 0);
             btnToggleSidebar.Name = "btnToggleSidebar";
@@ -408,6 +445,8 @@ namespace Retorno360Tacna.FORMS
             // panelTop
             // 
             panelTop.BackColor = Color.FromArgb(44, 62, 80);
+            panelTop.Controls.Add(lblContadorNotificaciones);
+            panelTop.Controls.Add(btnNotificaciones);
             panelTop.Controls.Add(lblUsuario);
             panelTop.Controls.Add(lblTitulo);
             panelTop.Dock = DockStyle.Top;
@@ -416,14 +455,44 @@ namespace Retorno360Tacna.FORMS
             panelTop.Size = new Size(1207, 80);
             panelTop.TabIndex = 2;
             // 
+            // lblContadorNotificaciones
+            // 
+            lblContadorNotificaciones.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            lblContadorNotificaciones.BackColor = Color.FromArgb(231, 76, 60);
+            lblContadorNotificaciones.Font = new Font("Segoe UI", 8F, FontStyle.Bold);
+            lblContadorNotificaciones.ForeColor = Color.White;
+            lblContadorNotificaciones.Location = new Point(1022, 10);
+            lblContadorNotificaciones.Name = "lblContadorNotificaciones";
+            lblContadorNotificaciones.Size = new Size(22, 22);
+            lblContadorNotificaciones.TabIndex = 3;
+            lblContadorNotificaciones.Text = "0";
+            lblContadorNotificaciones.TextAlign = ContentAlignment.MiddleCenter;
+            lblContadorNotificaciones.Visible = false;
+            // 
+            // btnNotificaciones
+            // 
+            btnNotificaciones.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnNotificaciones.Cursor = Cursors.Hand;
+            btnNotificaciones.FlatAppearance.BorderSize = 0;
+            btnNotificaciones.FlatStyle = FlatStyle.Flat;
+            btnNotificaciones.Font = new Font("Segoe UI Emoji", 18F);
+            btnNotificaciones.ForeColor = Color.White;
+            btnNotificaciones.Image = Properties.Resources._1490886276_19_school_bell_82497;
+            btnNotificaciones.Location = new Point(954, 12);
+            btnNotificaciones.Name = "btnNotificaciones";
+            btnNotificaciones.Size = new Size(68, 52);
+            btnNotificaciones.TabIndex = 2;
+            btnNotificaciones.UseVisualStyleBackColor = true;
+            btnNotificaciones.Click += btnNotificaciones_Click;
+            // 
             // lblUsuario
             // 
             lblUsuario.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             lblUsuario.Font = new Font("Segoe UI", 10F);
             lblUsuario.ForeColor = Color.White;
-            lblUsuario.Location = new Point(907, 20);
+            lblUsuario.Location = new Point(1045, 20);
             lblUsuario.Name = "lblUsuario";
-            lblUsuario.Size = new Size(280, 40);
+            lblUsuario.Size = new Size(150, 40);
             lblUsuario.TabIndex = 1;
             lblUsuario.Text = "Usuario: Admin";
             lblUsuario.TextAlign = ContentAlignment.MiddleRight;
@@ -439,11 +508,124 @@ namespace Retorno360Tacna.FORMS
             lblTitulo.TabIndex = 0;
             lblTitulo.Text = "Retorno 360 Tacna";
             // 
+            // panelNotificacionesPico
+            // 
+            panelNotificacionesPico.BackColor = Color.Transparent;
+            panelNotificacionesPico.Location = new Point(1100, 72);
+            panelNotificacionesPico.Name = "panelNotificacionesPico";
+            panelNotificacionesPico.Size = new Size(28, 16);
+            panelNotificacionesPico.TabIndex = 5;
+            panelNotificacionesPico.Visible = false;
+            panelNotificacionesPico.Paint += panelNotificacionesPico_Paint;
+            // 
+            // panelNotificaciones
+            // 
+            panelNotificaciones.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            panelNotificaciones.BackColor = Color.White;
+            panelNotificaciones.BorderStyle = BorderStyle.FixedSingle;
+            panelNotificaciones.Controls.Add(flpNotificaciones);
+            panelNotificaciones.Controls.Add(panelNotificacionesHeader);
+            panelNotificaciones.Controls.Add(lblNotificacionesVacias);
+            panelNotificaciones.Location = new Point(718, 56);
+            panelNotificaciones.Name = "panelNotificaciones";
+            panelNotificaciones.Size = new Size(360, 360);
+            panelNotificaciones.TabIndex = 4;
+            panelNotificaciones.Visible = false;
+            // 
+            // flpNotificaciones
+            // 
+            flpNotificaciones.AutoScroll = true;
+            flpNotificaciones.BackColor = Color.FromArgb(249, 250, 251);
+            flpNotificaciones.Dock = DockStyle.Fill;
+            flpNotificaciones.FlowDirection = FlowDirection.TopDown;
+            flpNotificaciones.Location = new Point(0, 88);
+            flpNotificaciones.Name = "flpNotificaciones";
+            flpNotificaciones.Padding = new Padding(12, 0, 12, 12);
+            flpNotificaciones.Size = new Size(358, 270);
+            flpNotificaciones.TabIndex = 2;
+            flpNotificaciones.WrapContents = false;
+            // 
+            // panelNotificacionesHeader
+            // 
+            panelNotificacionesHeader.Controls.Add(btnEliminarNotificaciones);
+            panelNotificacionesHeader.Controls.Add(lblTabNoLeidas);
+            panelNotificacionesHeader.Controls.Add(lblTabTodas);
+            panelNotificacionesHeader.Controls.Add(lblTituloNotificaciones);
+            panelNotificacionesHeader.Dock = DockStyle.Top;
+            panelNotificacionesHeader.Location = new Point(0, 0);
+            panelNotificacionesHeader.Name = "panelNotificacionesHeader";
+            panelNotificacionesHeader.Size = new Size(358, 88);
+            panelNotificacionesHeader.TabIndex = 1;
+            // 
+            // btnEliminarNotificaciones
+            // 
+            btnEliminarNotificaciones.ActiveLinkColor = Color.FromArgb(37, 99, 235);
+            btnEliminarNotificaciones.AutoSize = true;
+            btnEliminarNotificaciones.LinkColor = Color.FromArgb(37, 99, 235);
+            btnEliminarNotificaciones.Location = new Point(206, 50);
+            btnEliminarNotificaciones.Name = "btnEliminarNotificaciones";
+            btnEliminarNotificaciones.Size = new Size(101, 15);
+            btnEliminarNotificaciones.TabIndex = 3;
+            btnEliminarNotificaciones.TabStop = true;
+            btnEliminarNotificaciones.Text = "Marcar todo leído";
+            btnEliminarNotificaciones.LinkClicked += btnEliminarNotificaciones_LinkClicked;
+            // 
+            // lblTabNoLeidas
+            // 
+            lblTabNoLeidas.AutoSize = true;
+            lblTabNoLeidas.Cursor = Cursors.Hand;
+            lblTabNoLeidas.Font = new Font("Segoe UI", 9F);
+            lblTabNoLeidas.ForeColor = Color.Gray;
+            lblTabNoLeidas.Location = new Point(58, 50);
+            lblTabNoLeidas.Name = "lblTabNoLeidas";
+            lblTabNoLeidas.Size = new Size(56, 15);
+            lblTabNoLeidas.TabIndex = 2;
+            lblTabNoLeidas.Text = "No leídas";
+            lblTabNoLeidas.Click += lblTabNoLeidas_Click;
+            // 
+            // lblTabTodas
+            // 
+            lblTabTodas.AutoSize = true;
+            lblTabTodas.Cursor = Cursors.Hand;
+            lblTabTodas.Font = new Font("Segoe UI", 9F, FontStyle.Bold | FontStyle.Underline);
+            lblTabTodas.ForeColor = Color.FromArgb(14, 116, 144);
+            lblTabTodas.Location = new Point(12, 50);
+            lblTabTodas.Name = "lblTabTodas";
+            lblTabTodas.Size = new Size(38, 15);
+            lblTabTodas.TabIndex = 1;
+            lblTabTodas.Text = "Todas";
+            lblTabTodas.Click += lblTabTodas_Click;
+            // 
+            // lblTituloNotificaciones
+            // 
+            lblTituloNotificaciones.AutoSize = true;
+            lblTituloNotificaciones.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            lblTituloNotificaciones.ForeColor = Color.FromArgb(55, 65, 81);
+            lblTituloNotificaciones.Location = new Point(12, 12);
+            lblTituloNotificaciones.Name = "lblTituloNotificaciones";
+            lblTituloNotificaciones.Size = new Size(121, 21);
+            lblTituloNotificaciones.TabIndex = 0;
+            lblTituloNotificaciones.Text = "Notificaciones";
+            // 
+            // lblNotificacionesVacias
+            // 
+            lblNotificacionesVacias.Dock = DockStyle.Fill;
+            lblNotificacionesVacias.Font = new Font("Segoe UI", 10F);
+            lblNotificacionesVacias.ForeColor = Color.Gray;
+            lblNotificacionesVacias.Location = new Point(0, 0);
+            lblNotificacionesVacias.Name = "lblNotificacionesVacias";
+            lblNotificacionesVacias.Size = new Size(358, 358);
+            lblNotificacionesVacias.TabIndex = 1;
+            lblNotificacionesVacias.Text = "Sin notificaciones";
+            lblNotificacionesVacias.TextAlign = ContentAlignment.MiddleCenter;
+            // 
             // MainMenu
             // 
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(1457, 800);
+            Controls.Add(panelNotificacionesPico);
+            Controls.Add(panelNotificaciones);
             Controls.Add(panelContenido);
             Controls.Add(panelTop);
             Controls.Add(panelSidebar);
@@ -451,22 +633,24 @@ namespace Retorno360Tacna.FORMS
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainMenu";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto    |  Version: 2.6.0";
+            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto    |  Version: 3.0.0";
             WindowState = FormWindowState.Maximized;
             Load += MainMenu_Load;
             panelSidebar.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             panelSubMenuInventarios.ResumeLayout(false);
             panelSubMenuAdmin.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)pictureBoxLogo).EndInit();
             panelTop.ResumeLayout(false);
             panelTop.PerformLayout();
+            panelNotificaciones.ResumeLayout(false);
+            panelNotificacionesHeader.ResumeLayout(false);
+            panelNotificacionesHeader.PerformLayout();
             ResumeLayout(false);
         }
 
         #endregion
 
         private Panel panelSidebar;
-        private PictureBox pictureBoxLogo;
         private Button btnSeleccionRazon;
         private Button btnRetorno;
         private Button btnDiagramas;
@@ -477,14 +661,27 @@ namespace Retorno360Tacna.FORMS
         private Panel panelTop;
         private Label lblTitulo;
         private Label lblUsuario;
+        private Button btnNotificaciones;
+        private Label lblContadorNotificaciones;
+        private Panel panelNotificacionesPico;
+        private Panel panelNotificaciones;
+        private FlowLayoutPanel flpNotificaciones;
+        private Panel panelNotificacionesHeader;
+        private LinkLabel btnEliminarNotificaciones;
+        private Label lblTabNoLeidas;
+        private Label lblTabTodas;
+        private Label lblTituloNotificaciones;
+        private Label lblNotificacionesVacias;
         private Button btnAdministracion;
         private Panel panelSubMenuAdmin;
         private Button btnSubMenuPorcentaje;
         private Button btnSubMenuReporteIGI;
+        private Button btnSubMenuContabilidad;
         private Button btnInventarios;
         private Button btnToggleSidebar;
         private Panel panelSubMenuInventarios;
         private Button btnCatalogoPartes;
         private Button btnReportesInventario;
+        private PictureBox pictureBox1;
     }
 }

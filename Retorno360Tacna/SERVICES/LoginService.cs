@@ -67,7 +67,7 @@ namespace Retorno360Tacna.SERVICES
                 {
                     conn.Open();
                     string query = @"
-                        SELECT u.IdUsuario, u.UserAlias, u.NombreUsuario, u.ApellidoUsuario, u.Activo, u.IdRol, r.NombreRol 
+                        SELECT u.IdUsuario, u.idweb, u.UserAlias, u.NombreUsuario, u.ApellidoUsuario, u.Activo, u.IdRol, r.NombreRol 
                         FROM Usuarios u
                         INNER JOIN Roles r ON u.IdRol = r.IdRol
                         WHERE u.UserAlias = @Usuario AND u.PasswordHash = @Password AND u.Activo = 1";
@@ -81,17 +81,18 @@ namespace Retorno360Tacna.SERVICES
                         {
                             if (reader.Read())
                             {
-                                string nombreUsuario = reader.IsDBNull(2) ? "" : reader.GetString(2);
-                                string apellidoUsuario = reader.IsDBNull(3) ? "" : reader.GetString(3);
-                                int idRol = reader.GetInt32(5);
-                                string nombreRol = reader.IsDBNull(6) ? "" : reader.GetString(6);
+                                string nombreUsuario = reader.IsDBNull(3) ? "" : reader.GetString(3);
+                                string apellidoUsuario = reader.IsDBNull(4) ? "" : reader.GetString(4);
+                                int idRol = reader.GetInt32(6);
+                                string nombreRol = reader.IsDBNull(7) ? "" : reader.GetString(7);
 
                                 return new Usuario
                                 {
                                     IdUsuario = reader.GetInt32(0),
-                                    NombreUsuario = reader.GetString(1),
+                                    IdWeb = reader.IsDBNull(1) ? null : reader.GetInt32(1),
+                                    NombreUsuario = reader.GetString(2),
                                     NombreCompleto = $"{nombreUsuario} {apellidoUsuario}".Trim(),
-                                    Activo = reader.GetBoolean(4),
+                                    Activo = reader.GetBoolean(5),
                                     IdRol = idRol,
                                     NombreRol = nombreRol
                                 };

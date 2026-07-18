@@ -15,6 +15,12 @@ namespace Retorno360Tacna.FORMS
 {
     public partial class FrmReportes : Form
     {
+        private sealed class BaseDatosComboItem
+        {
+            public string NombreReal { get; set; } = string.Empty;
+            public string NombreVisible { get; set; } = string.Empty;
+        }
+
         private readonly ConexionInfo conexionActual;
         private readonly ReporteIGIService reporteService;
         private List<RazonSocial> razonesSociales = new();
@@ -24,6 +30,7 @@ namespace Retorno360Tacna.FORMS
         private int graficaActual = 0; // 0 = IGI, 1 = IVA
         private bool modalAbierto = false;
         private int ultimaFilaClickeada = -1;
+        private Dictionary<Button, bool>? estadoBotonesAntesCarga;
 
         // Tablas de detalle para mostrar al hacer doble clic
         private System.Data.DataTable? detalleIGIActual;
@@ -57,6 +64,24 @@ namespace Retorno360Tacna.FORMS
             this.SizeChanged += FrmReportes_SizeChanged;
         }
 
+        private static List<BaseDatosComboItem> CrearItemsBaseDatos(IEnumerable<string> basesDatos)
+        {
+            return basesDatos
+                .Select(baseDatos => new BaseDatosComboItem
+                {
+                    NombreReal = baseDatos,
+                    NombreVisible = LimpiarNombreBaseDatosVisible(baseDatos)
+                })
+                .ToList();
+        }
+
+        private static string LimpiarNombreBaseDatosVisible(string nombreBaseDatos)
+        {
+            return nombreBaseDatos
+                .Replace("SEERT_", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Trim(' ', '_', '-');
+        }
+
         private void FrmReportes_Resize(object sender, EventArgs e)
         {
             AjustarControles();
@@ -65,6 +90,51 @@ namespace Retorno360Tacna.FORMS
         private void FrmReportes_SizeChanged(object sender, EventArgs e)
         {
             AjustarControles();
+        }
+
+        private void EstablecerEstadoBotonesDuranteCarga(bool cargando)
+        {
+            if (FindForm() is MainMenu mainMenu)
+            {
+                mainMenu.EstablecerNavegacionLateralHabilitada(!cargando);
+            }
+
+            var botones = ObtenerBotonesRecursivamente(this)
+                .Where(b => b != null)
+                .ToList();
+
+            if (cargando)
+            {
+                estadoBotonesAntesCarga = botones.ToDictionary(b => b, b => b.Enabled);
+                foreach (var boton in botones)
+                {
+                    boton.Enabled = false;
+                }
+            }
+            else if (estadoBotonesAntesCarga != null)
+            {
+                foreach (var item in estadoBotonesAntesCarga)
+                {
+                    if (!item.Key.IsDisposed)
+                    {
+                        item.Key.Enabled = item.Value;
+                    }
+                }
+
+                estadoBotonesAntesCarga = null;
+            }
+        }
+
+        private static IEnumerable<Button> ObtenerBotonesRecursivamente(Control control)
+        {
+            foreach (Control hijo in control.Controls)
+            {
+                if (hijo is Button boton)
+                    yield return boton;
+
+                foreach (var botonHijo in ObtenerBotonesRecursivamente(hijo))
+                    yield return botonHijo;
+            }
         }
 
         private void AjustarControles()
@@ -226,7 +296,9 @@ namespace Retorno360Tacna.FORMS
 
                 if (basesDatos.Count > 0)
                 {
-                    cmbCliente.DataSource = basesDatos;
+                    cmbCliente.DataSource = CrearItemsBaseDatos(basesDatos);
+                    cmbCliente.DisplayMember = nameof(BaseDatosComboItem.NombreVisible);
+                    cmbCliente.ValueMember = nameof(BaseDatosComboItem.NombreReal);
                     cmbCliente.Enabled = true;
                     cmbCliente.SelectedIndex = -1;
                     lblProgreso.Text = $"{basesDatos.Count} clientes encontrados";
@@ -283,6 +355,7 @@ namespace Retorno360Tacna.FORMS
             {
                 // Mostrar indicador de carga
                 MostrarPanelCargando(true);
+                EstablecerEstadoBotonesDuranteCarga(true);
 
                 // Deshabilitar controles
                 btnConsultar.Enabled = false;
@@ -436,7 +509,7 @@ namespace Retorno360Tacna.FORMS
                 else
                 {
                     // Consultar una base de datos específica CON validación
-                    string baseDatos = cmbCliente.SelectedItem?.ToString() ?? string.Empty;
+                    string baseDatos = cmbCliente.SelectedValue?.ToString() ?? string.Empty;
                     lblProgreso.Text = $"Consultando {baseDatos} para generar reporte...";
                     lblResumenInfo.Text = "Generando reporte...";
 
@@ -499,19 +572,26 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ErrorMessageHelper.ShowError(
                     $"Error al generar el reporte:\n{ex.Message}",
                     "Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
+                    ex,
+                    "Generación de reporte IGI/IVA"
                 );
                 lblProgreso.Text = "Error al generar reporte";
                 lblResumenInfo.Text = "Error en la consulta";
             }
             finally
             {
+                bool estadoExportarExcel = btnExportarExcel.Enabled;
+                bool estadoGenerarPdf = btnGenerarPDF.Enabled;
+
                 // Ocultar indicador de carga
                 MostrarPanelCargando(false);
+                EstablecerEstadoBotonesDuranteCarga(false);
+
+                btnExportarExcel.Enabled = estadoExportarExcel;
+                btnGenerarPDF.Enabled = estadoGenerarPdf;
 
                 // Rehabilitar controles
                 btnConsultar.Enabled = true;
@@ -1141,8 +1221,8 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al mostrar el detalle: {ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al mostrar el detalle: {ex.Message}",
+                    "Error", ex, "Apertura de detalle IGI");
             }
             finally
             {
@@ -1211,8 +1291,8 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al mostrar el detalle: {ex.Message}",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al mostrar el detalle: {ex.Message}",
+                    "Error", ex, "Apertura de detalle IVA");
             }
             finally
             {
@@ -1803,11 +1883,11 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ErrorMessageHelper.ShowError(
                     $"Error al generar el PDF:\n{ex.Message}",
                     "Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
+                    ex,
+                    "Generación de PDF de reporte IGI/IVA"
                 );
                 lblProgreso.Text = "Error al generar PDF";
             }
@@ -2005,11 +2085,11 @@ namespace Retorno360Tacna.FORMS
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                ErrorMessageHelper.ShowError(
                     $"Error al generar el archivo Excel:\n{ex.Message}",
                     "Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
+                    ex,
+                    "Generación de Excel de reporte IGI/IVA"
                 );
                 lblProgreso.Text = "Error al generar Excel";
             }

@@ -122,6 +122,7 @@ namespace Retorno360Tacna.SERVICES
                                 var mp = new MateriaPrimaBOM
                                 {
                                     Par_Consecutivo = reader["Par_Consecutivo"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Par_Consecutivo"]),
+                                    BaseDatosOrigenConsulta = nombreBaseDatos,
                                     Par_NoParte = reader["Par_NoParte"]?.ToString() ?? string.Empty,
                                     Par_DescripcionEsp = reader["Par_DescripcionEsp"]?.ToString() ?? string.Empty,
                                     Clave = reader["Clave"]?.ToString() ?? string.Empty,
@@ -249,6 +250,7 @@ namespace Retorno360Tacna.SERVICES
                                 var mp = new MateriaPrimaBOM
                                 {
                                     Par_Consecutivo = reader["Par_Consecutivo"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Par_Consecutivo"]),
+                                    BaseDatosOrigenConsulta = nombreBaseDatos,
                                     Par_NoParte = reader["Par_NoParte"]?.ToString() ?? string.Empty,
                                     Par_DescripcionEsp = reader["Par_DescripcionEsp"]?.ToString() ?? string.Empty,
                                     Clave = reader["Clave"]?.ToString() ?? string.Empty,
@@ -400,6 +402,32 @@ namespace Retorno360Tacna.SERVICES
             catch
             {
                 return new Dictionary<int, List<DetallePedimentoParte>>();
+            }
+
+            return resultado;
+        }
+
+        public List<MateriaPrimaBOM> ObtenerMateriaPrimaBOMPorRazonSocial(int idRazon, string tipoClave, DateTime fechaInicio, DateTime fechaFin)
+        {
+            var resultado = new List<MateriaPrimaBOM>();
+            List<string> basesDatos = ObtenerBasesDatosRazon(idRazon);
+
+            foreach (string baseDatos in basesDatos.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                resultado.AddRange(ObtenerMateriaPrimaBOM(baseDatos, tipoClave, fechaInicio, fechaFin));
+            }
+
+            return resultado;
+        }
+
+        public List<MateriaPrimaBOM> ObtenerMateriaPrimaBOMMultiplePorRazonSocial(int idRazon, DateTime fechaInicio, DateTime fechaFin)
+        {
+            var resultado = new List<MateriaPrimaBOM>();
+            List<string> basesDatos = ObtenerBasesDatosRazon(idRazon);
+
+            foreach (string baseDatos in basesDatos.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                resultado.AddRange(ObtenerMateriaPrimaBOMMultiple(baseDatos, fechaInicio, fechaFin));
             }
 
             return resultado;

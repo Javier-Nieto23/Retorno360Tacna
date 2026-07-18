@@ -1,4 +1,5 @@
 using Retorno360Tacna.CNX;
+using Retorno360Tacna.HELPERS;
 using Retorno360Tacna.SERVICES;
 using Retorno360Tacna.MODELS;
 using System.Runtime.InteropServices;
@@ -75,18 +76,17 @@ namespace Retorno360Tacna.FORMS
                 }
                 else
                 {
-                    MessageBox.Show(
+                    ErrorMessageHelper.ShowError(
                         "No se encontró la conexión al servidor principal.\n" +
                         "Por favor, verifica la tabla Conexiones en RetornoMaster.",
                         "Error de Configuración",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
+                        contexto: "Carga de conexiones del login"
                     );
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar conexiones: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error al cargar conexiones: {ex.Message}", "Error", ex, "Carga de conexiones del login");
             }
         }
 
@@ -114,7 +114,7 @@ namespace Retorno360Tacna.FORMS
             {
                 if (comboBox1.SelectedItem == null)
                 {
-                    MessageBox.Show("Error: No hay conexión disponible.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    ErrorMessageHelper.ShowError("Error: No hay conexión disponible.", "Error", contexto: "Inicio de sesión sin conexión seleccionada");
                     return;
                 }
 
@@ -157,13 +157,12 @@ namespace Retorno360Tacna.FORMS
 
                     if (!conexionPrueba.ProbarConexion())
                     {
-                        MessageBox.Show(
+                        ErrorMessageHelper.ShowError(
                             "Usuario válido, pero no se pudo conectar al servidor principal.\n\n" +
                             $"Servidor: {conexionPrincipal.Servidor}\n" +
                             "Por favor, verifica la conexión de red.",
                             "Error de Conexión",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error
+                            contexto: "Validación de conexión al servidor principal"
                         );
                         return;
                     }
@@ -199,12 +198,12 @@ namespace Retorno360Tacna.FORMS
                 }
                 else
                 {
-                    MessageBox.Show("Usuario o contraseña incorrectos.", "Error de Autenticación", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    ErrorMessageHelper.ShowError("Usuario o contraseña incorrectos.", "Error de Autenticación", contexto: "Autenticación de usuario");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ErrorMessageHelper.ShowError($"Error: {ex.Message}", "Error", ex, "Error durante el inicio de sesión");
             }
         }
 

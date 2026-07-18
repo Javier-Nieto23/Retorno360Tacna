@@ -86,6 +86,9 @@ namespace Retorno360Tacna
         /// </summary>
         public Retorno360Tacna.FORMS.MainMenu? ObtenerMainMenuPrecargado() => mainMenuPrecargado;
 
+        private void label1_Click(object sender, EventArgs e)
+        {
 
+        }
     }
 }

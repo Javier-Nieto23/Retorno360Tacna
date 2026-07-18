@@ -3,6 +3,7 @@ namespace Retorno360Tacna.MODELS
     public class Usuario
     {
         public int IdUsuario { get; set; }
+        public int? IdWeb { get; set; }
         public string? NombreUsuario { get; set; }
         public string? Password { get; set; }
         public string? NombreCompleto { get; set; }

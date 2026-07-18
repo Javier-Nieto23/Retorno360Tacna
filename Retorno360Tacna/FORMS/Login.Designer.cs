@@ -143,7 +143,7 @@ namespace Retorno360Tacna.FORMS
             label5.Name = "label5";
             label5.Size = new Size(72, 15);
             label5.TabIndex = 10;
-            label5.Text = "Version 2.6.0";
+            label5.Text = "Version 3.0.0";
             // 
             // chkRecordarUsuario
             // 
