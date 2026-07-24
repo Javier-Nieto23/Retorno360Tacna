@@ -10,7 +10,7 @@ namespace Retorno360Tacna.SERVICES
 {
     internal static class R2BucketMonitorService
     {
-        private const string BucketName = "retorno360tacnaweb";
+        private const string BucketName = "retorno360web";
         private static readonly object SyncRoot = new();
         private static readonly System.Threading.SemaphoreSlim PollLock = new(1, 1);
         private static readonly Dictionary<string, DateTime> archivosR2Detectados = new(StringComparer.OrdinalIgnoreCase);

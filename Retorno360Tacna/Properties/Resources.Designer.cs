@@ -313,6 +313,16 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap income_money_dollar_upward_green_arrow_gain_appreciation_icon_205133 {
+            get {
+                object obj = ResourceManager.GetObject("income_money_dollar_upward_green_arrow_gain_appreciation_icon_205133", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap increase_25373 {
             get {
                 object obj = ResourceManager.GetObject("increase_25373", resourceCulture);
@@ -363,6 +373,26 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap menu_checklist_list_icon_219179 {
+            get {
+                object obj = ResourceManager.GetObject("menu_checklist_list_icon_219179", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap menu_icon_241377 {
+            get {
+                object obj = ResourceManager.GetObject("menu_icon_241377", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Menu_Icon_icon_icons_com_69140 {
             get {
                 object obj = ResourceManager.GetObject("Menu_Icon_icon-icons.com_69140", resourceCulture);
@@ -376,6 +406,16 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap monitor_40526 {
             get {
                 object obj = ResourceManager.GetObject("monitor_40526", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap more_90961 {
+            get {
+                object obj = ResourceManager.GetObject("more_90961", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -526,6 +566,36 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap ui_interface_list_navigation_menu_switcher_icon_219789 {
             get {
                 object obj = ResourceManager.GetObject("ui_interface_list_navigation_menu_switcher_icon_219789", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ui_interface_list_navigation_menu_switcher_icon_2197891 {
+            get {
+                object obj = ResourceManager.GetObject("ui_interface_list_navigation_menu_switcher_icon_2197891", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ui_interface_navigation_list_menu_icon_219797 {
+            get {
+                object obj = ResourceManager.GetObject("ui_interface_navigation_list_menu_icon_219797", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap ui_interface_navigation_vertical_menu_overflow_icon_219767 {
+            get {
+                object obj = ResourceManager.GetObject("ui_interface_navigation_vertical_menu_overflow_icon_219767", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

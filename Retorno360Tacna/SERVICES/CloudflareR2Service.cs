@@ -16,9 +16,9 @@ namespace Retorno360Tacna.SERVICES
             public long Size { get; set; }
         }
 
-        private readonly string accessKey = "3d713a34a9e16e06de5fbb67947fd549";
-        private readonly string secretKey = "aa2640adaaaaf17991ad7887175b9fa55ab4729ef58bab0e217af677e45a8c04";
-        private readonly string serviceUrl = "https://01a682a2f4b87ad648c0baa2dc5fe427.r2.cloudflarestorage.com";
+        private readonly string accessKey = "dc679dc8b73bfbe7a47cbd43a6510f01";
+        private readonly string secretKey = "4b49a1c78e219d957c3dddcf66dd394fac1ac7a4605711e4939fe2d1b2b78689";
+        private readonly string serviceUrl = "https://b73e0f75a96164dc3862e335762c3ef6.r2.cloudflarestorage.com";
         private readonly string bucketName;
         private readonly AmazonS3Client client;
 

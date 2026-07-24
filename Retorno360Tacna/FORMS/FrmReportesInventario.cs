@@ -55,13 +55,13 @@ namespace Retorno360Tacna.FORMS
         private readonly Font _fontFecha = new Font("Segoe UI", 8.5F, FontStyle.Regular);
         private readonly Font _fontMensaje = new Font("Segoe UI", 9.5F, FontStyle.Regular);
         private const string ConexionPortalWeb = "Host=localhost;Port=5432;Database=retorno360db;Username=postgres;Password=admin1234;Timeout=5;Command Timeout=5;";
-        private const string BucketStorageBaseUrl = "https://01a682a2f4b87ad648c0baa2dc5fe427.r2.cloudflarestorage.com/retorno360tacnaweb";
+        private const string BucketStorageBaseUrl = "https://b73e0f75a96164dc3862e335762c3ef6.r2.cloudflarestorage.com/retorno360web";
         private readonly Usuario? usuarioActual;
 
         private readonly ConexionInfo conexionActual;
         private CatalogoPartesService catalogoService;
         // Eliminada la referencia a la carpeta local
-        private CloudflareR2Service cloudflareService = new CloudflareR2Service("retorno360tacnaweb"); // Reemplaza por tu bucket real
+        private CloudflareR2Service cloudflareService = new CloudflareR2Service("retorno360web");
 
 
 

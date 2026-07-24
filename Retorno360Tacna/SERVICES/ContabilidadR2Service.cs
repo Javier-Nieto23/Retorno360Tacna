@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace Retorno360Tacna.SERVICES
 {
+    // variables unicas del sistema de contabilidad
     public sealed class R2FolderOption
     {
         public string DisplayName { get; set; } = string.Empty;
@@ -33,6 +34,8 @@ namespace Retorno360Tacna.SERVICES
         public int ArchivosAnalizados { get; set; }
         public int ArchivosProcesados { get; set; }
         public int ArchivosOmitidos { get; set; }
+
+        public int MesesFaltantes {  get; set; }
     }
 
 
@@ -119,11 +122,10 @@ namespace Retorno360Tacna.SERVICES
                 .ToList();
         }
 
-        public async Task<ContabilidadProcesoResultado> ProcesarArchivosAsync(string empresaPrefix, string anioSeleccionado, string columnaAnalizada)
+        public async Task<ContabilidadProcesoResultado> ProcesarArchivosAsync(string empresaPrefix, string anioSeleccionado, string columnaObjetivo)
         {
             var resultado = new ContabilidadProcesoResultado();
             string prefix = NormalizarPrefix(empresaPrefix);
-            string columnaObjetivo = columnaAnalizada.Trim();
             string directorioTemporal = Path.Combine(Path.GetTempPath(), "Retorno360Tacna", "Contabilidad", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directorioTemporal);
 
@@ -178,17 +180,13 @@ namespace Retorno360Tacna.SERVICES
                 }
             }
 
-            resultado.Registros = resultado.Registros
-                .OrderBy(r => r.Año)
-                .ThenBy(r => r.MesOrden)
-                .ThenBy(r => r.Archivo, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
             if (int.TryParse(anioSeleccionado, out int añoInt))
             {
                 HashSet<int> mesesExistentes = resultado.Registros
                     .Select(r => r.MesOrden)
                     .ToHashSet();
+
+                resultado.MesesFaltantes = 12 - mesesExistentes.Count; 
 
                 for (int mes = 1; mes <= 12; mes++)
                 {
@@ -238,16 +236,15 @@ namespace Retorno360Tacna.SERVICES
                 hoja.Cell(fila, 4).Value = resultado.ColumnaAnalizada;
                 hoja.Cell(fila, 5).Value = resultado.Total;
                 hoja.Cell(fila, 5).Style.NumberFormat.Format = "#,##0.00";
-                fila++;
-            
 
-                if(resultado.NoDisponible)
+
+                if (resultado.NoDisponible)
                 {
-                    IXLRange filaRango = hoja.Range(fila ,1, fila, 5 );
+                    IXLRange filaRango = hoja.Range(fila ,1, fila, 5 );// Rango de la fila actual
                     filaRango.Style.Font.FontColor = XLColor.Red;
                     filaRango.Style.Fill.BackgroundColor = XLColor.FromArgb(255, 235, 235);
                 }
-                ++fila;
+                ++fila;// segundo incremento de fila para la siguiente iteración
             }
 
             IXLRange rango = hoja.Range(1, 1, Math.Max(1, fila - 1), 5);

@@ -156,7 +156,7 @@ namespace Retorno360Tacna.FORMS
             btnReportes.ForeColor = Color.White;
             btnReportes.Image = Properties.Resources.Sales_report_25411;
             btnReportes.ImageAlign = ContentAlignment.MiddleRight;
-            btnReportes.Location = new Point(0, 510);
+            btnReportes.Location = new Point(0, 570);
             btnReportes.Name = "btnReportes";
             btnReportes.Padding = new Padding(20, 0, 0, 0);
             btnReportes.Size = new Size(250, 60);
@@ -174,7 +174,7 @@ namespace Retorno360Tacna.FORMS
             panelSubMenuInventarios.Controls.Add(btnReportesInventario);
             panelSubMenuInventarios.Controls.Add(btnCatalogoPartes);
             panelSubMenuInventarios.Dock = DockStyle.Top;
-            panelSubMenuInventarios.Location = new Point(0, 390);
+            panelSubMenuInventarios.Location = new Point(0, 450);
             panelSubMenuInventarios.Name = "panelSubMenuInventarios";
             panelSubMenuInventarios.Size = new Size(250, 120);
             panelSubMenuInventarios.TabIndex = 9;
@@ -234,7 +234,7 @@ namespace Retorno360Tacna.FORMS
             btnInventarios.ForeColor = Color.White;
             btnInventarios.Image = Properties.Resources.business_inventory_maintenance_product_box_boxes_2326;
             btnInventarios.ImageAlign = ContentAlignment.MiddleRight;
-            btnInventarios.Location = new Point(0, 330);
+            btnInventarios.Location = new Point(0, 390);
             btnInventarios.Name = "btnInventarios";
             btnInventarios.Padding = new Padding(20, 0, 0, 0);
             btnInventarios.Size = new Size(250, 60);
@@ -267,7 +267,7 @@ namespace Retorno360Tacna.FORMS
             btnSubMenuContabilidad.FlatStyle = FlatStyle.Flat;
             btnSubMenuContabilidad.Font = new Font("Segoe UI", 10F);
             btnSubMenuContabilidad.ForeColor = Color.LightGray;
-            btnSubMenuContabilidad.Image = Properties.Resources.Earning_statement_253912;
+            btnSubMenuContabilidad.Image = Properties.Resources.income_money_dollar_upward_green_arrow_gain_appreciation_icon_205133;
             btnSubMenuContabilidad.ImageAlign = ContentAlignment.MiddleRight;
             btnSubMenuContabilidad.Location = new Point(0, 120);
             btnSubMenuContabilidad.Name = "btnSubMenuContabilidad";
@@ -377,7 +377,7 @@ namespace Retorno360Tacna.FORMS
             btnToggleSidebar.FlatStyle = FlatStyle.Flat;
             btnToggleSidebar.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
             btnToggleSidebar.ForeColor = Color.White;
-            btnToggleSidebar.Image = Properties.Resources._1491313929_menu_82986;
+            btnToggleSidebar.Image = Properties.Resources.menu_icon_241377;
             btnToggleSidebar.ImageAlign = ContentAlignment.MiddleRight;
             btnToggleSidebar.Location = new Point(0, 0);
             btnToggleSidebar.Name = "btnToggleSidebar";
@@ -633,7 +633,7 @@ namespace Retorno360Tacna.FORMS
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainMenu";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto    |  Version: 3.0.0";
+            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto    |  Version: 3.1.0";
             WindowState = FormWindowState.Maximized;
             Load += MainMenu_Load;
             panelSidebar.ResumeLayout(false);
