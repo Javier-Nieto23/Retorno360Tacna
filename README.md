@@ -132,10 +132,9 @@ Las mejoras recomendadas para la evolución del proyecto son:
 
 ## Documentación adicional
 
-- [Documentación técnica detallada](DOCS/Documentacion_Tecnica_Retorno360Tacna.docx)
 - `CHANGELOG_v2.6.0.md`
 - `CHANGELOG_v2.7.0.md`
 
 ## Licencia
 
-Software propietario. Todos los derechos reservados.
+Software Javier Nieto. Todos los derechos reservados.
