@@ -1,0 +1,241 @@
+using Retorno360Tacna.CNX;
+using Retorno360Tacna.HELPERS;
+using Retorno360Tacna.SERVICES;
+using Retorno360Tacna.MODELS;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace Retorno360Tacna.FORMS
+{
+    public partial class Login : Form
+    {
+        [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
+        private static extern IntPtr CreateRoundRectRgn
+        (
+            int nLeftRect,
+            int nTopRect,
+            int nRightRect,
+            int nBottomRect,
+            int nWidthEllipse,
+            int nHeightEllipse
+        );
+
+        public Login()
+        {
+            InitializeComponent();
+            this.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 20, 20));
+            CargarConexiones();
+            CargarUsuarioGuardado();
+
+            if (ConfiguracionService.ObtenerAjusteVentanaPantallaLogica())
+            {
+                ConfiguracionService.AplicarPerfilPantallaLogica(this);
+                this.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, Width, Height, 20, 20));
+            }
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_NCLBUTTONDOWN = 0xA1;
+            const int HTCAPTION = 0x2;
+
+            if (m.Msg == WM_NCLBUTTONDOWN && m.WParam.ToInt32() == HTCAPTION)
+            {
+                return;
+            }
+
+            base.WndProc(ref m);
+        }
+
+        private void CargarConexiones()
+        {
+            try
+            {
+                // SIMPLIFICADO: Solo cargar la conexión principal
+                // Los servidores secundarios se configuran automáticamente en RetornoService
+                LoginService loginService = new LoginService();
+                List<ConexionInfo> conexiones = loginService.ObtenerConexiones();
+
+                // Filtrar solo la conexión principal (172.20.20.26)
+                var conexionPrincipal = conexiones.FirstOrDefault(c => 
+                    c.Servidor != null && c.Servidor.Equals("172.20.20.26", StringComparison.OrdinalIgnoreCase));
+
+                if (conexionPrincipal == null && conexiones.Count > 0)
+                {
+                    // Si no encuentra 172.20.20.26, usar la primera
+                    conexionPrincipal = conexiones[0];
+                }
+
+                if (conexionPrincipal != null)
+                {
+                    comboBox1.DataSource = new List<ConexionInfo> { conexionPrincipal };
+                    comboBox1.DisplayMember = "NombreConexion";
+                    comboBox1.ValueMember = "IdConexion";
+                    comboBox1.SelectedIndex = 0;
+                }
+                else
+                {
+                    ErrorMessageHelper.ShowError(
+                        "No se encontró la conexión al servidor principal.\n" +
+                        "Por favor, verifica la tabla Conexiones en RetornoMaster.",
+                        "Error de Configuración",
+                        contexto: "Carga de conexiones del login"
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessageHelper.ShowError($"Error al cargar conexiones: {ex.Message}", "Error", ex, "Carga de conexiones del login");
+            }
+        }
+
+        private void CargarUsuarioGuardado()
+        {
+            try
+            {
+                string usuarioGuardado = Properties.Settings.Default.UsuarioGuardado;
+                if (!string.IsNullOrEmpty(usuarioGuardado))
+                {
+                    textBox1.Text = usuarioGuardado;
+                    chkRecordarUsuario.Checked = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Si falla al cargar, simplemente no pre-llenar el usuario
+                System.Diagnostics.Debug.WriteLine($"Error al cargar usuario guardado: {ex.Message}");
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (comboBox1.SelectedItem == null)
+                {
+                    ErrorMessageHelper.ShowError("Error: No hay conexión disponible.", "Error", contexto: "Inicio de sesión sin conexión seleccionada");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(textBox1.Text) || string.IsNullOrWhiteSpace(textBox2.Text))
+                {
+                    MessageBox.Show("Por favor, ingrese usuario y contraseña.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                ConexionInfo conexionPrincipal = (ConexionInfo)comboBox1.SelectedItem;
+
+                // ✅ Calcular hash SHA256 de la contraseña
+                string passwordHash = CalcularHashSHA256(textBox2.Text);
+
+                // ✅ Validar usuario contra RetornoMaster (servidor principal)
+                LoginService loginService = new LoginService();
+                Usuario? usuario = loginService.ValidarUsuario(textBox1.Text, passwordHash);
+
+                if (usuario != null)
+                {
+                    // Guardar usuario si la opción está marcada
+                    if (chkRecordarUsuario.Checked)
+                    {
+                        Properties.Settings.Default.UsuarioGuardado = textBox1.Text;
+                        Properties.Settings.Default.Save();
+                    }
+                    else
+                    {
+                        Properties.Settings.Default.UsuarioGuardado = string.Empty;
+                        Properties.Settings.Default.Save();
+                    }
+
+                    // ✅ Probar conexión al servidor principal
+                    Conexion conexionPrueba = new Conexion(
+                        conexionPrincipal.Servidor!,
+                        conexionPrincipal.UsuarioSQL!,
+                        conexionPrincipal.PasswordSQL!,
+                        "RetornoMaster"
+                    );
+
+                    if (!conexionPrueba.ProbarConexion())
+                    {
+                        ErrorMessageHelper.ShowError(
+                            "Usuario válido, pero no se pudo conectar al servidor principal.\n\n" +
+                            $"Servidor: {conexionPrincipal.Servidor}\n" +
+                            "Por favor, verifica la conexión de red.",
+                            "Error de Conexión",
+                            contexto: "Validación de conexión al servidor principal"
+                        );
+                        return;
+                    }
+
+                    // ℹ️ NOTA: Los servidores externos se configuran automáticamente
+                    //    en RetornoService leyendo RAZONXTABLA.ConnExterna
+
+                    // Mostrar pantalla de carga antes de abrir MainMenu
+                    this.Hide();
+                    CargaDePantalla cargaDePantalla = new CargaDePantalla(usuario, conexionPrincipal);
+
+                    if (cargaDePantalla.ShowDialog() == DialogResult.OK)
+                    {
+                        // Obtener los datos del formulario de carga
+                        Usuario? usuarioRecuperado = cargaDePantalla.ObtenerUsuario();
+                        ConexionInfo? conexionRecuperada = cargaDePantalla.ObtenerConexion();
+                        MainMenu? mainMenuPrecargado = cargaDePantalla.ObtenerMainMenuPrecargado();
+
+                        if (usuarioRecuperado != null && conexionRecuperada != null)
+                        {
+                            // Si el MainMenu fue pre-cargado, usarlo; si no, crear uno nuevo
+                            Retorno360Tacna.FORMS.MainMenu mainMenu = mainMenuPrecargado 
+                                ?? new Retorno360Tacna.FORMS.MainMenu(usuarioRecuperado, conexionRecuperada);
+
+                            mainMenu.FormClosed += (s, args) => this.Close();
+                            mainMenu.Show();
+                        }
+                    }
+                    else
+                    {
+                        this.Show();
+                    }
+                }
+                else
+                {
+                    ErrorMessageHelper.ShowError("Usuario o contraseña incorrectos.", "Error de Autenticación", contexto: "Autenticación de usuario");
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessageHelper.ShowError($"Error: {ex.Message}", "Error", ex, "Error durante el inicio de sesión");
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void textBox2_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter)
+            {
+                e.Handled = true;
+                button1_Click(sender, e);
+            }
+        }
+
+        private string CalcularHashSHA256(string texto)
+        {
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(texto);
+                byte[] hash = sha256.ComputeHash(bytes);
+
+                StringBuilder builder = new StringBuilder();
+                foreach (byte b in hash)
+                {
+                    builder.Append(b.ToString("x2"));
+                }
+
+                return builder.ToString();
+            }
+        }
+    }
+}

@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Logo360 (1).ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Logo360 (1).ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="4.0.101.5" />
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <!-- Usar versión 2.0.x más reciente disponible en NuGet (flotante) para mantener compatibilidad con SkiaSharp -->
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WinForms" Version="2.0.*" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+    <PackageReference Include="MongoDB.Driver.Core" Version="2.30.0" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
+    <PackageReference Include="QuestPDF" Version="2026.7.1" />
+    <PackageReference Include="SkiaSharp" Version="4.150.1" />
+    <PackageReference Include="SkiaSharp.HarfBuzz" Version="4.150.1" />
+    <!-- Native assets para SkiaSharp en Windows y vistas WinForms necesarias para renderizado -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="4.150.1" />
+    <PackageReference Include="SkiaSharp.Views.WindowsForms" Version="4.150.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="EXAMPLES\" />
+  </ItemGroup>
+
+  <!-- Excluir resx de diseño que generan conflicto de nombres de recursos en la compilación -->
+  <ItemGroup>
+    <!-- Evitar que los .resx en la carpeta FORMS\DESIGN se compilen como recursos embebidos y provoquen colisiones de nombres -->
+    <EmbeddedResource Remove="FORMS\DESIGN\*.resx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Resources\logo_tacna.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+
+</Project>
