@@ -15,6 +15,8 @@ namespace Retorno360Tacna.FORMS
 
 
 
+
+
         #region Windows Form Designer generated code
 
         private void InitializeComponent()
