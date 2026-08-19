@@ -14,6 +14,8 @@ namespace Retorno360Tacna.FORMS
     {
         private readonly CumplimientoAnexosService cumplimientoService;
         private readonly ConexionInfo conexion;
+        private MODELS.Usuario? usuarioActual;
+        private SERVICES.PerfilUsuarioService? perfilService;
 
         public FrmCumplimiento()
         {
@@ -22,15 +24,30 @@ namespace Retorno360Tacna.FORMS
             conexion = null!;
         }
 
-        public FrmCumplimiento(ConexionInfo conexionInfo) : this()
+        public FrmCumplimiento(ConexionInfo conexionInfo) : this(conexionInfo, null) { }
+
+        public FrmCumplimiento(ConexionInfo conexionInfo, MODELS.Usuario? usuario) : this()
         {
             conexion = conexionInfo;
             cumplimientoService = new CumplimientoAnexosService(conexionInfo);
+            usuarioActual = usuario;
+
+            if (usuario != null)
+                perfilService = new SERVICES.PerfilUsuarioService();
+
             DataGridViewManualCopyHelper.ConfigurarControles(this);
             ConfigurarEstiloVisual();
 
             if (System.ComponentModel.LicenseManager.UsageMode != System.ComponentModel.LicenseUsageMode.Designtime)
-            {
+            { 
+                if (usuarioActual == null || perfilService == null)
+                {
+                    chkUsarPerfil.Checked = false; 
+                    chkUsarPerfil.Enabled = false;
+
+                }
+
+
                 CargarRazonesSociales();
                 dtpInicio.Value = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
                 dtpFin.Value = DateTime.Today;
@@ -41,7 +58,12 @@ namespace Retorno360Tacna.FORMS
         {
             try
             {
-                var razones = cumplimientoService.ObtenerRazonesSociales();
+                List<RazonSocial> razones;
+                if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+                    razones = perfilService.ObtenerRazonesSocialesDePerfil(usuarioActual.IdUsuario);
+                else
+                    razones = cumplimientoService.ObtenerRazonesSociales();
+
                 cmbRazon.DataSource = razones;
                 cmbRazon.DisplayMember = "NombreRazon";
                 cmbRazon.ValueMember = "IdRazon";
@@ -51,6 +73,18 @@ namespace Retorno360Tacna.FORMS
             {
                 MessageBox.Show($"Error cargando razones sociales: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void chkUsarPerfil_CheckedChanged(object? sender, EventArgs e)
+        {
+            if (chkUsarPerfil.Checked && (usuarioActual == null || perfilService == null))
+            {
+                MessageBox.Show("No se ha cargado el perfil de usuario. Cierre y vuelva a abrir el formulario.",
+                    "Perfil no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                chkUsarPerfil.Checked = false;
+                return;
+            }
+            CargarRazonesSociales();
         }
 
         private void cmbRazon_SelectedIndexChanged(object? sender, EventArgs e)
@@ -69,7 +103,12 @@ namespace Retorno360Tacna.FORMS
         {
             try
             {
-                var bases = cumplimientoService.ObtenerBasesDatosRazon(idRazon);
+                List<string> bases;
+                if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+                    bases = perfilService.ObtenerBasesDatosDePerfilPorRazon(usuarioActual.IdUsuario, idRazon);
+                else
+                    bases = cumplimientoService.ObtenerBasesDatosRazon(idRazon);
+
                 cmbBase.DataSource = bases
                     .Select(b => new { NombreReal = b, NombreVisible = b.Replace("SEERT_", string.Empty, StringComparison.OrdinalIgnoreCase).Trim('_', '-', ' ') })
                     .Cast<object>()

@@ -39,6 +39,7 @@ namespace Retorno360Tacna.FORMS
             btnExportarPdf = new Button();
             chkPdfTodasEmpresas = new CheckBox();
             chkTodasRazonesSociales = new CheckBox();
+            chkUsarPerfil = new CheckBox();
             lblTotalPartes = new Label();
             panelContenido = new Panel();
             dgvMateriaPrima = new DataGridView();
@@ -81,6 +82,7 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.Controls.Add(btnExportarPdf);
             panelFiltros.Controls.Add(chkPdfTodasEmpresas);
             panelFiltros.Controls.Add(chkTodasRazonesSociales);
+            panelFiltros.Controls.Add(chkUsarPerfil);
             panelFiltros.Controls.Add(lblTotalPartes);
             panelFiltros.Dock = DockStyle.Top;
             panelFiltros.Location = new Point(0, 0);
@@ -276,6 +278,18 @@ namespace Retorno360Tacna.FORMS
             chkTodasRazonesSociales.Text = "Consultar todas las razones sociales";
             chkTodasRazonesSociales.UseVisualStyleBackColor = true;
             chkTodasRazonesSociales.CheckedChanged += chkTodasRazonesSociales_CheckedChanged;
+            // 
+            // chkUsarPerfil
+            // 
+            chkUsarPerfil.AutoSize = true;
+            chkUsarPerfil.Font = new Font("Segoe UI", 9.5F);
+            chkUsarPerfil.Location = new Point(1019, 127);
+            chkUsarPerfil.Name = "chkUsarPerfil";
+            chkUsarPerfil.Size = new Size(210, 21);
+            chkUsarPerfil.TabIndex = 17;
+            chkUsarPerfil.Text = "Usar empresas de mi perfil";
+            chkUsarPerfil.UseVisualStyleBackColor = true;
+            chkUsarPerfil.CheckedChanged += chkUsarPerfil_CheckedChanged;
             // 
             // lblTotalPartes
             // 
@@ -517,6 +531,7 @@ namespace Retorno360Tacna.FORMS
         private Button btnExportarPdf;
         private CheckBox chkPdfTodasEmpresas;
         private CheckBox chkTodasRazonesSociales;
+        private CheckBox chkUsarPerfil;
         private Label lblTotalPartes;
         private Panel panelContenido;
         private DataGridView dgvMateriaPrima;

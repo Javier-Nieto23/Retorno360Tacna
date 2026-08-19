@@ -52,15 +52,15 @@ namespace Retorno360Tacna.SERVICES
                         .Count();
 
                     decimal igiPagado = detalleIGI
-                        .Where(r => string.Equals(r["FormaPago_IGI"]?.ToString()?.Trim(), "0", StringComparison.OrdinalIgnoreCase))
-                        .Sum(r => ConvertirDecimal(r, "IGI_Pagado"));
+                         .Where(r => string.Equals(r["FormaPago_IGI"]?.ToString()?.Trim(), "0", StringComparison.OrdinalIgnoreCase))
+                         .Sum(r => ConvertirDecimal(r, "IGI_Pagado"));
 
                     decimal igiCalculado = detalleIGI
+                        .Where(r => string.Equals(r["FormaPago_IGI"]?.ToString()?.Trim(), "0", StringComparison.OrdinalIgnoreCase))
                         .Sum(r => ConvertirDecimal(r, "IGI_Calculado"));
 
-                    decimal ahorroIgi = detalleIGI
-                        .Where(r => string.Equals(r["FormaPago_IGI"]?.ToString()?.Trim(), "5", StringComparison.OrdinalIgnoreCase))
-                        .Sum(r => ConvertirDecimal(r, "IGI_Calculado"));
+                    decimal ahorroIgi = igiCalculado - igiPagado;
+
 
                     decimal pagoIva = detalleIVA
                         .Where(r => string.Equals(r["FormaPago_IVA"]?.ToString()?.Trim(), "0", StringComparison.OrdinalIgnoreCase))

@@ -23,17 +23,25 @@ namespace Retorno360Tacna.FORMS
         private int idRazonSeleccionada = 0;
         private ResultadoRetorno? ultimoResultado;
         private Dictionary<Button, bool>? estadoBotonesAntesCarga;
+        private MODELS.Usuario? usuarioActual;
+        private SERVICES.PerfilUsuarioService? perfilService;
 
         public FrmRetorno()
         {
             InitializeComponent();
         }
 
-        public FrmRetorno(ConexionInfo conexion)
+        public FrmRetorno(ConexionInfo conexion) : this(conexion, null) { }
+
+        public FrmRetorno(ConexionInfo conexion, MODELS.Usuario? usuario)
         {
             InitializeComponent();
             conexionActual = conexion;
             retornoService = new RetornoService(conexion);
+            usuarioActual = usuario;
+
+            if (usuario != null)
+                perfilService = new SERVICES.PerfilUsuarioService();
 
             // Configurar eventos de redimensionamiento
             this.Resize += FrmRetorno_Resize;
@@ -114,7 +122,6 @@ namespace Retorno360Tacna.FORMS
 
             try
             {
-                // Solo ajustar si el formulario está cargado
                 if (!this.IsHandleCreated)
                     return;
 
@@ -211,7 +218,6 @@ namespace Retorno360Tacna.FORMS
 
         private void ConfigurarGrafica()
         {
-            // Configurar gráfica de columnas con zoom completo
             cartesianChartView = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart
             {
                 Dock = DockStyle.Fill,
@@ -219,27 +225,12 @@ namespace Retorno360Tacna.FORMS
                 ZoomingSpeed = 1.1
             };
 
-            // Debug: confirmar series de pie y forzar refresco
-            try
-            {
-                var sCount = pieChartView.Series?.Count() ?? 0;
-                System.Diagnostics.Debug.WriteLine($"[ActualizarGrafica-DBG] pieChartView series={sCount}");
-                try { pieChartView.Update(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ActualizarGrafica-DBG] pieChartView.Update error: {ex}"); }
-                try { pieChartView.Refresh(); } catch { }
-                try { pieChartView.Invalidate(); } catch { }
-                try { Application.DoEvents(); } catch { }
-            }
-            catch { }
-
-            // Agregar gráfica de columnas al panel
             panelGraficaColumnas.Controls.Add(cartesianChartView);
-            cartesianChartView.SendToBack(); // Enviar la gráfica atrás
+            cartesianChartView.SendToBack();
 
-            // Asegurar que los botones de navegación estén visibles y configurados
             btnAnteriorColumnas.Cursor = Cursors.Hand;
             btnSiguienteColumnas.Cursor = Cursors.Hand;
 
-            // Agregar los controles de navegación AL FRENTE
             panelGraficaColumnas.Controls.Add(lblTituloColumnas);
             panelGraficaColumnas.Controls.Add(btnAnteriorColumnas);
             panelGraficaColumnas.Controls.Add(btnSiguienteColumnas);
@@ -247,21 +238,17 @@ namespace Retorno360Tacna.FORMS
             btnAnteriorColumnas.BringToFront();
             btnSiguienteColumnas.BringToFront();
 
-            // Configurar gráfica de pie
             pieChartView = new LiveChartsCore.SkiaSharpView.WinForms.PieChart
             {
                 Dock = DockStyle.Fill
             };
 
-            // Agregar gráfica de pie al panel
             panelGraficaPie.Controls.Add(pieChartView);
-            pieChartView.SendToBack(); // Enviar la gráfica atrás
+            pieChartView.SendToBack();
 
-            // Asegurar que los botones de navegación estén visibles y configurados
             btnAnteriorPie.Cursor = Cursors.Hand;
             btnSiguientePie.Cursor = Cursors.Hand;
 
-            // Agregar los controles de navegación AL FRENTE
             panelGraficaPie.Controls.Add(lblTituloPie);
             panelGraficaPie.Controls.Add(btnAnteriorPie);
             panelGraficaPie.Controls.Add(btnSiguientePie);
@@ -269,14 +256,12 @@ namespace Retorno360Tacna.FORMS
             btnAnteriorPie.BringToFront();
             btnSiguientePie.BringToFront();
 
-            // Configurar tooltips para los botones
             ToolTip tooltip = new ToolTip();
             tooltip.SetToolTip(btnAnteriorColumnas, "Gráfica anterior");
             tooltip.SetToolTip(btnSiguienteColumnas, "Gráfica siguiente");
             tooltip.SetToolTip(btnAnteriorPie, "Gráfica anterior");
             tooltip.SetToolTip(btnSiguientePie, "Gráfica siguiente");
 
-            // Inicializar series vacías
             pieChartView.Series = Array.Empty<ISeries>();
             cartesianChartView.Series = Array.Empty<ISeries>();
 
@@ -290,12 +275,14 @@ namespace Retorno360Tacna.FORMS
             {
                 if (retornoService == null)
                 {
-                        ErrorMessageHelper.ShowError("El servicio de retorno no está disponible.",
-                            "Error", contexto: "Carga de razones sociales en retorno");
+                    ErrorMessageHelper.ShowError("El servicio de retorno no está disponible.",
+                        "Error", contexto: "Carga de razones sociales en retorno");
                     return;
                 }
 
-                List<RazonSocial> razones = retornoService.ObtenerRazonesSociales();
+                List<RazonSocial> razones = (chkPrecargarDatos.Checked && usuarioActual != null && perfilService != null)
+                    ? perfilService.ObtenerRazonesSocialesDePerfil(usuarioActual.IdUsuario)
+                    : retornoService.ObtenerRazonesSociales();
 
                 cmbRazonSocial.DataSource = razones;
                 cmbRazonSocial.DisplayMember = "NombreRazon";
@@ -326,11 +313,9 @@ namespace Retorno360Tacna.FORMS
             {
                 idRazonSeleccionada = razonSeleccionada.IdRazon;
 
-                // Deshabilitar el botón PDF al cambiar la selección
                 btnPDF.Enabled = false;
                 ultimoResultado = null;
 
-                // Si el checkbox está activado, no cargar bases de datos
                 if (!chkCalRazon.Checked)
                 {
                     CargarBasesDatosRazon(razonSeleccionada.IdRazon);
@@ -340,24 +325,38 @@ namespace Retorno360Tacna.FORMS
 
         private void chkCalRazon_CheckedChanged(object sender, EventArgs e)
         {
-            // Deshabilitar el botón PDF al cambiar la selección
             btnPDF.Enabled = false;
             ultimoResultado = null;
 
             if (chkCalRazon.Checked)
             {
-                // Deshabilitar combo de bases de datos
                 cmbBaseDatos.Enabled = false;
                 cmbBaseDatos.SelectedIndex = -1;
             }
             else
             {
-                // Reactivar y cargar bases de datos si hay razón social seleccionada
                 if (cmbRazonSocial.SelectedIndex != -1 && cmbRazonSocial.SelectedItem is RazonSocial razon)
                 {
                     CargarBasesDatosRazon(razon.IdRazon);
                 }
             }
+        }
+
+        private void chkPrecargarDatos_CheckedChanged(object sender, EventArgs e)
+        {
+            btnPDF.Enabled = false;
+            ultimoResultado = null;
+
+            if (chkPrecargarDatos.Checked && usuarioActual == null)
+            {
+                MessageBox.Show("No hay usuario activo para usar el perfil de empresas.",
+                    "Perfil no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                chkPrecargarDatos.Checked = false;
+                return;
+            }
+
+            // Recargar razones sociales según modo activo
+            CargarRazonesSociales();
         }
 
         private void CargarBasesDatosRazon(int idRazon)
@@ -367,7 +366,9 @@ namespace Retorno360Tacna.FORMS
                 if (retornoService == null)
                     return;
 
-                List<string> basesDatos = retornoService.ObtenerBasesDatosRazon(idRazon);
+                List<string> basesDatos = (chkPrecargarDatos.Checked && usuarioActual != null && perfilService != null)
+                    ? perfilService.ObtenerBasesDatosDePerfilPorRazon(usuarioActual.IdUsuario, idRazon)
+                    : retornoService.ObtenerBasesDatosRazon(idRazon);
 
                 if (basesDatos.Count > 0)
                 {
@@ -396,7 +397,7 @@ namespace Retorno360Tacna.FORMS
 
         private void cmbBaseDatos_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Este evento se mantiene por si se necesita lógica adicional
+            // Lógica adicional si se requiere
         }
 
         private async void btnCalcular_Click(object sender, EventArgs e)
@@ -416,7 +417,6 @@ namespace Retorno360Tacna.FORMS
                 return false;
             }
 
-            // Solo validar base de datos si NO está calculando por razón social
             if (!chkCalRazon.Checked && cmbBaseDatos.SelectedIndex == -1)
             {
                 MessageBox.Show("Por favor seleccione una base de datos.",
@@ -445,18 +445,16 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
-                // Mostrar panel de carga
                 MostrarPanelCargando(true);
                 EstablecerEstadoBotonesDuranteCarga(true);
 
                 btnCalcular.Enabled = false;
                 btnCalcular.Text = "Calculando...";
 
-                ResultadoRetorno resultado = null;
+                ResultadoRetorno? resultado = null;
 
                 if (chkCalRazon.Checked)
                 {
-                    // Cálculo por razón social general (sin validación de pedimentos)
                     resultado = await Task.Run(() => retornoService.CalcularRetornoPorRazonSocial(
                         idRazonSeleccionada,
                         dtpFechaInicio.Value,
@@ -470,7 +468,6 @@ namespace Retorno360Tacna.FORMS
                 }
                 else
                 {
-                    // Cálculo con validación de pedimentos (modo normal)
                     string baseDatosSeleccionada = cmbBaseDatos.SelectedValue?.ToString() ?? string.Empty;
 
                     resultado = await Task.Run(() => retornoService.CalcularRetorno(
@@ -488,26 +485,24 @@ namespace Retorno360Tacna.FORMS
                             "NOTA: Se omitieron las validaciones de pedimentos. El cálculo se realizó con los datos disponibles.",
                             "Éxito - Cálculo Forzado", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
-                    else
+                }
+
+                if (resultado != null)
+                {
+                    MostrarResultados(resultado);
+                    ActualizarGrafica(resultado);
+
+                    try
                     {
+                        _ = await Retorno360Tacna.SERVICES.PortalWebService.GuardarResultadoRetornoAsync(resultado);
                     }
-                }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[FrmRetorno] Error guardando resultado en portal web: {ex}");
+                    }
 
-                MostrarResultados(resultado);
-                ActualizarGrafica(resultado);
-
-                // Intentar guardar resultado en la base de datos del portal web (si está configurada)
-                try
-                {
-                    _ = await Retorno360Tacna.SERVICES.PortalWebService.GuardarResultadoRetornoAsync(resultado);
+                    ultimoResultado = resultado;
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[FrmRetorno] Error guardando resultado en portal web: {ex}");
-                }
-
-                // Guardar el último resultado para el PDF
-                ultimoResultado = resultado;
             }
             catch (Exception ex)
             {
@@ -518,7 +513,6 @@ namespace Retorno360Tacna.FORMS
             {
                 bool estadoPdf = btnPDF.Enabled;
 
-                // Ocultar panel de carga
                 MostrarPanelCargando(false);
                 EstablecerEstadoBotonesDuranteCarga(false);
                 btnPDF.Enabled = estadoPdf;
@@ -531,7 +525,6 @@ namespace Retorno360Tacna.FORMS
             panelCargando.Visible = mostrar;
             if (mostrar)
             {
-                // Centrar el panel en el formulario
                 panelCargando.Left = (this.ClientSize.Width - panelCargando.Width) / 2;
                 panelCargando.Top = (this.ClientSize.Height - panelCargando.Height) / 2;
                 panelCargando.BringToFront();
@@ -544,18 +537,15 @@ namespace Retorno360Tacna.FORMS
             lblExportadoValor.Text = $"${resultado.ValorExportado:N2}";
             lblPorcentajeValor.Text = $"{resultado.PorcentajeRetorno:N2}%";
 
-            // Mostrar cantidades de pedimentos
             lblCantPedimentosImp.Text = $"Pedimentos Importación: {resultado.CantidadPedimentosImportacion}";
             lblCantPedimentosExp.Text = $"Pedimentos Exportación: {resultado.CantidadPedimentosExportacion}";
             lblTotalPedimentos.Text = $"Total Pedimentos: {resultado.TotalPedimentosValidados}";
 
-            // Habilitar el botón de generar PDF
             btnPDF.Enabled = true;
         }
 
         private void ActualizarGrafica(ResultadoRetorno resultado)
         {
-            // Gráfica de pastel (circular)
             pieChartView.Series = new ISeries[]
             {
                 new PieSeries<double>
@@ -580,7 +570,6 @@ namespace Retorno360Tacna.FORMS
                 }
             };
 
-            // Gráfica lineal (comparación de valores)
             cartesianChartView.Series = new ISeries[]
             {
                 new ColumnSeries<double>
@@ -609,7 +598,6 @@ namespace Retorno360Tacna.FORMS
                 }
             };
 
-            // Configurar ejes de la gráfica de columnas con soporte completo para zoom
             cartesianChartView.XAxes = new[]
             {
                 new LiveChartsCore.SkiaSharpView.Axis
@@ -643,7 +631,6 @@ namespace Retorno360Tacna.FORMS
 
         private void btnCambiarGrafica_Click(object sender, EventArgs e)
         {
-            // Alternar entre paneles de gráficas
             if (panelGraficaColumnas.Visible)
             {
                 panelGraficaColumnas.Visible = false;

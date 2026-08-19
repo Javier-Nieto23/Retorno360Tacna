@@ -197,7 +197,7 @@ namespace Retorno360Tacna.FORMS
             // 
             // btnSalir
             // 
-            btnSalir.BackColor = Color.FromArgb(231, 76, 60);
+            btnSalir.BackColor = Color.FromArgb(153, 153, 153);
             btnSalir.Cursor = Cursors.Hand;
             btnSalir.FlatAppearance.BorderSize = 0;
             btnSalir.FlatStyle = FlatStyle.Flat;
@@ -207,7 +207,7 @@ namespace Retorno360Tacna.FORMS
             btnSalir.Name = "btnSalir";
             btnSalir.Size = new Size(100, 30);
             btnSalir.TabIndex = 1;
-            btnSalir.Text = "Salir";
+            btnSalir.Text = "Regresar";
             btnSalir.UseVisualStyleBackColor = false;
             btnSalir.Click += btnSalir_Click;
             // 

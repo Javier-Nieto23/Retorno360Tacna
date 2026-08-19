@@ -193,6 +193,8 @@ namespace Retorno360Tacna.FORMS
                 new float[] { 0.08f, 0.08f, 0.08f, 0, 1 }
             });
 
+            
+
             atributos.SetColorMatrix(matriz);
             graphics.DrawImage(
                 imagenOriginal,

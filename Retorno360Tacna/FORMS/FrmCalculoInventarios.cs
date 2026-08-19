@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
+
 namespace Retorno360Tacna.FORMS
 {
     public partial class FrmCalculoInventarios : Form
@@ -23,10 +24,18 @@ namespace Retorno360Tacna.FORMS
         // ----------------------------------------------------
         private string _razonSocial = string.Empty;
         private string _nombreEmpresa = string.Empty;
+        private MODELS.Usuario? usuarioActual;
+        private SERVICES.PerfilUsuarioService? perfilService;
 
-        public FrmCalculoInventarios()
+        public FrmCalculoInventarios() : this(null) { }
+
+        public FrmCalculoInventarios(MODELS.Usuario? usuario)
         {
             InitializeComponent();
+            usuarioActual = usuario;
+
+            if (usuario != null)
+                perfilService = new SERVICES.PerfilUsuarioService();
 
             this.Load += FrmCalculoInventarios_Load;
 
@@ -115,6 +124,17 @@ namespace Retorno360Tacna.FORMS
         {
             try
             {
+                if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+                {
+                    var razones = perfilService.ObtenerRazonesSocialesDePerfil(usuarioActual.IdUsuario);
+                    cmbRazonSocial.DataSource = null;
+                    cmbRazonSocial.DisplayMember = "NombreRazon";
+                    cmbRazonSocial.ValueMember = "IdRazon";
+                    cmbRazonSocial.DataSource = razones;
+                    if (razones.Count > 0) cmbRazonSocial.SelectedIndex = 0;
+                    return;
+                }
+
                 Conexion conexion = new Conexion();
                 string cnx = @"SELECT IdRazon, Nombre_Razon FROM RAZONXTABLA ORDER BY Nombre_Razon";
 
@@ -189,6 +209,26 @@ namespace Retorno360Tacna.FORMS
 
             try
             {
+                if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+                {
+                    var empresas = perfilService.ObtenerEmpresasDePerfilPorRazon(usuarioActual.IdUsuario, idRazon);
+                    cmbEmpresa.DataSource = null;
+                    if (empresas.Count > 0)
+                    {
+                        cmbEmpresa.DisplayMember = "NombreTabla";
+                        cmbEmpresa.ValueMember = "IdTabla";
+                        cmbEmpresa.DataSource = empresas;
+                        cmbEmpresa.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        MessageBox.Show("No se encontraron empresas guardadas en su perfil para la razón social seleccionada.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+
+                    ActualizarEstadoPlantilla();
+                    return;
+                }
+
                 Conexion conexion = new Conexion();
                 // Consulta con parámetro para prevenir inyección SQL
                 string cnx = "SELECT n.IdTabla, n.NOMBRE_TABLA FROM NOM_TABLARAZON n WHERE n.IdRazon = @IdRazon ORDER BY n.NOMBRE_TABLA";
@@ -201,7 +241,7 @@ namespace Retorno360Tacna.FORMS
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-               
+
                 cmbEmpresa.DataSource = null; // Limpiar asignaciones previas
                 if (dt.Rows.Count > 0)
                 {
@@ -230,8 +270,9 @@ namespace Retorno360Tacna.FORMS
                     // Mostrar aviso si no hay empresas asociadas
                     MessageBox.Show("No se encontraron empresas para la razón social seleccionada.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-            }
 
+                ActualizarEstadoPlantilla();
+            }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al cargar las empresas: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -239,6 +280,18 @@ namespace Retorno360Tacna.FORMS
         }
 
         private readonly List<UcMesInventario> _paneles = new();
+
+        private void chkUsarPerfil_CheckedChanged(object? sender, EventArgs e)
+        {
+            if (chkUsarPerfil.Checked && (usuarioActual == null || perfilService == null))
+            {
+                MessageBox.Show("No se ha cargado el perfil de usuario. Cierre y vuelva a abrir el formulario.",
+                    "Perfil no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                chkUsarPerfil.Checked = false;
+                return;
+            }
+            CargarRazonesSociales();
+        }
 
         private void btnIniciarCalculo_Click(object sender, EventArgs e)
         {

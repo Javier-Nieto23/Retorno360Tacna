@@ -18,6 +18,7 @@ namespace Retorno360Tacna.FORMS
         private System.Windows.Forms.Button btnExportarExcel;
         private System.Windows.Forms.DataGridView dgvPreview;
         private System.Windows.Forms.Label lblResumen;
+        private System.Windows.Forms.CheckBox chkUsarPerfil;
 
         protected override void Dispose(bool disposing)
         {
@@ -31,21 +32,22 @@ namespace Retorno360Tacna.FORMS
 
         private void InitializeComponent()
         {
-            panelFiltros = new System.Windows.Forms.Panel();
-            btnExportarExcel = new System.Windows.Forms.Button();
-            btnGuardarPortal = new System.Windows.Forms.Button();
-            btnGenerar = new System.Windows.Forms.Button();
-            dtpFin = new System.Windows.Forms.DateTimePicker();
-            dtpInicio = new System.Windows.Forms.DateTimePicker();
-            cmbBase = new System.Windows.Forms.ComboBox();
-            cmbRazon = new System.Windows.Forms.ComboBox();
-            lblFin = new System.Windows.Forms.Label();
-            lblInicio = new System.Windows.Forms.Label();
-            lblBase = new System.Windows.Forms.Label();
-            lblRazon = new System.Windows.Forms.Label();
-            panelResultados = new System.Windows.Forms.Panel();
-            dgvPreview = new System.Windows.Forms.DataGridView();
-            lblResumen = new System.Windows.Forms.Label();
+            panelFiltros = new Panel();
+            btnExportarExcel = new Button();
+            btnGuardarPortal = new Button();
+            btnGenerar = new Button();
+            dtpFin = new DateTimePicker();
+            dtpInicio = new DateTimePicker();
+            cmbBase = new ComboBox();
+            cmbRazon = new ComboBox();
+            lblFin = new Label();
+            lblInicio = new Label();
+            lblBase = new Label();
+            lblRazon = new Label();
+            chkUsarPerfil = new CheckBox();
+            panelResultados = new Panel();
+            dgvPreview = new DataGridView();
+            lblResumen = new Label();
             panelFiltros.SuspendLayout();
             panelResultados.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvPreview).BeginInit();
@@ -64,155 +66,183 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.Controls.Add(lblInicio);
             panelFiltros.Controls.Add(lblBase);
             panelFiltros.Controls.Add(lblRazon);
-            panelFiltros.Dock = System.Windows.Forms.DockStyle.Top;
-            panelFiltros.Location = new System.Drawing.Point(0, 0);
+            panelFiltros.Controls.Add(chkUsarPerfil);
+            panelFiltros.Dock = DockStyle.Top;
+            panelFiltros.Location = new Point(0, 0);
             panelFiltros.Name = "panelFiltros";
-            panelFiltros.Padding = new System.Windows.Forms.Padding(20);
-            panelFiltros.Size = new System.Drawing.Size(1180, 120);
+            panelFiltros.Padding = new Padding(20);
+            panelFiltros.Size = new Size(1180, 120);
             panelFiltros.TabIndex = 0;
             // 
             // btnExportarExcel
             // 
-            btnExportarExcel.Location = new System.Drawing.Point(952, 32);
+            btnExportarExcel.BackColor = Color.FromArgb(0, 186, 65);
+            btnExportarExcel.FlatAppearance.BorderSize = 0;
+            btnExportarExcel.FlatStyle = FlatStyle.Flat;
+            btnExportarExcel.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnExportarExcel.ForeColor = Color.White;
+            btnExportarExcel.Location = new Point(952, 32);
             btnExportarExcel.Name = "btnExportarExcel";
-            btnExportarExcel.Size = new System.Drawing.Size(160, 50);
+            btnExportarExcel.Size = new Size(160, 50);
             btnExportarExcel.TabIndex = 10;
             btnExportarExcel.Text = "Exportar Excel";
-            btnExportarExcel.UseVisualStyleBackColor = true;
+            btnExportarExcel.UseVisualStyleBackColor = false;
             btnExportarExcel.Click += btnExportarExcel_Click;
             // 
             // btnGuardarPortal
             // 
-            btnGuardarPortal.Location = new System.Drawing.Point(786, 32);
+            btnGuardarPortal.BackColor = Color.FromArgb(0, 42, 196);
+            btnGuardarPortal.FlatAppearance.BorderSize = 0;
+            btnGuardarPortal.FlatStyle = FlatStyle.Flat;
+            btnGuardarPortal.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnGuardarPortal.ForeColor = Color.White;
+            btnGuardarPortal.Location = new Point(786, 32);
             btnGuardarPortal.Name = "btnGuardarPortal";
-            btnGuardarPortal.Size = new System.Drawing.Size(160, 50);
+            btnGuardarPortal.Size = new Size(160, 50);
             btnGuardarPortal.TabIndex = 9;
             btnGuardarPortal.Text = "Guardar en Portal";
-            btnGuardarPortal.UseVisualStyleBackColor = true;
+            btnGuardarPortal.UseVisualStyleBackColor = false;
             btnGuardarPortal.Click += btnGuardarPortal_Click;
             // 
             // btnGenerar
             // 
-            btnGenerar.Location = new System.Drawing.Point(620, 32);
+            btnGenerar.BackColor = Color.FromArgb(0, 196, 45);
+            btnGenerar.FlatAppearance.BorderSize = 0;
+            btnGenerar.FlatStyle = FlatStyle.Flat;
+            btnGenerar.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnGenerar.ForeColor = Color.White;
+            btnGenerar.Location = new Point(620, 32);
             btnGenerar.Name = "btnGenerar";
-            btnGenerar.Size = new System.Drawing.Size(160, 50);
+            btnGenerar.Size = new Size(160, 50);
             btnGenerar.TabIndex = 8;
             btnGenerar.Text = "Generar Preview";
-            btnGenerar.UseVisualStyleBackColor = true;
+            btnGenerar.UseVisualStyleBackColor = false;
             btnGenerar.Click += btnGenerar_Click;
             // 
             // dtpFin
             // 
-            dtpFin.Format = System.Windows.Forms.DateTimePickerFormat.Short;
-            dtpFin.Location = new System.Drawing.Point(408, 65);
+            dtpFin.Format = DateTimePickerFormat.Short;
+            dtpFin.Location = new Point(408, 65);
             dtpFin.Name = "dtpFin";
-            dtpFin.Size = new System.Drawing.Size(180, 23);
+            dtpFin.Size = new Size(180, 23);
             dtpFin.TabIndex = 7;
             // 
             // dtpInicio
             // 
-            dtpInicio.Format = System.Windows.Forms.DateTimePickerFormat.Short;
-            dtpInicio.Location = new System.Drawing.Point(408, 28);
+            dtpInicio.Format = DateTimePickerFormat.Short;
+            dtpInicio.Location = new Point(408, 28);
             dtpInicio.Name = "dtpInicio";
-            dtpInicio.Size = new System.Drawing.Size(180, 23);
+            dtpInicio.Size = new Size(180, 23);
             dtpInicio.TabIndex = 6;
             // 
             // cmbBase
             // 
-            cmbBase.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            cmbBase.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbBase.FormattingEnabled = true;
-            cmbBase.Location = new System.Drawing.Point(110, 65);
+            cmbBase.Location = new Point(110, 65);
             cmbBase.Name = "cmbBase";
-            cmbBase.Size = new System.Drawing.Size(260, 23);
+            cmbBase.Size = new Size(260, 23);
             cmbBase.TabIndex = 5;
             // 
             // cmbRazon
             // 
-            cmbRazon.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            cmbRazon.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbRazon.FormattingEnabled = true;
-            cmbRazon.Location = new System.Drawing.Point(110, 28);
+            cmbRazon.Location = new Point(110, 28);
             cmbRazon.Name = "cmbRazon";
-            cmbRazon.Size = new System.Drawing.Size(260, 23);
+            cmbRazon.Size = new Size(260, 23);
             cmbRazon.TabIndex = 4;
             cmbRazon.SelectedIndexChanged += cmbRazon_SelectedIndexChanged;
             // 
             // lblFin
             // 
             lblFin.AutoSize = true;
-            lblFin.Location = new System.Drawing.Point(386, 69);
+            lblFin.Location = new Point(386, 69);
             lblFin.Name = "lblFin";
-            lblFin.Size = new System.Drawing.Size(22, 15);
+            lblFin.Size = new Size(23, 15);
             lblFin.TabIndex = 3;
             lblFin.Text = "Fin";
             // 
             // lblInicio
             // 
             lblInicio.AutoSize = true;
-            lblInicio.Location = new System.Drawing.Point(370, 32);
+            lblInicio.Location = new Point(370, 32);
             lblInicio.Name = "lblInicio";
-            lblInicio.Size = new System.Drawing.Size(38, 15);
+            lblInicio.Size = new Size(36, 15);
             lblInicio.TabIndex = 2;
             lblInicio.Text = "Inicio";
             // 
             // lblBase
             // 
             lblBase.AutoSize = true;
-            lblBase.Location = new System.Drawing.Point(23, 69);
+            lblBase.Location = new Point(23, 69);
             lblBase.Name = "lblBase";
-            lblBase.Size = new System.Drawing.Size(81, 15);
+            lblBase.Size = new Size(79, 15);
             lblBase.TabIndex = 1;
             lblBase.Text = "Base de datos";
             // 
             // lblRazon
             // 
             lblRazon.AutoSize = true;
-            lblRazon.Location = new System.Drawing.Point(23, 32);
+            lblRazon.Location = new Point(23, 32);
             lblRazon.Name = "lblRazon";
-            lblRazon.Size = new System.Drawing.Size(78, 15);
+            lblRazon.Size = new Size(72, 15);
             lblRazon.TabIndex = 0;
             lblRazon.Text = "Razón social";
+            // 
+            // chkUsarPerfil
+            // 
+            chkUsarPerfil.AutoSize = true;
+            chkUsarPerfil.Font = new Font("Segoe UI", 9.5F);
+            chkUsarPerfil.Location = new Point(110, 94);
+            chkUsarPerfil.Name = "chkUsarPerfil";
+            chkUsarPerfil.Size = new Size(186, 21);
+            chkUsarPerfil.TabIndex = 11;
+            chkUsarPerfil.Text = "Usar empresas de mi perfil";
+            chkUsarPerfil.UseVisualStyleBackColor = true;
+            chkUsarPerfil.CheckedChanged += chkUsarPerfil_CheckedChanged;
             // 
             // panelResultados
             // 
             panelResultados.Controls.Add(dgvPreview);
             panelResultados.Controls.Add(lblResumen);
-            panelResultados.Dock = System.Windows.Forms.DockStyle.Fill;
-            panelResultados.Location = new System.Drawing.Point(0, 120);
+            panelResultados.Dock = DockStyle.Fill;
+            panelResultados.Location = new Point(0, 120);
             panelResultados.Name = "panelResultados";
-            panelResultados.Padding = new System.Windows.Forms.Padding(20);
-            panelResultados.Size = new System.Drawing.Size(1180, 600);
+            panelResultados.Padding = new Padding(20);
+            panelResultados.Size = new Size(1180, 600);
             panelResultados.TabIndex = 1;
             // 
             // dgvPreview
             // 
             dgvPreview.AllowUserToAddRows = false;
             dgvPreview.AllowUserToDeleteRows = false;
-            dgvPreview.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            dgvPreview.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-            dgvPreview.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvPreview.Location = new System.Drawing.Point(20, 58);
+            dgvPreview.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            dgvPreview.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvPreview.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvPreview.Location = new Point(20, 58);
             dgvPreview.Name = "dgvPreview";
             dgvPreview.ReadOnly = true;
             dgvPreview.RowHeadersWidth = 51;
-            dgvPreview.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            dgvPreview.Size = new System.Drawing.Size(1140, 522);
+            dgvPreview.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvPreview.Size = new Size(1140, 522);
             dgvPreview.TabIndex = 1;
             // 
             // lblResumen
             // 
-            lblResumen.Dock = System.Windows.Forms.DockStyle.Top;
-            lblResumen.Location = new System.Drawing.Point(20, 20);
+            lblResumen.Dock = DockStyle.Top;
+            lblResumen.Location = new Point(20, 20);
             lblResumen.Name = "lblResumen";
-            lblResumen.Size = new System.Drawing.Size(1140, 28);
+            lblResumen.Size = new Size(1140, 28);
             lblResumen.TabIndex = 0;
             lblResumen.Text = "Seleccione filtros y genere el preview.";
-            lblResumen.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            lblResumen.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // FrmCumplimiento
             // 
-            AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
-            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            ClientSize = new System.Drawing.Size(1180, 720);
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.Dpi;
+            ClientSize = new Size(1180, 720);
             Controls.Add(panelResultados);
             Controls.Add(panelFiltros);
             Name = "FrmCumplimiento";

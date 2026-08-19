@@ -43,6 +43,7 @@ namespace Retorno360Tacna.FORMS
             cboRazonSocial = new ComboBox();
             lblRazonSocial = new Label();
             lblEstadoConexionPortal = new Label();
+            chkUsarPerfil = new CheckBox();
             btnRegresarCarpeta = new Button();
             panelContenido = new Panel();
             panelSolicitudesEliminacion = new Panel();
@@ -94,6 +95,7 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.Controls.Add(lblAnio);
             panelFiltros.Controls.Add(cboRazonSocial);
             panelFiltros.Controls.Add(lblRazonSocial);
+            panelFiltros.Controls.Add(chkUsarPerfil);
             panelFiltros.Controls.Add(lblEstadoConexionPortal);
             panelFiltros.Dock = DockStyle.Top;
             panelFiltros.Location = new Point(0, 0);
@@ -257,6 +259,19 @@ namespace Retorno360Tacna.FORMS
             cboRazonSocial.Size = new Size(247, 28);
             cboRazonSocial.TabIndex = 1;
             cboRazonSocial.SelectedIndexChanged += cboRazonSocial_SelectedIndexChanged;
+            // 
+            // chkUsarPerfil
+            // 
+            chkUsarPerfil.AutoSize = true;
+            chkUsarPerfil.Font = new Font("Segoe UI", 9.5F);
+            chkUsarPerfil.Location = new Point(570, 79);
+            chkUsarPerfil.Margin = new Padding(3, 2, 3, 2);
+            chkUsarPerfil.Name = "chkUsarPerfil";
+            chkUsarPerfil.Size = new Size(210, 21);
+            chkUsarPerfil.TabIndex = 15;
+            chkUsarPerfil.Text = "Usar empresas de mi perfil";
+            chkUsarPerfil.UseVisualStyleBackColor = true;
+            chkUsarPerfil.CheckedChanged += chkUsarPerfil_CheckedChanged;
             // 
             // lblRazonSocial
             // 
@@ -660,6 +675,7 @@ namespace Retorno360Tacna.FORMS
         private Panel panelFiltros;
         private ComboBox cboRazonSocial;
         private Label lblRazonSocial;
+        private CheckBox chkUsarPerfil;
         private Panel panelContenido;
         private System.Windows.Forms.ListView lvCarpetas;
         private System.Windows.Forms.ImageList imageListCarpetas;

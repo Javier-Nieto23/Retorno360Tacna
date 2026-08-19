@@ -29,6 +29,7 @@ namespace Retorno360Tacna.FORMS
         private void InitializeComponent()
         {
             panelFiltros = new Panel();
+            chkUsarPerfil = new CheckBox();
             chkSinGlosa = new CheckBox();
             btnExportarExcel = new Button();
             btnGenerarPDF = new Button();
@@ -44,6 +45,9 @@ namespace Retorno360Tacna.FORMS
             panelResultados = new Panel();
             dgvReporteIVA = new DataGridView();
             dgvReporteIGI = new DataGridView();
+            panelResumen = new Panel();
+            lblResumenInfo = new Label();
+            lblProgreso = new Label();
             panelGrafica = new Panel();
             btnSiguienteGrafica = new Button();
             btnAnteriorGrafica = new Button();
@@ -52,9 +56,6 @@ namespace Retorno360Tacna.FORMS
             btnSiguienteGraficaIVA = new Button();
             btnAnteriorGraficaIVA = new Button();
             lblTituloGraficaIVA = new Label();
-            panelResumen = new Panel();
-            lblResumenInfo = new Label();
-            lblProgreso = new Label();
             panelCargando = new Panel();
             lblCargando = new Label();
             progressBarCargando = new ProgressBar();
@@ -62,15 +63,16 @@ namespace Retorno360Tacna.FORMS
             panelResultados.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvReporteIVA).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvReporteIGI).BeginInit();
+            panelResumen.SuspendLayout();
             panelGrafica.SuspendLayout();
             panelGraficaIVA.SuspendLayout();
-            panelResumen.SuspendLayout();
             panelCargando.SuspendLayout();
             SuspendLayout();
             // 
             // panelFiltros
             // 
             panelFiltros.BackColor = Color.White;
+            panelFiltros.Controls.Add(chkUsarPerfil);
             panelFiltros.Controls.Add(chkSinGlosa);
             panelFiltros.Controls.Add(btnExportarExcel);
             panelFiltros.Controls.Add(btnGenerarPDF);
@@ -83,12 +85,24 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.Controls.Add(lblCliente);
             panelFiltros.Controls.Add(cmbRazonSocial);
             panelFiltros.Controls.Add(lblRazonSocial);
-            panelFiltros.Dock = DockStyle.Top;
             panelFiltros.Location = new Point(0, 0);
             panelFiltros.Name = "panelFiltros";
             panelFiltros.Padding = new Padding(20);
             panelFiltros.Size = new Size(1200, 131);
             panelFiltros.TabIndex = 1;
+            // 
+            // chkUsarPerfil
+            // 
+            chkUsarPerfil.AutoSize = true;
+            chkUsarPerfil.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            chkUsarPerfil.ForeColor = Color.FromArgb(52, 73, 94);
+            chkUsarPerfil.Location = new Point(267, 77);
+            chkUsarPerfil.Name = "chkUsarPerfil";
+            chkUsarPerfil.Size = new Size(192, 21);
+            chkUsarPerfil.TabIndex = 13;
+            chkUsarPerfil.Text = "Usar empresas de mi perfil";
+            chkUsarPerfil.UseVisualStyleBackColor = true;
+            chkUsarPerfil.CheckedChanged += chkUsarPerfil_CheckedChanged;
             // 
             // chkSinGlosa
             // 
@@ -114,7 +128,7 @@ namespace Retorno360Tacna.FORMS
             btnExportarExcel.ForeColor = Color.White;
             btnExportarExcel.Image = Properties.Resources.gdform_103694;
             btnExportarExcel.ImageAlign = ContentAlignment.MiddleRight;
-            btnExportarExcel.Location = new Point(969, 42);
+            btnExportarExcel.Location = new Point(982, 15);
             btnExportarExcel.Name = "btnExportarExcel";
             btnExportarExcel.Size = new Size(154, 56);
             btnExportarExcel.TabIndex = 11;
@@ -134,7 +148,7 @@ namespace Retorno360Tacna.FORMS
             btnGenerarPDF.ForeColor = Color.White;
             btnGenerarPDF.Image = Properties.Resources.applicationpdf_103614;
             btnGenerarPDF.ImageAlign = ContentAlignment.MiddleRight;
-            btnGenerarPDF.Location = new Point(809, 42);
+            btnGenerarPDF.Location = new Point(822, 15);
             btnGenerarPDF.Name = "btnGenerarPDF";
             btnGenerarPDF.Size = new Size(154, 56);
             btnGenerarPDF.TabIndex = 10;
@@ -153,7 +167,7 @@ namespace Retorno360Tacna.FORMS
             btnConsultar.ForeColor = Color.White;
             btnConsultar.Image = Properties.Resources.search_magnifying_glass_icon_192631;
             btnConsultar.ImageAlign = ContentAlignment.MiddleRight;
-            btnConsultar.Location = new Point(649, 42);
+            btnConsultar.Location = new Point(662, 15);
             btnConsultar.Name = "btnConsultar";
             btnConsultar.Size = new Size(154, 56);
             btnConsultar.TabIndex = 8;
@@ -166,7 +180,7 @@ namespace Retorno360Tacna.FORMS
             // 
             dtpFechaFin.Font = new Font("Segoe UI", 10F);
             dtpFechaFin.Format = DateTimePickerFormat.Short;
-            dtpFechaFin.Location = new Point(463, 60);
+            dtpFechaFin.Location = new Point(463, 33);
             dtpFechaFin.Name = "dtpFechaFin";
             dtpFechaFin.Size = new Size(180, 25);
             dtpFechaFin.TabIndex = 7;
@@ -176,7 +190,7 @@ namespace Retorno360Tacna.FORMS
             lblFechaFin.AutoSize = true;
             lblFechaFin.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblFechaFin.ForeColor = Color.FromArgb(52, 73, 94);
-            lblFechaFin.Location = new Point(463, 35);
+            lblFechaFin.Location = new Point(463, 8);
             lblFechaFin.Name = "lblFechaFin";
             lblFechaFin.Size = new Size(74, 19);
             lblFechaFin.TabIndex = 6;
@@ -186,7 +200,7 @@ namespace Retorno360Tacna.FORMS
             // 
             dtpFechaInicio.Font = new Font("Segoe UI", 10F);
             dtpFechaInicio.Format = DateTimePickerFormat.Short;
-            dtpFechaInicio.Location = new Point(267, 60);
+            dtpFechaInicio.Location = new Point(267, 33);
             dtpFechaInicio.Name = "dtpFechaInicio";
             dtpFechaInicio.Size = new Size(180, 25);
             dtpFechaInicio.TabIndex = 5;
@@ -196,7 +210,7 @@ namespace Retorno360Tacna.FORMS
             lblFechaInicio.AutoSize = true;
             lblFechaInicio.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblFechaInicio.ForeColor = Color.FromArgb(52, 73, 94);
-            lblFechaInicio.Location = new Point(267, 35);
+            lblFechaInicio.Location = new Point(267, 8);
             lblFechaInicio.Name = "lblFechaInicio";
             lblFechaInicio.Size = new Size(91, 19);
             lblFechaInicio.TabIndex = 4;
@@ -253,7 +267,6 @@ namespace Retorno360Tacna.FORMS
             panelResultados.Controls.Add(panelResumen);
             panelResultados.Controls.Add(panelGrafica);
             panelResultados.Controls.Add(panelGraficaIVA);
-            panelResultados.Dock = DockStyle.Fill;
             panelResultados.Location = new Point(0, 131);
             panelResultados.Name = "panelResultados";
             panelResultados.Padding = new Padding(20);
@@ -293,6 +306,40 @@ namespace Retorno360Tacna.FORMS
             dgvReporteIGI.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvReporteIGI.Size = new Size(517, 153);
             dgvReporteIGI.TabIndex = 0;
+            // 
+            // panelResumen
+            // 
+            panelResumen.BackColor = Color.FromArgb(236, 240, 241);
+            panelResumen.Controls.Add(lblResumenInfo);
+            panelResumen.Controls.Add(lblProgreso);
+            panelResumen.Dock = DockStyle.Bottom;
+            panelResumen.Location = new Point(20, 348);
+            panelResumen.Name = "panelResumen";
+            panelResumen.Padding = new Padding(10);
+            panelResumen.Size = new Size(1160, 151);
+            panelResumen.TabIndex = 1;
+            // 
+            // lblResumenInfo
+            // 
+            lblResumenInfo.Dock = DockStyle.Fill;
+            lblResumenInfo.Font = new Font("Consolas", 9F, FontStyle.Bold);
+            lblResumenInfo.ForeColor = Color.FromArgb(52, 73, 94);
+            lblResumenInfo.Location = new Point(10, 10);
+            lblResumenInfo.Name = "lblResumenInfo";
+            lblResumenInfo.Size = new Size(1140, 111);
+            lblResumenInfo.TabIndex = 0;
+            lblResumenInfo.Text = "Seleccione los filtros y presione Consultar";
+            // 
+            // lblProgreso
+            // 
+            lblProgreso.Dock = DockStyle.Bottom;
+            lblProgreso.Font = new Font("Segoe UI", 9F);
+            lblProgreso.ForeColor = Color.FromArgb(127, 140, 141);
+            lblProgreso.Location = new Point(10, 121);
+            lblProgreso.Name = "lblProgreso";
+            lblProgreso.Size = new Size(1140, 20);
+            lblProgreso.TabIndex = 1;
+            lblProgreso.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // panelGrafica
             // 
@@ -414,40 +461,6 @@ namespace Retorno360Tacna.FORMS
             lblTituloGraficaIVA.Text = "IVA por Mes y Forma de Pago (2/2)";
             lblTituloGraficaIVA.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            // panelResumen
-            // 
-            panelResumen.BackColor = Color.FromArgb(236, 240, 241);
-            panelResumen.Controls.Add(lblResumenInfo);
-            panelResumen.Controls.Add(lblProgreso);
-            panelResumen.Dock = DockStyle.Bottom;
-            panelResumen.Location = new Point(20, 348);
-            panelResumen.Name = "panelResumen";
-            panelResumen.Padding = new Padding(10);
-            panelResumen.Size = new Size(1160, 151);
-            panelResumen.TabIndex = 1;
-            // 
-            // lblResumenInfo
-            // 
-            lblResumenInfo.Dock = DockStyle.Fill;
-            lblResumenInfo.Font = new Font("Consolas", 9F, FontStyle.Bold);
-            lblResumenInfo.ForeColor = Color.FromArgb(52, 73, 94);
-            lblResumenInfo.Location = new Point(10, 10);
-            lblResumenInfo.Name = "lblResumenInfo";
-            lblResumenInfo.Size = new Size(1140, 111);
-            lblResumenInfo.TabIndex = 0;
-            lblResumenInfo.Text = "Seleccione los filtros y presione Consultar";
-            // 
-            // lblProgreso
-            // 
-            lblProgreso.Dock = DockStyle.Bottom;
-            lblProgreso.Font = new Font("Segoe UI", 9F);
-            lblProgreso.ForeColor = Color.FromArgb(127, 140, 141);
-            lblProgreso.Location = new Point(10, 121);
-            lblProgreso.Name = "lblProgreso";
-            lblProgreso.Size = new Size(1140, 20);
-            lblProgreso.TabIndex = 1;
-            lblProgreso.TextAlign = ContentAlignment.MiddleLeft;
-            // 
             // panelCargando
             // 
             panelCargando.BackColor = Color.FromArgb(236, 240, 241);
@@ -498,9 +511,9 @@ namespace Retorno360Tacna.FORMS
             panelResultados.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dgvReporteIVA).EndInit();
             ((System.ComponentModel.ISupportInitialize)dgvReporteIGI).EndInit();
+            panelResumen.ResumeLayout(false);
             panelGrafica.ResumeLayout(false);
             panelGraficaIVA.ResumeLayout(false);
-            panelResumen.ResumeLayout(false);
             panelCargando.ResumeLayout(false);
             ResumeLayout(false);
         }
@@ -536,5 +549,6 @@ namespace Retorno360Tacna.FORMS
         private Panel panelCargando;
         private Label lblCargando;
         private ProgressBar progressBarCargando;
+        private CheckBox chkUsarPerfil;
     }
 }

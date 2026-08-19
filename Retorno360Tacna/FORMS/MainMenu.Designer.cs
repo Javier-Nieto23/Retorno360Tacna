@@ -193,14 +193,14 @@ namespace Retorno360Tacna.FORMS
             btnReporteAd.FlatStyle = FlatStyle.Flat;
             btnReporteAd.Font = new Font("Segoe UI", 10F);
             btnReporteAd.ForeColor = Color.LightGray;
-            btnReporteAd.Image = Properties.Resources._1486564180_finance_financial_report_81493;
+            btnReporteAd.Image = Properties.Resources.financial_report_calculator_chart_pie_icon_205131;
             btnReporteAd.ImageAlign = ContentAlignment.MiddleRight;
             btnReporteAd.Location = new Point(0, 0);
             btnReporteAd.Name = "btnReporteAd";
             btnReporteAd.Padding = new Padding(35, 0, 0, 0);
             btnReporteAd.Size = new Size(250, 60);
             btnReporteAd.TabIndex = 0;
-            btnReporteAd.Text = "Calidad";
+            btnReporteAd.Text = "Inventarios";
             btnReporteAd.TextAlign = ContentAlignment.MiddleLeft;
             btnReporteAd.UseVisualStyleBackColor = true;
             btnReporteAd.Click += btnReportes_Click;
@@ -694,7 +694,7 @@ namespace Retorno360Tacna.FORMS
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainMenu";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto    |  Version: 3.2.0";
+            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto    |  Version: 3.4.0";
             WindowState = FormWindowState.Maximized;
             Load += MainMenu_Load;
             panelSidebar.ResumeLayout(false);

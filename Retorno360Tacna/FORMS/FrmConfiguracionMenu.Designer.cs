@@ -36,6 +36,7 @@ namespace Retorno360Tacna.FORMS
         {
             panelContenido = new Panel();
             panelOpciones = new Panel();
+            btnUsuarioEmpresa = new Button();
             btnConexiones = new Button();
             btnUsuarios = new Button();
             btnPlantilla = new Button();
@@ -55,6 +56,7 @@ namespace Retorno360Tacna.FORMS
             // 
             // panelOpciones
             // 
+            panelOpciones.Controls.Add(btnUsuarioEmpresa);
             panelOpciones.Controls.Add(btnConexiones);
             panelOpciones.Controls.Add(btnUsuarios);
             panelOpciones.Controls.Add(btnPlantilla);
@@ -64,6 +66,28 @@ namespace Retorno360Tacna.FORMS
             panelOpciones.Padding = new Padding(32, 28, 32, 28);
             panelOpciones.Size = new Size(600, 480);
             panelOpciones.TabIndex = 0;
+            // 
+            // btnUsuarioEmpresa
+            // 
+            btnUsuarioEmpresa.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            btnUsuarioEmpresa.BackColor = Color.FromArgb(196, 140, 255);
+            btnUsuarioEmpresa.Cursor = Cursors.Hand;
+            btnUsuarioEmpresa.FlatAppearance.BorderSize = 0;
+            btnUsuarioEmpresa.FlatAppearance.MouseDownBackColor = Color.FromArgb(22, 100, 75);
+            btnUsuarioEmpresa.FlatAppearance.MouseOverBackColor = Color.FromArgb(52, 168, 130);
+            btnUsuarioEmpresa.FlatStyle = FlatStyle.Flat;
+            btnUsuarioEmpresa.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnUsuarioEmpresa.ForeColor = Color.White;
+            btnUsuarioEmpresa.Image = Properties.Resources.company_22169;
+            btnUsuarioEmpresa.ImageAlign = ContentAlignment.MiddleLeft;
+            btnUsuarioEmpresa.Location = new Point(32, 245);
+            btnUsuarioEmpresa.Name = "btnUsuarioEmpresa";
+            btnUsuarioEmpresa.Padding = new Padding(12, 0, 0, 0);
+            btnUsuarioEmpresa.Size = new Size(536, 54);
+            btnUsuarioEmpresa.TabIndex = 3;
+            btnUsuarioEmpresa.Text = "Configurar empresas para usuario";
+            btnUsuarioEmpresa.UseVisualStyleBackColor = false;
+            btnUsuarioEmpresa.Click += btnUsuarioEmpresa_Click;
             // 
             // btnConexiones
             // 
@@ -76,13 +100,14 @@ namespace Retorno360Tacna.FORMS
             btnConexiones.FlatStyle = FlatStyle.Flat;
             btnConexiones.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnConexiones.ForeColor = Color.White;
+            btnConexiones.Image = Properties.Resources.Network_Connection_Control_Panel_22605;
+            btnConexiones.ImageAlign = ContentAlignment.MiddleLeft;
             btnConexiones.Location = new Point(32, 28);
             btnConexiones.Name = "btnConexiones";
             btnConexiones.Padding = new Padding(12, 0, 0, 0);
             btnConexiones.Size = new Size(536, 54);
             btnConexiones.TabIndex = 0;
-            btnConexiones.Text = "🔗  Configurar conexión del portal web";
-            btnConexiones.TextAlign = ContentAlignment.MiddleLeft;
+            btnConexiones.Text = "Configurar conexión del portal web";
             btnConexiones.UseVisualStyleBackColor = false;
             btnConexiones.Click += BtnConexiones_Click;
             // 
@@ -97,13 +122,14 @@ namespace Retorno360Tacna.FORMS
             btnUsuarios.FlatStyle = FlatStyle.Flat;
             btnUsuarios.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnUsuarios.ForeColor = Color.White;
+            btnUsuarios.Image = Properties.Resources.configure_user_16726;
+            btnUsuarios.ImageAlign = ContentAlignment.MiddleLeft;
             btnUsuarios.Location = new Point(32, 100);
             btnUsuarios.Name = "btnUsuarios";
             btnUsuarios.Padding = new Padding(12, 0, 0, 0);
             btnUsuarios.Size = new Size(536, 54);
             btnUsuarios.TabIndex = 1;
-            btnUsuarios.Text = "👤  Administrar usuarios";
-            btnUsuarios.TextAlign = ContentAlignment.MiddleLeft;
+            btnUsuarios.Text = "Administrar usuarios";
             btnUsuarios.UseVisualStyleBackColor = false;
             btnUsuarios.Click += BtnUsuarios_Click;
             // 
@@ -118,13 +144,14 @@ namespace Retorno360Tacna.FORMS
             btnPlantilla.FlatStyle = FlatStyle.Flat;
             btnPlantilla.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnPlantilla.ForeColor = Color.White;
+            btnPlantilla.Image = Properties.Resources.templates_rule_page_document_5850;
+            btnPlantilla.ImageAlign = ContentAlignment.MiddleLeft;
             btnPlantilla.Location = new Point(32, 172);
             btnPlantilla.Name = "btnPlantilla";
             btnPlantilla.Padding = new Padding(12, 0, 0, 0);
             btnPlantilla.Size = new Size(536, 54);
             btnPlantilla.TabIndex = 2;
-            btnPlantilla.Text = "📊  Configurar plantilla de cálculo de inventarios";
-            btnPlantilla.TextAlign = ContentAlignment.MiddleLeft;
+            btnPlantilla.Text = "Configurar plantilla de cálculo de inventarios";
             btnPlantilla.UseVisualStyleBackColor = false;
             btnPlantilla.Click += BtnPlantilla_Click;
             // 
@@ -154,5 +181,6 @@ namespace Retorno360Tacna.FORMS
         private Button btnUsuarios;
         private Button btnConexiones;
         private Button btnPlantilla;
+        private Button btnUsuarioEmpresa;
     }
 }

@@ -29,7 +29,6 @@
         private void InitializeComponent()
         {
             panelPrincipal = new Panel();
-            lblVersion = new Label();
             pictureBox1 = new PictureBox();
             panelPrincipal.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
@@ -38,7 +37,6 @@
             // panelPrincipal
             // 
             panelPrincipal.BackColor = Color.White;
-            panelPrincipal.Controls.Add(lblVersion);
             panelPrincipal.Controls.Add(pictureBox1);
             panelPrincipal.Dock = DockStyle.Fill;
             panelPrincipal.Location = new Point(0, 0);
@@ -46,24 +44,14 @@
             panelPrincipal.Size = new Size(1207, 720);
             panelPrincipal.TabIndex = 0;
             // 
-            // lblVersion
-            // 
-            lblVersion.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            lblVersion.Font = new Font("Segoe UI", 9F);
-            lblVersion.ForeColor = Color.FromArgb(189, 195, 199);
-            lblVersion.Location = new Point(12, 691);
-            lblVersion.Name = "lblVersion";
-            lblVersion.Size = new Size(180, 20);
-            lblVersion.TabIndex = 3;
-            lblVersion.Text = "Versión 3.2 - 2026";
-            lblVersion.TextAlign = ContentAlignment.MiddleLeft;
-            // 
             // pictureBox1
             // 
             pictureBox1.BackColor = Color.Transparent;
             pictureBox1.Dock = DockStyle.Fill;
             pictureBox1.Image = Properties.Resources.Gemini_Generated_Image_ag1yvyag1yvyag1y;
+            pictureBox1.Location = new Point(0, 0);
             pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new Size(1207, 720);
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox1.TabIndex = 4;
             pictureBox1.TabStop = false;
@@ -88,7 +76,6 @@
         #endregion
 
         private Panel panelPrincipal;
-        private Label lblVersion;
         private PictureBox pictureBox1;
     }
 }

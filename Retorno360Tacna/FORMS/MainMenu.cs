@@ -190,7 +190,7 @@ namespace Retorno360Tacna.FORMS
         /// tamaño mínimo que le impida encoger/crecer, y con el tamaño correcto
         /// desde el primer instante (por si panelContenido ya está maximizado).
         /// </summary>
-        private void MostrarFormularioEnPanel(Form formulario, bool limpiarPanelPrimero = true)
+        internal void MostrarFormularioEnPanel(Form formulario, bool limpiarPanelPrimero = true)
         {
             if (limpiarPanelPrimero)
                 LimpiarPanel();
@@ -561,14 +561,14 @@ namespace Retorno360Tacna.FORMS
                 // Expandir sub-menú
                 panelSubMenuAdmin.Visible = true;
                 panelSubMenuAdmin.Height = ObtenerAlturaSubmenu(panelSubMenuAdmin);
-                btnAdministracion.Text = "Administración";
+                btnAdministracion.Text = "Operacion";
             }
             else
             {
                 // Colapsar sub-menú
                 panelSubMenuAdmin.Visible = false;
                 panelSubMenuAdmin.Height = 0;
-                btnAdministracion.Text = "Administración";
+                btnAdministracion.Text = "Operacion";
             }
         }
 
@@ -615,7 +615,7 @@ namespace Retorno360Tacna.FORMS
 
             // Abrir el formulario FrmContabilidad dentro del panelContenido
             //constructor para mandar a llamar a la clase FrmContabilidad
-            FrmCalculoInventarios Inventario = new FrmCalculoInventarios();
+            FrmCalculoInventarios Inventario = new FrmCalculoInventarios(usuarioActual);
             MostrarFormularioEnPanel(Inventario, limpiarPanelPrimero: false);
 
         }
@@ -738,7 +738,7 @@ namespace Retorno360Tacna.FORMS
 
             if (conexionActual != null)
             {
-                FrmCatalogoPartes frmCatalogo = new FrmCatalogoPartes(conexionActual);
+                FrmCatalogoPartes frmCatalogo = new FrmCatalogoPartes(conexionActual, usuarioActual);
                 MostrarFormularioEnPanel(frmCatalogo, limpiarPanelPrimero: false);
             }
             else
@@ -793,7 +793,7 @@ namespace Retorno360Tacna.FORMS
 
             if (conexionActual != null)
             {
-                FrmReportes frmReportes = new FrmReportes(conexionActual);
+                FrmReportes frmReportes = new FrmReportes(conexionActual, usuarioActual);
                 MostrarFormularioEnPanel(frmReportes, limpiarPanelPrimero: false);
             }
             else
@@ -816,7 +816,7 @@ namespace Retorno360Tacna.FORMS
 
             if (conexionActual != null)
             {
-                FrmCumplimiento frmCumplimiento = new FrmCumplimiento(conexionActual);
+                FrmCumplimiento frmCumplimiento = new FrmCumplimiento(conexionActual, usuarioActual);
                 MostrarFormularioEnPanel(frmCumplimiento, limpiarPanelPrimero: false);
             }
             else
@@ -840,7 +840,7 @@ namespace Retorno360Tacna.FORMS
 
             if (conexionActual != null)
             {
-                FrmRetorno frmRetorno = new FrmRetorno(conexionActual);
+                FrmRetorno frmRetorno = new FrmRetorno(conexionActual, usuarioActual);
                 MostrarFormularioEnPanel(frmRetorno, limpiarPanelPrimero: false);
             }
             else
@@ -927,6 +927,15 @@ namespace Retorno360Tacna.FORMS
                     frmPlantilla.RegresarSolicitado += (_, _) => MostrarMenuConfiguracion();
                     MostrarVistaConfiguracion(frmPlantilla);
                 };
+                frmConfiguracionMenu.AbrirUsuarioEmpresaSolicitado += (_, _) =>
+                {
+                    var conexion = conexionActual ?? new ConexionInfo();
+                    var frmSeleccion = new SeleccionEmpresacs(conexion, usuarioActual!);
+                    frmSeleccion.RegresarSolicitado += (_, _) => MostrarMenuConfiguracion();
+                    MostrarVistaConfiguracion(frmSeleccion);
+                };
+
+
 
                 MostrarFormularioEnPanel(frmConfiguracionMenu);
             }

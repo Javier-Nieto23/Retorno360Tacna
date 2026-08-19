@@ -2150,7 +2150,16 @@ namespace Retorno360Tacna.FORMS
             try
             {
                 _inicializandoCombo = true;
-                var razones = catalogoService.ObtenerRazonesSociales();
+                List<RazonSocial> razones;
+                if (chkUsarPerfil.Checked && usuarioActual != null)
+                {
+                    var perfilSvc = new SERVICES.PerfilUsuarioService();
+                    razones = perfilSvc.ObtenerRazonesSocialesDePerfil(usuarioActual.IdUsuario);
+                }
+                else
+                {
+                    razones = catalogoService.ObtenerRazonesSociales();
+                }
 
                 cboRazonSocial.DataSource = razones;
                 cboRazonSocial.DisplayMember = "NombreRazon";
@@ -2167,6 +2176,18 @@ namespace Retorno360Tacna.FORMS
                 ErrorMessageHelper.ShowError($"Error al cargar razones sociales: {ex.Message}",
                     "Error", ex, "Carga de razones sociales en inventario");
             }
+        }
+
+        private void chkUsarPerfil_CheckedChanged(object? sender, EventArgs e)
+        {
+            if (chkUsarPerfil.Checked && usuarioActual == null)
+            {
+                MessageBox.Show("No se ha cargado el perfil de usuario. Cierre y vuelva a abrir el formulario.",
+                    "Perfil no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                chkUsarPerfil.Checked = false;
+                return;
+            }
+            CargarRazonesSociales();
         }
 
         private void cboRazonSocial_SelectedIndexChanged(object sender, EventArgs e)

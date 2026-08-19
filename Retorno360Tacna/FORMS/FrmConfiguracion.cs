@@ -92,27 +92,6 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
-        //private void CargarConfiguracion()
-        //{
-        //    // Cargar escala de UI
-        //    decimal escalaActual = configuracion.EscalaUI;
-        //    if (escalaActual == 1.0m)
-        //        cmbEscalaUI.SelectedIndex = 0; // 100%
-        //    else if (escalaActual == 1.25m)
-        //        cmbEscalaUI.SelectedIndex = 1; // 125%
-        //    else if (escalaActual == 1.5m)
-        //        cmbEscalaUI.SelectedIndex = 2; // 150%
-        //    else if (escalaActual == 1.75m)
-        //        cmbEscalaUI.SelectedIndex = 3; // 175%
-        //    else if (escalaActual == 2.0m)
-        //        cmbEscalaUI.SelectedIndex = 4; // 200%
-        //    else
-        //        cmbEscalaUI.SelectedIndex = 0; // Default 100%
-
-        //    configuracion.AjustarVentanaPantallaLogica = SERVICES.ConfiguracionService.ObtenerAjusteVentanaPantallaLogica();
-        //    chkAjustarPantallaLogica.Checked = configuracion.AjustarVentanaPantallaLogica;
-        //    lblEscalaActual.Text = $"Escala actual: {(configuracion.EscalaUI * 100):0}%";
-        //}
 
         private void btnGuardar_Click(object sender, EventArgs e)
         {
@@ -210,18 +189,15 @@ namespace Retorno360Tacna.FORMS
 
         private void btnSalir_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show(
-            "¿Está seguro de que desea salir sin guardar los cambios?",
-            "Confirmar salida",
-            MessageBoxButtons.YesNo,
-            MessageBoxIcon.Question) == DialogResult.Yes)
+            // Verificamos si hay formularios o clases suscritas al evento
+            if (RegresarSolicitado != null)
             {
-                // Disparamos el evento para que el contenedor sepa que debe volver atrás
-                RegresarSolicitado?.Invoke(this, EventArgs.Empty);
-
-                // Cerramos o removemos este formulario hijo actual
-                Close();
+                // Opcional: un punto de interrupción (breakpoint) aquí te confirmará el flujo
+                RegresarSolicitado.Invoke(this, EventArgs.Empty);
             }
+
+            // Cerramos el formulario actual
+            Close();
         }
             
         

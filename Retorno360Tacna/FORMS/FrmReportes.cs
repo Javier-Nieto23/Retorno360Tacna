@@ -31,16 +31,24 @@ namespace Retorno360Tacna.FORMS
         private bool modalAbierto = false;
         private int ultimaFilaClickeada = -1;
         private Dictionary<Button, bool>? estadoBotonesAntesCarga;
+        private MODELS.Usuario? usuarioActual;
+        private SERVICES.PerfilUsuarioService? perfilService;
 
         // Tablas de detalle para mostrar al hacer doble clic
         private System.Data.DataTable? detalleIGIActual;
         private System.Data.DataTable? detalleIVAActual;
 
-        public FrmReportes(ConexionInfo conexion)
+        public FrmReportes(ConexionInfo conexion) : this(conexion, null) { }
+
+        public FrmReportes(ConexionInfo conexion, MODELS.Usuario? usuario)
         {
             InitializeComponent();
             conexionActual = conexion;
             reporteService = new ReporteIGIService(conexion);
+            usuarioActual = usuario;
+
+            if (usuario != null)
+                perfilService = new SERVICES.PerfilUsuarioService();
 
             if (SERVICES.ConfiguracionService.ObtenerAjusteVentanaPantallaLogica())
             {
@@ -338,10 +346,19 @@ namespace Retorno360Tacna.FORMS
             {
                 lblProgreso.Text = "Cargando razones sociales...";
 
-                await Task.Run(() =>
+                if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
                 {
-                    razonesSociales = reporteService.ObtenerRazonesSociales();
-                });
+                    int idUsuario = usuarioActual.IdUsuario;
+                    razonesSociales = await Task.Run(() =>
+                        perfilService.ObtenerRazonesSocialesDePerfil(idUsuario));
+                }
+                else
+                {
+                    await Task.Run(() =>
+                    {
+                        razonesSociales = reporteService.ObtenerRazonesSociales();
+                    });
+                }
 
                 cmbRazonSocial.DataSource = razonesSociales;
                 cmbRazonSocial.DisplayMember = "NombreRazon";
@@ -397,7 +414,9 @@ namespace Retorno360Tacna.FORMS
                 cmbCliente.Enabled = false;
                 cmbCliente.DataSource = null;
 
-                var basesDatos = reporteService.ObtenerBasesDatosRazon(idRazon);
+                var basesDatos = (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+                    ? perfilService.ObtenerBasesDatosDePerfilPorRazon(usuarioActual.IdUsuario, idRazon)
+                    : reporteService.ObtenerBasesDatosRazon(idRazon);
 
                 if (basesDatos.Count > 0)
                 {
@@ -431,7 +450,14 @@ namespace Retorno360Tacna.FORMS
 
         private async void btnConsultar_Click(object sender, EventArgs e)
         {
-            // Validaciones
+            // ── Modo perfil: consulta por empresas guardadas del usuario ───────
+            if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+            {
+                await ConsultarConPerfilAsync();
+                return;
+            }
+
+            // ── Modo normal ────────────────────────────────────────────────────
             if (cmbRazonSocial.SelectedItem == null)
             {
                 MessageBox.Show("Debe seleccionar una razón social", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -452,6 +478,100 @@ namespace Retorno360Tacna.FORMS
             }
 
             await GenerarReporte();
+        }
+
+        /// <summary>
+        /// Flujo exclusivo del modo perfil: obtiene razones + empresas del usuario,
+        /// pregunta por razón si hay más de una, y abre FrmResultadosPerfilIGI.
+        /// </summary>
+        private async Task ConsultarConPerfilAsync()
+        {
+            if (dtpFechaInicio.Value > dtpFechaFin.Value)
+            {
+                MessageBox.Show("La fecha inicial no puede ser mayor a la fecha final",
+                    "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 1. Obtener razones sociales del perfil
+            List<MODELS.RazonSocial> razonesPerfil;
+            try
+            {
+                razonesPerfil = await Task.Run(() =>
+                    perfilService!.ObtenerRazonesSocialesDePerfil(usuarioActual!.IdUsuario));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al leer el perfil del usuario:\n{ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (razonesPerfil.Count == 0)
+            {
+                MessageBox.Show("Tu perfil no tiene razones sociales configuradas.\n" +
+                    "Ve a Configuración → Usuarios y empresas para asignarlas.",
+                    "Perfil vacío", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // 2. Si hay más de una razón social, preguntar cuál consultar primero
+            MODELS.RazonSocial razonElegida;
+            if (razonesPerfil.Count == 1)
+            {
+                razonElegida = razonesPerfil[0];
+            }
+            else
+            {
+                using var dlg = new FrmSeleccionRazonPerfil(razonesPerfil);
+                if (dlg.ShowDialog(this) != DialogResult.OK || dlg.RazonSeleccionada == null)
+                    return;
+                razonElegida = dlg.RazonSeleccionada;
+            }
+
+            // 3. Obtener las empresas (bases de datos) del perfil para esa razón
+            List<string> empresas;
+            try
+            {
+                empresas = await Task.Run(() =>
+                    perfilService!.ObtenerBasesDatosDePerfilPorRazon(
+                        usuarioActual!.IdUsuario, razonElegida.IdRazon));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al obtener las empresas del perfil:\n{ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (empresas.Count == 0)
+            {
+                MessageBox.Show($"No hay empresas configuradas en tu perfil para la razón social «{razonElegida.NombreRazon}».\n" +
+                    "Ve a Configuración → Usuarios y empresas para asignarlas.",
+                    "Sin empresas", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // 4. Abrir el form de resultados por perfil
+            var frmResultados = new FrmResultadosPerfilIGI(
+                reporteService,
+                razonElegida,
+                empresas,
+                dtpFechaInicio.Value.Date,
+                dtpFechaFin.Value.Date);
+
+            // Mostrar embebido en el panel principal del MainMenu si es posible,
+            // sino como formulario flotante independiente
+            var mainMenu = this.FindForm() as MainMenu;
+            if (mainMenu != null)
+            {
+                mainMenu.MostrarFormularioEnPanel(frmResultados, limpiarPanelPrimero: false);
+            }
+            else
+            {
+                frmResultados.FormBorderStyle = FormBorderStyle.Sizable;
+                frmResultados.ShowDialog(this);
+            }
         }
 
         private async Task GenerarReporte()
@@ -1073,6 +1193,20 @@ namespace Retorno360Tacna.FORMS
                     CargarBasesDatosRazon(razon.IdRazon);
                 }
             }
+        }
+
+        private void chkUsarPerfil_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkUsarPerfil.Checked && usuarioActual == null)
+            {
+                MessageBox.Show("No hay usuario activo para usar el perfil de empresas.",
+                    "Perfil no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                chkUsarPerfil.Checked = false;
+                return;
+            }
+
+            // Recargar razones sociales según el modo activo
+            CargarRazonesSociales();
         }
 
         private void ConfigurarDataGridView()

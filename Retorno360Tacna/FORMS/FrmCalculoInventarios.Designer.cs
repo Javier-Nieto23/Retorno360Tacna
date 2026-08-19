@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            chkUsarPerfil = new CheckBox();
             pnlCantidadMeses = new Panel();
             panelConfigCuerpo = new Panel();
             lblLblRazon = new Label();
@@ -74,6 +75,7 @@
             // panelConfigCuerpo
             // 
             panelConfigCuerpo.BackColor = Color.Transparent;
+            panelConfigCuerpo.Controls.Add(chkUsarPerfil);
             panelConfigCuerpo.Controls.Add(lblLblRazon);
             panelConfigCuerpo.Controls.Add(cmbRazonSocial);
             panelConfigCuerpo.Controls.Add(lblLblEmpresa);
@@ -220,7 +222,19 @@
             btnIniciarCalculo.Text = "Continuar →";
             btnIniciarCalculo.UseVisualStyleBackColor = false;
             btnIniciarCalculo.Click += btnIniciarCalculo_Click;
-            
+            // 
+            // chkUsarPerfil
+            // 
+            chkUsarPerfil.AutoSize = true;
+            chkUsarPerfil.Font = new Font("Segoe UI", 9.5F);
+            chkUsarPerfil.Location = new Point(40, 395);
+            chkUsarPerfil.Name = "chkUsarPerfil";
+            chkUsarPerfil.Size = new Size(210, 21);
+            chkUsarPerfil.TabIndex = 10;
+            chkUsarPerfil.Text = "Usar empresas de mi perfil";
+            chkUsarPerfil.UseVisualStyleBackColor = true;
+            chkUsarPerfil.CheckedChanged += chkUsarPerfil_CheckedChanged;
+
             // 
             // lblConfigSubtitulo
             // 
@@ -368,5 +382,6 @@
         private Button btnRecalcular;
         private ComboBox cmbEmpresa;
         private ComboBox cmbRazonSocial;
+        private CheckBox chkUsarPerfil;
     }
 }

@@ -203,9 +203,29 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap company_22169 {
+            get {
+                object obj = ResourceManager.GetObject("company_22169", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap configure_icon_icons_com_52404 {
             get {
                 object obj = ResourceManager.GetObject("configure_icon-icons.com_52404", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap configure_user_16726 {
+            get {
+                object obj = ResourceManager.GetObject("configure_user_16726", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -276,6 +296,16 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap eye_icon_172481 {
             get {
                 object obj = ResourceManager.GetObject("eye_icon_172481", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap financial_report_calculator_chart_pie_icon_205131 {
+            get {
+                object obj = ResourceManager.GetObject("financial_report_calculator_chart_pie_icon_205131", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -393,6 +423,16 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap iconfinder_serverconnection_4417100_116621 {
+            get {
+                object obj = ResourceManager.GetObject("iconfinder-serverconnection-4417100_116621", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap income_money_dollar_upward_green_arrow_gain_appreciation_icon_205133 {
             get {
                 object obj = ResourceManager.GetObject("income_money_dollar_upward_green_arrow_gain_appreciation_icon_205133", resourceCulture);
@@ -503,6 +543,16 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Network_Connection_Control_Panel_22605 {
+            get {
+                object obj = ResourceManager.GetObject("Network_Connection_Control_Panel_22605", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Order_history_25404 {
             get {
                 object obj = ResourceManager.GetObject("Order-history_25404", resourceCulture);
@@ -523,6 +573,26 @@ namespace Retorno360Tacna.Properties {
         /// <summary>
         ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Padlock_User_Control_22601 {
+            get {
+                object obj = ResourceManager.GetObject("Padlock_User_Control_22601", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Padlock_User_Control_22601__1_ {
+            get {
+                object obj = ResourceManager.GetObject("Padlock_User_Control_22601 (1)", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap pdf_filetype_icon_177525 {
             get {
                 object obj = ResourceManager.GetObject("pdf_filetype_icon_177525", resourceCulture);
@@ -536,6 +606,36 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap PDF_icon_icons_com_52413 {
             get {
                 object obj = ResourceManager.GetObject("PDF_icon-icons.com_52413", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap person_user_customer_man_male_man_boy_people_1687 {
+            get {
+                object obj = ResourceManager.GetObject("person_user_customer_man_male_man_boy_people_1687", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap plus_40632 {
+            get {
+                object obj = ResourceManager.GetObject("plus_40632", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap plus_40632__1_ {
+            get {
+                object obj = ResourceManager.GetObject("plus_40632 (1)", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -626,6 +726,16 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap Teachers_35749 {
             get {
                 object obj = ResourceManager.GetObject("Teachers_35749", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap templates_rule_page_document_5850 {
+            get {
+                object obj = ResourceManager.GetObject("templates_rule_page_document_5850", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -726,6 +836,26 @@ namespace Retorno360Tacna.Properties {
         internal static System.Drawing.Bitmap US_dollar_25324 {
             get {
                 object obj = ResourceManager.GetObject("US-dollar_25324", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap User_blue256_25016 {
+            get {
+                object obj = ResourceManager.GetObject("User-blue256_25016", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap User_yellow256_25012 {
+            get {
+                object obj = ResourceManager.GetObject("User-yellow256_25012", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

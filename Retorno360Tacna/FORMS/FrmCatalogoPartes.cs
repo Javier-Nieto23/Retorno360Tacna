@@ -48,6 +48,8 @@ namespace Retorno360Tacna.FORMS
 
         private readonly ConexionInfo conexionActual;
         private CatalogoPartesService catalogoService;
+        private MODELS.Usuario? usuarioActual;
+        private SERVICES.PerfilUsuarioService? perfilService;
         private List<MateriaPrimaBOM> datosConsultadosMP;
         private List<MateriaPrimaBOM> datosConsultadosOtros;
         private List<MateriaPrimaBOM> datosOtrosFiltrados;
@@ -58,11 +60,16 @@ namespace Retorno360Tacna.FORMS
         private Control chartControl; // Control genérico para manejar ambos tipos de gráficas
         private int vistaActual = 0; // 0 = MP cumplimiento, 1 = Otros tipos, 2 = MP Pedimentos
         private Dictionary<Button, bool>? estadoBotonesAntesCarga;
-        public FrmCatalogoPartes(ConexionInfo conexion)
+        public FrmCatalogoPartes(ConexionInfo conexion) : this(conexion, null) { }
+
+        public FrmCatalogoPartes(ConexionInfo conexion, MODELS.Usuario? usuario)
         {
             InitializeComponent();
             conexionActual = conexion;
+            usuarioActual = usuario;
             catalogoService = new CatalogoPartesService(conexion);
+            if (usuario != null)
+                perfilService = new SERVICES.PerfilUsuarioService();
             datosConsultadosMP = new List<MateriaPrimaBOM>();
             datosConsultadosOtros = new List<MateriaPrimaBOM>();
             datosOtrosFiltrados = new List<MateriaPrimaBOM>();
@@ -220,7 +227,11 @@ namespace Retorno360Tacna.FORMS
         {
             try
             {
-                var razones = catalogoService.ObtenerRazonesSociales();
+                List<RazonSocial> razones;
+                if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+                    razones = perfilService.ObtenerRazonesSocialesDePerfil(usuarioActual.IdUsuario);
+                else
+                    razones = catalogoService.ObtenerRazonesSociales();
 
                 cboRazonSocial.DataSource = razones;
                 cboRazonSocial.DisplayMember = "NombreRazon";
@@ -238,6 +249,18 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
+        private void chkUsarPerfil_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkUsarPerfil.Checked && (usuarioActual == null || perfilService == null))
+            {
+                MessageBox.Show("No se ha cargado el perfil de usuario. Cierre y vuelva a abrir el formulario.",
+                    "Perfil no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                chkUsarPerfil.Checked = false;
+                return;
+            }
+            CargarRazonesSociales();
+        }
+
         private void cboRazonSocial_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (cboRazonSocial.SelectedValue != null && cboRazonSocial.SelectedValue is int idRazon)
@@ -250,7 +273,11 @@ namespace Retorno360Tacna.FORMS
         {
             try
             {
-                List<string> basesDatos = catalogoService.ObtenerBasesDatosRazon(idRazon);
+                List<string> basesDatos;
+                if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+                    basesDatos = perfilService.ObtenerBasesDatosDePerfilPorRazon(usuarioActual.IdUsuario, idRazon);
+                else
+                    basesDatos = catalogoService.ObtenerBasesDatosRazon(idRazon);
 
                 if (basesDatos.Count > 0)
                 {

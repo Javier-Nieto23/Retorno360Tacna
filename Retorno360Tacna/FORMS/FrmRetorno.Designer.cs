@@ -64,6 +64,7 @@ namespace Retorno360Tacna.FORMS
             lblTituloPie = new Label();
             btnAnteriorPie = new Button();
             btnSiguientePie = new Button();
+            chkPrecargarDatos = new CheckBox();
             groupBoxResultados.SuspendLayout();
             panelCargando.SuspendLayout();
             SuspendLayout();
@@ -157,7 +158,7 @@ namespace Retorno360Tacna.FORMS
             // 
             chkMateriaPrima.AutoSize = true;
             chkMateriaPrima.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            chkMateriaPrima.Location = new Point(400, 76);
+            chkMateriaPrima.Location = new Point(339, 92);
             chkMateriaPrima.Margin = new Padding(3, 2, 3, 2);
             chkMateriaPrima.Name = "chkMateriaPrima";
             chkMateriaPrima.Size = new Size(201, 23);
@@ -302,29 +303,36 @@ namespace Retorno360Tacna.FORMS
             // 
             // pieChartView
             // 
-            pieChartView.InitialRotation = 0D;
-            pieChartView.IsClockwise = true;
+            pieChartView.AutoUpdateEnabled = true;
+            pieChartView.ChartTheme = null;
+            pieChartView.Legend = null;
             pieChartView.Location = new Point(799, 188);
             pieChartView.Margin = new Padding(3, 2, 3, 2);
-            pieChartView.MaxAngle = 360D;
-            pieChartView.MaxValue = double.NaN;
-            pieChartView.MinValue = 0D;
             pieChartView.Name = "pieChartView";
             pieChartView.Size = new Size(400, 396);
             pieChartView.TabIndex = 11;
+            pieChartView.Tooltip = null;
+            pieChartView.UpdaterThrottler = TimeSpan.Parse("00:00:00.0500000");
             // 
             // cartesianChartView
             // 
+            cartesianChartView.AutoUpdateEnabled = true;
+            cartesianChartView.ChartTheme = null;
+            cartesianChartView.Legend = null;
             cartesianChartView.Location = new Point(350, 188);
+            cartesianChartView.MatchAxesScreenDataRatio = false;
             cartesianChartView.Name = "cartesianChartView";
             cartesianChartView.Size = new Size(428, 396);
             cartesianChartView.TabIndex = 15;
+            cartesianChartView.Tooltip = null;
+            cartesianChartView.TooltipFindingStrategy = LiveChartsCore.Measure.TooltipFindingStrategy.Automatic;
+            cartesianChartView.UpdaterThrottler = TimeSpan.Parse("00:00:00.0500000");
             // 
             // chkCalRazon
             // 
             chkCalRazon.AutoSize = true;
             chkCalRazon.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            chkCalRazon.Location = new Point(400, 103);
+            chkCalRazon.Location = new Point(339, 119);
             chkCalRazon.Margin = new Padding(3, 2, 3, 2);
             chkCalRazon.Name = "chkCalRazon";
             chkCalRazon.Size = new Size(199, 23);
@@ -337,7 +345,7 @@ namespace Retorno360Tacna.FORMS
             // 
             chkForzarCalculo.AutoSize = true;
             chkForzarCalculo.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            chkForzarCalculo.Location = new Point(400, 128);
+            chkForzarCalculo.Location = new Point(339, 144);
             chkForzarCalculo.Margin = new Padding(3, 2, 3, 2);
             chkForzarCalculo.Name = "chkForzarCalculo";
             chkForzarCalculo.Size = new Size(264, 23);
@@ -499,12 +507,25 @@ namespace Retorno360Tacna.FORMS
             btnSiguientePie.UseVisualStyleBackColor = false;
             btnSiguientePie.Click += btnCambiarGrafica_Click;
             // 
+            // chkPrecargarDatos
+            // 
+            chkPrecargarDatos.AutoSize = true;
+            chkPrecargarDatos.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            chkPrecargarDatos.Location = new Point(569, 96);
+            chkPrecargarDatos.Name = "chkPrecargarDatos";
+            chkPrecargarDatos.Size = new Size(215, 23);
+            chkPrecargarDatos.TabIndex = 25;
+            chkPrecargarDatos.Text = "Usar mis empresas (Perfil)";
+            chkPrecargarDatos.UseVisualStyleBackColor = true;
+            chkPrecargarDatos.CheckedChanged += chkPrecargarDatos_CheckedChanged;
+            // 
             // FrmRetorno
             // 
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.White;
             ClientSize = new Size(1230, 618);
+            Controls.Add(chkPrecargarDatos);
             Controls.Add(groupBoxResultados);
             Controls.Add(panelGraficaPie);
             Controls.Add(panelGraficaColumnas);
@@ -572,5 +593,6 @@ namespace Retorno360Tacna.FORMS
         private Button btnAnteriorPie;
         private Button btnSiguientePie;
         private Label lblTituloPie;
+        private CheckBox chkPrecargarDatos;
     }
 }
