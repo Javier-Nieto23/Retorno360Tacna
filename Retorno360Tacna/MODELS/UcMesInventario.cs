@@ -19,6 +19,9 @@ namespace Retorno360Tacna.MODELS
         public ResultadoInventarioMes? Resultado { get; private set; }
         public int NumeroPanel { get; }
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public int IdRazonSocialActiva { get; set; }
+
         // Empresa activa: la fija FrmCalculoInventarios antes de crear los paneles
         [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int IdEmpresaActiva { get; set; }
@@ -187,6 +190,12 @@ namespace Retorno360Tacna.MODELS
                 campoA: cmbCampoA.SelectedItem?.ToString() ?? "",
                 campoB: cmbCampoB.SelectedItem?.ToString() ?? ""
             );
+
+
+            // NUEVO: asignar empresa y razón social activas antes de calcular/guardar
+            resultado.idEmpresa = IdEmpresaActiva;
+            resultado.IdRazonSocial = IdRazonSocialActiva;
+
 
             resultado.Calcular();
             Resultado = resultado;

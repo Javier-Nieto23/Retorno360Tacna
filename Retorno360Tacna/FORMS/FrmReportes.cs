@@ -15,11 +15,18 @@ namespace Retorno360Tacna.FORMS
 {
     public partial class FrmReportes : Form
     {
+        #region Clases auxiliares internas
+
         private sealed class BaseDatosComboItem
         {
             public string NombreReal { get; set; } = string.Empty;
             public string NombreVisible { get; set; } = string.Empty;
         }
+
+        #endregion
+
+
+        #region Campos y Atributos
 
         private readonly ConexionInfo conexionActual;
         private readonly ReporteIGIService reporteService;
@@ -37,6 +44,11 @@ namespace Retorno360Tacna.FORMS
         // Tablas de detalle para mostrar al hacer doble clic
         private System.Data.DataTable? detalleIGIActual;
         private System.Data.DataTable? detalleIVAActual;
+
+        #endregion
+
+
+        #region Constructores
 
         public FrmReportes(ConexionInfo conexion) : this(conexion, null) { }
 
@@ -72,22 +84,29 @@ namespace Retorno360Tacna.FORMS
             this.SizeChanged += FrmReportes_SizeChanged;
         }
 
-        private static List<BaseDatosComboItem> CrearItemsBaseDatos(IEnumerable<string> basesDatos)
-        {
-            return basesDatos
-                .Select(baseDatos => new BaseDatosComboItem
-                {
-                    NombreReal = baseDatos,
-                    NombreVisible = LimpiarNombreBaseDatosVisible(baseDatos)
-                })
-                .ToList();
-        }
+        #endregion
 
-        private static string LimpiarNombreBaseDatosVisible(string nombreBaseDatos)
+
+        #region Ciclo de Vida del Formulario y Layout
+
+        private void FrmReportes_Load(object sender, EventArgs e)
         {
-            return nombreBaseDatos
-                .Replace("SEERT_", string.Empty, StringComparison.OrdinalIgnoreCase)
-                .Trim(' ', '_', '-');
+            // Configurar fechas por defecto (mes actual)
+            dtpFechaInicio.Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            dtpFechaFin.Value = DateTime.Now;
+
+            // Cargar razones sociales
+            CargarRazonesSociales();
+
+            // Configurar DataGridView
+            ConfigurarDataGridView();
+
+            panelGraficaIVA.Visible = false;
+            MostrarGraficaActual();
+
+            // Deshabilitar botón PDF al inicio
+            btnGenerarPDF.Enabled = false;
+            btnExportarExcel.Enabled = false;
         }
 
         private void FrmReportes_Resize(object sender, EventArgs e)
@@ -98,6 +117,45 @@ namespace Retorno360Tacna.FORMS
         private void FrmReportes_SizeChanged(object sender, EventArgs e)
         {
             AjustarControles();
+        }
+
+        private void AjustarControles()
+        {
+            if (this.WindowState == FormWindowState.Minimized)
+                return;
+
+            try
+            {
+                this.SuspendLayout();
+
+                // El panelResumen ahora usa Dock = DockStyle.Bottom
+                // por lo que no necesitamos ajustar su posición manualmente
+
+                AjustarAreaGrafica(chartIGI, panelGrafica, lblTituloGrafica);
+                AjustarAreaGrafica(chartIVA, panelGrafica, lblTituloGrafica);
+
+                this.ResumeLayout(true);
+            }
+            catch
+            {
+                // Evitar errores durante el redimensionamiento
+            }
+        }
+
+        private void AjustarAreaGrafica(CartesianChart? chart, Panel panelContenedor, Label titulo)
+        {
+            if (chart == null)
+                return;
+
+            int margen = 10;
+            int top = titulo.Bottom + 8;
+            int ancho = Math.Max(100, panelContenedor.ClientSize.Width - (margen * 2));
+            int alto = Math.Max(120, panelContenedor.ClientSize.Height - top - margen);
+
+            chart.Location = new Point(margen, top);
+            chart.Size = new Size(ancho, alto);
+            chart.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            chart.BringToFront();
         }
 
         private void EstablecerEstadoBotonesDuranteCarga(bool cargando)
@@ -145,200 +203,22 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
-        private void AjustarControles()
+        private void MostrarPanelCargando(bool mostrar)
         {
-            if (this.WindowState == FormWindowState.Minimized)
-                return;
-
-            try
+            panelCargando.Visible = mostrar;
+            if (mostrar)
             {
-                this.SuspendLayout();
-
-                // El panelResumen ahora usa Dock = DockStyle.Bottom
-                // por lo que no necesitamos ajustar su posición manualmente
-
-                AjustarAreaGrafica(chartIGI, panelGrafica, lblTituloGrafica);
-                AjustarAreaGrafica(chartIVA, panelGrafica, lblTituloGrafica);
-
-                this.ResumeLayout(true);
-            }
-            catch
-            {
-                // Evitar errores durante el redimensionamiento
+                // Centrar el panel en el formulario
+                panelCargando.Left = (this.ClientSize.Width - panelCargando.Width) / 2;
+                panelCargando.Top = (this.ClientSize.Height - panelCargando.Height) / 2;
+                panelCargando.BringToFront();
             }
         }
 
-        private void AjustarAreaGrafica(CartesianChart? chart, Panel panelContenedor, Label titulo)
-        {
-            if (chart == null)
-                return;
+        #endregion
 
-            int margen = 10;
-            int top = titulo.Bottom + 8;
-            int ancho = Math.Max(100, panelContenedor.ClientSize.Width - (margen * 2));
-            int alto = Math.Max(120, panelContenedor.ClientSize.Height - top - margen);
 
-            chart.Location = new Point(margen, top);
-            chart.Size = new Size(ancho, alto);
-            chart.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            chart.BringToFront();
-        }
-
-        private void FrmReportes_Load(object sender, EventArgs e)
-        {
-            // Configurar fechas por defecto (mes actual)
-            dtpFechaInicio.Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            dtpFechaFin.Value = DateTime.Now;
-
-            // Cargar razones sociales
-            CargarRazonesSociales();
-
-            // Configurar DataGridView
-            ConfigurarDataGridView();
-
-            panelGraficaIVA.Visible = false;
-            MostrarGraficaActual();
-
-            // Deshabilitar botón PDF al inicio
-            btnGenerarPDF.Enabled = false;
-            btnExportarExcel.Enabled = false;
-        }
-
-        private void MostrarGraficaActual()
-        {
-            panelGrafica.Visible = true;
-            panelGrafica.BringToFront();
-            panelGraficaIVA.Visible = false;
-
-            if (chartIGI != null)
-            {
-                chartIGI.Visible = graficaActual == 0;
-                if (chartIGI.Visible)
-                    chartIGI.BringToFront();
-            }
-
-            if (chartIVA != null)
-            {
-                chartIVA.Visible = graficaActual == 1;
-                if (chartIVA.Visible)
-                    chartIVA.BringToFront();
-            }
-
-                // Forzar refresco y repintado al cambiar de gráfica para asegurar renderizado
-            try
-            {
-                if (graficaActual == 0)
-                {
-                        try
-                        {
-                            chartIGI?.Update();
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] chartIGI.Update error: {ex}");
-                        }
-                        chartIGI?.Refresh();
-                        chartIGI?.Invalidate();
-                        try { panelGrafica?.Refresh(); } catch { }
-                }
-                else
-                {
-                        try
-                        {
-                            chartIVA?.Update();
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] chartIVA.Update error: {ex}");
-                        }
-                        chartIVA?.Refresh();
-                        chartIVA?.Invalidate();
-                        try { panelGrafica?.Refresh(); } catch { }
-                }
-
-                // Procesar eventos pendientes para asegurar que el control se repinte inmediatamente
-                try { System.Windows.Forms.Application.DoEvents(); } catch { }
-                System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] Forzado Update/Refresh para graficaActual={graficaActual}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] Error al forzar refresco: {ex.Message}");
-            }
-
-            // Información adicional de diagnóstico sobre series y ejes
-            try
-            {
-                if (chartIGI != null)
-                {
-                    var seriesCount = chartIGI.Series?.Count() ?? 0;
-                    var xLabels = chartIGI.XAxes?.FirstOrDefault()?.Labels?.Count ?? 0;
-                    System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual-DBG] chartIGI series={seriesCount} xLabels={xLabels}");
-                }
-
-                if (chartIVA != null)
-                {
-                    var seriesCount = chartIVA.Series?.Count() ?? 0;
-                    var xLabels = chartIVA.XAxes?.FirstOrDefault()?.Labels?.Count ?? 0;
-                    System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual-DBG] chartIVA series={seriesCount} xLabels={xLabels}");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual-DBG] Error leyendo propiedades: {ex.Message}");
-            }
-
-            lblTituloGrafica.Text = graficaActual == 0
-                ? "IGI por Mes y Forma de Pago (1/2)"
-                : "IVA por Mes y Forma de Pago (2/2)";
-
-            System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] graficaActual={graficaActual} chartIGI!=null:{chartIGI!=null} chartIVA!=null:{chartIVA!=null} chartIGI.Visible={chartIGI?.Visible} chartIVA.Visible={chartIVA?.Visible}");
-
-            lblTituloGrafica.BringToFront();
-            btnAnteriorGrafica.Visible = true;
-            btnSiguienteGrafica.Visible = true;
-            btnAnteriorGrafica.BringToFront();
-            btnSiguienteGrafica.BringToFront();
-        }
-
-        // Nota: método auxiliar para mostrar tablas cuando hay discrepancias en los datos usados para graficar.
-        private void MostrarDiagnosticoTablas(string tipo, System.Data.DataTable tabla)
-        {
-            try
-            {
-                using var frm = new Form();
-                frm.StartPosition = FormStartPosition.CenterParent;
-                frm.Size = new Size(900, 500);
-                frm.Text = $"Diagnóstico de datos para gráfica: {tipo}";
-                frm.MinimizeBox = false;
-                frm.MaximizeBox = false;
-
-                var dgv = new DataGridView
-                {
-                    Dock = DockStyle.Fill,
-                    ReadOnly = true,
-                    AllowUserToAddRows = false,
-                    AllowUserToDeleteRows = false,
-                    AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
-                    DataSource = tabla.Copy()
-                };
-
-                var btnCerrar = new Button
-                {
-                    Text = "Cerrar",
-                    Dock = DockStyle.Bottom,
-                    Height = 36
-                };
-                btnCerrar.Click += (s, e) => frm.Close();
-
-                frm.Controls.Add(dgv);
-                frm.Controls.Add(btnCerrar);
-                frm.ShowDialog(this);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error en MostrarDiagnosticoTablas: {ex.Message}");
-            }
-        }
+        #region Carga de Razones Sociales y Empresas (Combos)
 
         private async void CargarRazonesSociales()
         {
@@ -447,6 +327,61 @@ namespace Retorno360Tacna.FORMS
                 lblProgreso.Text = "Error al cargar clientes";
             }
         }
+
+        private void chkSinGlosa_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkSinGlosa.Checked)
+            {
+                // Deshabilitar combo de clientes
+                cmbCliente.Enabled = false;
+                cmbCliente.SelectedIndex = -1;
+            }
+            else
+            {
+                // Reactivar y cargar clientes si hay razón social seleccionada
+                if (cmbRazonSocial.SelectedIndex != -1 && cmbRazonSocial.SelectedItem is RazonSocial razon)
+                {
+                    CargarBasesDatosRazon(razon.IdRazon);
+                }
+            }
+        }
+
+        private void chkUsarPerfil_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkUsarPerfil.Checked && usuarioActual == null)
+            {
+                MessageBox.Show("No hay usuario activo para usar el perfil de empresas.",
+                    "Perfil no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                chkUsarPerfil.Checked = false;
+                return;
+            }
+
+            // Recargar razones sociales según el modo activo
+            CargarRazonesSociales();
+        }
+
+        private static List<BaseDatosComboItem> CrearItemsBaseDatos(IEnumerable<string> basesDatos)
+        {
+            return basesDatos
+                .Select(baseDatos => new BaseDatosComboItem
+                {
+                    NombreReal = baseDatos,
+                    NombreVisible = LimpiarNombreBaseDatosVisible(baseDatos)
+                })
+                .ToList();
+        }
+
+        private static string LimpiarNombreBaseDatosVisible(string nombreBaseDatos)
+        {
+            return nombreBaseDatos
+                .Replace("SEERT_", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Trim(' ', '_', '-');
+        }
+
+        #endregion
+
+
+        #region Generación del Reporte (Consulta Principal)
 
         private async void btnConsultar_Click(object sender, EventArgs e)
         {
@@ -801,7 +736,7 @@ namespace Retorno360Tacna.FORMS
                 {
                     string basesAviso = string.Join(", ", basesSinGlosaIva.OrderBy(x => x));
                     MessageBox.Show(
-                        $"No está cargada la glosa para obtener el IVA pagado{(string.IsNullOrWhiteSpace(basesAviso) ? string.Empty : $" en: {basesAviso}") }.",
+                        $"No está cargada la glosa para obtener el IVA pagado{(string.IsNullOrWhiteSpace(basesAviso) ? string.Empty : $" en: {basesAviso}")}.",
                         "Aviso de glosa IVA",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Warning);
@@ -840,17 +775,10 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
-        private void MostrarPanelCargando(bool mostrar)
-        {
-            panelCargando.Visible = mostrar;
-            if (mostrar)
-            {
-                // Centrar el panel en el formulario
-                panelCargando.Left = (this.ClientSize.Width - panelCargando.Width) / 2;
-                panelCargando.Top = (this.ClientSize.Height - panelCargando.Height) / 2;
-                panelCargando.BringToFront();
-            }
-        }
+        #endregion
+
+
+        #region Construcción y Reconstrucción de Datos del Reporte
 
         private void ReconstruirReporteActualDesdeDetalles(string baseDatosPredeterminada = "")
         {
@@ -1177,37 +1105,10 @@ namespace Retorno360Tacna.FORMS
             return dt;
         }
 
-        private void chkSinGlosa_CheckedChanged(object sender, EventArgs e)
-        {
-            if (chkSinGlosa.Checked)
-            {
-                // Deshabilitar combo de clientes
-                cmbCliente.Enabled = false;
-                cmbCliente.SelectedIndex = -1;
-            }
-            else
-            {
-                // Reactivar y cargar clientes si hay razón social seleccionada
-                if (cmbRazonSocial.SelectedIndex != -1 && cmbRazonSocial.SelectedItem is RazonSocial razon)
-                {
-                    CargarBasesDatosRazon(razon.IdRazon);
-                }
-            }
-        }
+        #endregion
 
-        private void chkUsarPerfil_CheckedChanged(object sender, EventArgs e)
-        {
-            if (chkUsarPerfil.Checked && usuarioActual == null)
-            {
-                MessageBox.Show("No hay usuario activo para usar el perfil de empresas.",
-                    "Perfil no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                chkUsarPerfil.Checked = false;
-                return;
-            }
 
-            // Recargar razones sociales según el modo activo
-            CargarRazonesSociales();
-        }
+        #region Configuración y Formato del DataGridView
 
         private void ConfigurarDataGridView()
         {
@@ -1390,6 +1291,11 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
+        #endregion
+
+
+        #region Eventos de Doble Clic en Grids (Detalle de Conciliación)
+
         private void DgvReporteIGI_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
         {
             // Validar índice de fila válido
@@ -1529,6 +1435,11 @@ namespace Retorno360Tacna.FORMS
                 });
             }
         }
+
+        #endregion
+
+
+        #region Resumen y Gráficas (IGI / IVA)
 
         private void MostrarResumen(ResumenIGI resumen)
         {
@@ -1768,7 +1679,7 @@ namespace Retorno360Tacna.FORMS
             try
             {
                 var _dtIGI = dgvReporteIGI.DataSource as System.Data.DataTable;
-                System.Diagnostics.Debug.WriteLine($"[ActualizarGraficaPorFormaPago] dgvReporteIGI.DataSource={((dgvReporteIGI.DataSource==null)?"null":"set")} rows={(_dtIGI?.Rows.Count ?? 0)}");
+                System.Diagnostics.Debug.WriteLine($"[ActualizarGraficaPorFormaPago] dgvReporteIGI.DataSource={((dgvReporteIGI.DataSource == null) ? "null" : "set")} rows={(_dtIGI?.Rows.Count ?? 0)}");
                 chartIGI.Series = Array.Empty<ISeries>();
 
                 if (dgvReporteIGI.DataSource is not System.Data.DataTable tablaIGI || tablaIGI.Rows.Count == 0)
@@ -1952,15 +1863,15 @@ namespace Retorno360Tacna.FORMS
                             try { chartIGI.Dispose(); } catch { }
                         }
 
-                            panelGrafica.Controls.Add(nuevoChart);
-                            panelGrafica.Controls.SetChildIndex(nuevoChart, 0);
-                            chartIGI = nuevoChart;
+                        panelGrafica.Controls.Add(nuevoChart);
+                        panelGrafica.Controls.SetChildIndex(nuevoChart, 0);
+                        chartIGI = nuevoChart;
 
-                            AjustarAreaGrafica(chartIGI, panelGrafica, lblTituloGrafica);
-                            // Asegurar visibilidad correcta según la gráfica actual
-                            chartIGI.Visible = (graficaActual == 0);
-                            MostrarGraficaActual();
-                            try { chartIGI.Update(); chartIGI.Refresh(); panelGrafica.Refresh(); } catch { }
+                        AjustarAreaGrafica(chartIGI, panelGrafica, lblTituloGrafica);
+                        // Asegurar visibilidad correcta según la gráfica actual
+                        chartIGI.Visible = (graficaActual == 0);
+                        MostrarGraficaActual();
+                        try { chartIGI.Update(); chartIGI.Refresh(); panelGrafica.Refresh(); } catch { }
                     }
                     catch { }
                 }
@@ -1980,7 +1891,7 @@ namespace Retorno360Tacna.FORMS
             try
             {
                 var _dtIVA = dgvReporteIVA.DataSource as System.Data.DataTable;
-                System.Diagnostics.Debug.WriteLine($"[ActualizarGraficaIVAPorFormaPago] dgvReporteIVA.DataSource={((dgvReporteIVA.DataSource==null)?"null":"set")} rows={(_dtIVA?.Rows.Count ?? 0)}");
+                System.Diagnostics.Debug.WriteLine($"[ActualizarGraficaIVAPorFormaPago] dgvReporteIVA.DataSource={((dgvReporteIVA.DataSource == null) ? "null" : "set")} rows={(_dtIVA?.Rows.Count ?? 0)}");
                 chartIVA.Series = Array.Empty<ISeries>();
 
                 if (dgvReporteIVA.DataSource is not System.Data.DataTable tablaIVA || tablaIVA.Rows.Count == 0)
@@ -2240,6 +2151,170 @@ namespace Retorno360Tacna.FORMS
                     lblTituloGrafica.Text = "Error al cargar gráfica IVA (2/2)";
             }
         }
+
+        private void MostrarGraficaActual()
+        {
+            panelGrafica.Visible = true;
+            panelGrafica.BringToFront();
+            panelGraficaIVA.Visible = false;
+
+            if (chartIGI != null)
+            {
+                chartIGI.Visible = graficaActual == 0;
+                if (chartIGI.Visible)
+                    chartIGI.BringToFront();
+            }
+
+            if (chartIVA != null)
+            {
+                chartIVA.Visible = graficaActual == 1;
+                if (chartIVA.Visible)
+                    chartIVA.BringToFront();
+            }
+
+            // Forzar refresco y repintado al cambiar de gráfica para asegurar renderizado
+            try
+            {
+                if (graficaActual == 0)
+                {
+                    try
+                    {
+                        chartIGI?.Update();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] chartIGI.Update error: {ex}");
+                    }
+                    chartIGI?.Refresh();
+                    chartIGI?.Invalidate();
+                    try { panelGrafica?.Refresh(); } catch { }
+                }
+                else
+                {
+                    try
+                    {
+                        chartIVA?.Update();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] chartIVA.Update error: {ex}");
+                    }
+                    chartIVA?.Refresh();
+                    chartIVA?.Invalidate();
+                    try { panelGrafica?.Refresh(); } catch { }
+                }
+
+                // Procesar eventos pendientes para asegurar que el control se repinte inmediatamente
+                try { System.Windows.Forms.Application.DoEvents(); } catch { }
+                System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] Forzado Update/Refresh para graficaActual={graficaActual}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] Error al forzar refresco: {ex.Message}");
+            }
+
+            // Información adicional de diagnóstico sobre series y ejes
+            try
+            {
+                if (chartIGI != null)
+                {
+                    var seriesCount = chartIGI.Series?.Count() ?? 0;
+                    var xLabels = chartIGI.XAxes?.FirstOrDefault()?.Labels?.Count ?? 0;
+                    System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual-DBG] chartIGI series={seriesCount} xLabels={xLabels}");
+                }
+
+                if (chartIVA != null)
+                {
+                    var seriesCount = chartIVA.Series?.Count() ?? 0;
+                    var xLabels = chartIVA.XAxes?.FirstOrDefault()?.Labels?.Count ?? 0;
+                    System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual-DBG] chartIVA series={seriesCount} xLabels={xLabels}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual-DBG] Error leyendo propiedades: {ex.Message}");
+            }
+
+            lblTituloGrafica.Text = graficaActual == 0
+                ? "IGI por Mes y Forma de Pago (1/2)"
+                : "IVA por Mes y Forma de Pago (2/2)";
+
+            System.Diagnostics.Debug.WriteLine($"[MostrarGraficaActual] graficaActual={graficaActual} chartIGI!=null:{chartIGI != null} chartIVA!=null:{chartIVA != null} chartIGI.Visible={chartIGI?.Visible} chartIVA.Visible={chartIVA?.Visible}");
+
+            lblTituloGrafica.BringToFront();
+            btnAnteriorGrafica.Visible = true;
+            btnSiguienteGrafica.Visible = true;
+            btnAnteriorGrafica.BringToFront();
+            btnSiguienteGrafica.BringToFront();
+        }
+
+        // Nota: método auxiliar para mostrar tablas cuando hay discrepancias en los datos usados para graficar.
+        private void MostrarDiagnosticoTablas(string tipo, System.Data.DataTable tabla)
+        {
+            try
+            {
+                using var frm = new Form();
+                frm.StartPosition = FormStartPosition.CenterParent;
+                frm.Size = new Size(900, 500);
+                frm.Text = $"Diagnóstico de datos para gráfica: {tipo}";
+                frm.MinimizeBox = false;
+                frm.MaximizeBox = false;
+
+                var dgv = new DataGridView
+                {
+                    Dock = DockStyle.Fill,
+                    ReadOnly = true,
+                    AllowUserToAddRows = false,
+                    AllowUserToDeleteRows = false,
+                    AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
+                    DataSource = tabla.Copy()
+                };
+
+                var btnCerrar = new Button
+                {
+                    Text = "Cerrar",
+                    Dock = DockStyle.Bottom,
+                    Height = 36
+                };
+                btnCerrar.Click += (s, e) => frm.Close();
+
+                frm.Controls.Add(dgv);
+                frm.Controls.Add(btnCerrar);
+                frm.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error en MostrarDiagnosticoTablas: {ex.Message}");
+            }
+        }
+
+        private void btnAnteriorGrafica_Click(object sender, EventArgs e)
+        {
+            CambiarGrafica(-1);
+        }
+
+        private void btnSiguienteGrafica_Click(object sender, EventArgs e)
+        {
+            CambiarGrafica(1);
+        }
+
+        private void CambiarGrafica(int direccion)
+        {
+            // Cambiar índice de gráfica (ciclo entre 0 y 1)
+            graficaActual = (graficaActual + direccion + 2) % 2;
+
+            MostrarGraficaActual();
+
+            if (graficaActual == 0)
+                chartIGI?.Update();
+            else
+                chartIVA?.Update();
+        }
+
+        #endregion
+
+
+        #region Exportación de Reportes (PDF / Excel)
 
         private void btnGenerarPDF_Click(object sender, EventArgs e)
         {
@@ -2551,29 +2626,6 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
-        private void btnAnteriorGrafica_Click(object sender, EventArgs e)
-        {
-            CambiarGrafica(-1);
-        }
-
-        private void btnSiguienteGrafica_Click(object sender, EventArgs e)
-        {
-            CambiarGrafica(1);
-        }
-
-        private void CambiarGrafica(int direccion)
-        {
-            // Cambiar índice de gráfica (ciclo entre 0 y 1)
-            graficaActual = (graficaActual + direccion + 2) % 2;
-
-            MostrarGraficaActual();
-
-            if (graficaActual == 0)
-                chartIGI?.Update();
-            else
-                chartIVA?.Update();
-        }
-
-
+        #endregion
     }
 }

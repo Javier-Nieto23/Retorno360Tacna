@@ -11,6 +11,7 @@ namespace Retorno360Tacna.SERVICES
     {
         public RetornoService(ConexionInfo conexion) : base(conexion)
         {
+
         }
 
         /// <summary>

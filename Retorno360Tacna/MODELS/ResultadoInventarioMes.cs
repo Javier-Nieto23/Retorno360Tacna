@@ -27,6 +27,10 @@ namespace Retorno360Tacna.FORMS
         public string NombreArchivo => string.IsNullOrEmpty(RutaArchivo) ? string.Empty : Path.GetFileName(RutaArchivo);
         public string Hoja { get; set; } = string.Empty;
 
+        public int idEmpresa { get; set; }
+
+        public int IdRazonSocial { get; set; }
+
         public TipoOperacion Operacion { get; set; }
         public string CampoTotal { get; set; } = string.Empty;
         public string CampoA { get; set; } = string.Empty;
