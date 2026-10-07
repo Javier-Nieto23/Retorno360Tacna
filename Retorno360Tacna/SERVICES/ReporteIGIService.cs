@@ -286,65 +286,65 @@ GROUP BY
                 var pedimentosGlosaIVA = new List<(string Pedimento, DateTime FechaPago, string FormaPagoIVA, decimal IVAPagado)>();
 
                 string sqlCliente = $@"
-SELECT
-    DP.Adu_AduanaSecc + '-' + DP.AgP_Patente + '-' + DP.Pim_Folio AS Pedimento,
-    CONVERT(date, IIF(DP.CLP_CLAVE='R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)) AS FechaPago,
-    DP.CLP_CLAVE AS Clave,
-    DI.FoP_Clave AS FormaPago_IGI,
-    SUM(ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100.0, 0)) AS IGI_Calculado
-FROM {SqlHelper.Quotename(baseDatos)}.dbo.Di_Pedimento DP
-INNER JOIN {SqlHelper.Quotename(baseDatos)}.dbo.Di_PedimentoDet DI
-    ON DI.Pim_Consecutivo = DP.Pim_Consecutivo
-INNER JOIN {SqlHelper.Quotename(baseDatos)}.dbo.Ca_Farancelaria FRA
-    ON FRA.Fra_Fraccion = IIF(LEFT(DI.Fra_Fraccion,2)='98', DI.Fra_FraccionORIG, DI.Fra_Fraccion)
-   AND FRA.Pai_Clave='MEX'
-   AND FRA.Fra_TipoOper=0
-WHERE IIF(DP.CLP_CLAVE='R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago) BETWEEN @FechaInicio AND @FechaFin
-  AND DI.FoP_Clave IN ('0','5')
-GROUP BY
-    DP.Adu_AduanaSecc,
-    DP.AgP_Patente,
-    DP.Pim_Folio,
-    CONVERT(date, IIF(DP.CLP_CLAVE='R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)),
-    DP.CLP_CLAVE,
-    DI.FoP_Clave;";
+                            SELECT
+                                DP.Adu_AduanaSecc + '-' + DP.AgP_Patente + '-' + DP.Pim_Folio AS Pedimento,
+                                CONVERT(date, IIF(DP.CLP_CLAVE='R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)) AS FechaPago,
+                                DP.CLP_CLAVE AS Clave,
+                                DI.FoP_Clave AS FormaPago_IGI,
+                                SUM(ROUND((DI.Pid_ValorAdu * FRA.Fra_AdvGral) / 100.0, 0)) AS IGI_Calculado
+                            FROM {SqlHelper.Quotename(baseDatos)}.dbo.Di_Pedimento DP
+                            INNER JOIN {SqlHelper.Quotename(baseDatos)}.dbo.Di_PedimentoDet DI
+                                ON DI.Pim_Consecutivo = DP.Pim_Consecutivo
+                            INNER JOIN {SqlHelper.Quotename(baseDatos)}.dbo.Ca_Farancelaria FRA
+                                ON FRA.Fra_Fraccion = IIF(LEFT(DI.Fra_Fraccion,2)='98', DI.Fra_FraccionORIG, DI.Fra_Fraccion)
+                               AND FRA.Pai_Clave='MEX'
+                               AND FRA.Fra_TipoOper=0
+                            WHERE IIF(DP.CLP_CLAVE='R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago) BETWEEN @FechaInicio AND @FechaFin
+                              AND DI.FoP_Clave IN ('0','5')
+                            GROUP BY
+                                DP.Adu_AduanaSecc,
+                                DP.AgP_Patente,
+                                DP.Pim_Folio,
+                                CONVERT(date, IIF(DP.CLP_CLAVE='R1', DP.Pim_FechaPagoR1, DP.Pim_FechaPago)),
+                                DP.CLP_CLAVE,
+                                DI.FoP_Clave;";
 
                 string sqlGlosaIGI = $@"
-SELECT
-    TR.GL_ADUANA + '-' + TR.GL_PATENTE + '-' + TR.GL_PEDIMENTO AS Pedimento,
-    CONVERT(date, TR.Gl_FecPagoReal) AS FechaPago,
-    TR.Gl_FPagoAdvalorem AS FormaPago_IGI,
-    SUM(ISNULL(TR.Gl_ImporteADvalorem, 0)) AS IGI_Pagado
-FROM {SqlHelper.Quotename(baseGlosa)}.dbo.TR_GLOSA TR
-WHERE CONVERT(date, TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
-  AND TR.Gl_TOper = 1
-  AND TR.Gl_OrigenZipGlosa = 'S'
-  AND TR.Gl_FPagoAdvalorem IN ('0','5')
-GROUP BY
-    TR.GL_ADUANA,
-    TR.GL_PATENTE,
-    TR.GL_PEDIMENTO,
-    CONVERT(date, TR.Gl_FecPagoReal),
-    TR.Gl_FPagoAdvalorem;";
+                                        SELECT
+                                            TR.GL_ADUANA + '-' + TR.GL_PATENTE + '-' + TR.GL_PEDIMENTO AS Pedimento,
+                                            CONVERT(date, TR.Gl_FecPagoReal) AS FechaPago,
+                                            TR.Gl_FPagoAdvalorem AS FormaPago_IGI,
+                                            SUM(ISNULL(TR.Gl_ImporteADvalorem, 0)) AS IGI_Pagado
+                                        FROM {SqlHelper.Quotename(baseGlosa)}.dbo.TR_GLOSA TR
+                                        WHERE CONVERT(date, TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
+                                          AND TR.Gl_TOper = 1
+                                          AND TR.Gl_OrigenZipGlosa = 'S'
+                                          AND TR.Gl_FPagoAdvalorem IN ('0','5')
+                                        GROUP BY
+                                            TR.GL_ADUANA,
+                                            TR.GL_PATENTE,
+                                            TR.GL_PEDIMENTO,
+                                            CONVERT(date, TR.Gl_FecPagoReal),
+                                            TR.Gl_FPagoAdvalorem;";
 
                 string sqlGlosaIVA = $@"
-SELECT
-    TR.GL_ADUANA + '-' + TR.GL_PATENTE + '-' + TR.GL_PEDIMENTO AS Pedimento,
-    CONVERT(date, TR.Gl_FecPagoReal) AS FechaPago,
-    TR.Gl_FPagoIVA AS FormaPago_IVA,
-    SUM(ISNULL(TR.Gl_ImporteIVA, 0)) AS IVA_Pagado
-FROM {SqlHelper.Quotename(baseGlosa)}.dbo.TR_GLOSA TR
-WHERE CONVERT(date, TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
-  AND TR.Gl_TOper = 1
-  AND TR.Gl_OrigenZipGlosa = 'S'
-  AND TR.Gl_FPagoIVA IN ('0','21')
-GROUP BY
-    TR.GL_ADUANA,
-    TR.GL_PATENTE,
-    TR.GL_PEDIMENTO,
-    CONVERT(date, TR.Gl_FecPagoReal),
-    TR.Gl_FPagoIVA
-HAVING SUM(ISNULL(TR.Gl_ImporteIVA, 0)) > 0;";
+                                        SELECT
+                                            TR.GL_ADUANA + '-' + TR.GL_PATENTE + '-' + TR.GL_PEDIMENTO AS Pedimento,
+                                            CONVERT(date, TR.Gl_FecPagoReal) AS FechaPago,
+                                            TR.Gl_FPagoIVA AS FormaPago_IVA,
+                                            SUM(ISNULL(TR.Gl_ImporteIVA, 0)) AS IVA_Pagado
+                                        FROM {SqlHelper.Quotename(baseGlosa)}.dbo.TR_GLOSA TR
+                                        WHERE CONVERT(date, TR.Gl_FecPagoReal) BETWEEN @FechaInicio AND @FechaFin
+                                          AND TR.Gl_TOper = 1
+                                          AND TR.Gl_OrigenZipGlosa = 'S'
+                                          AND TR.Gl_FPagoIVA IN ('0','21')
+                                        GROUP BY
+                                            TR.GL_ADUANA,
+                                            TR.GL_PATENTE,
+                                            TR.GL_PEDIMENTO,
+                                            CONVERT(date, TR.Gl_FecPagoReal),
+                                            TR.Gl_FPagoIVA
+                                        HAVING SUM(ISNULL(TR.Gl_ImporteIVA, 0)) > 0;";
 
                 try
                 {

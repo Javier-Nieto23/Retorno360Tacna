@@ -73,8 +73,8 @@ namespace Retorno360Tacna.FORMS
             btnUsuarioEmpresa.BackColor = Color.FromArgb(196, 140, 255);
             btnUsuarioEmpresa.Cursor = Cursors.Hand;
             btnUsuarioEmpresa.FlatAppearance.BorderSize = 0;
-            btnUsuarioEmpresa.FlatAppearance.MouseDownBackColor = Color.FromArgb(22, 100, 75);
-            btnUsuarioEmpresa.FlatAppearance.MouseOverBackColor = Color.FromArgb(52, 168, 130);
+            btnUsuarioEmpresa.FlatAppearance.MouseDownBackColor = Color.FromArgb(155, 95, 210);
+            btnUsuarioEmpresa.FlatAppearance.MouseOverBackColor = Color.FromArgb(175, 115, 240);
             btnUsuarioEmpresa.FlatStyle = FlatStyle.Flat;
             btnUsuarioEmpresa.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnUsuarioEmpresa.ForeColor = Color.White;

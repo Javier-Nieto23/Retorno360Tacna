@@ -164,8 +164,14 @@ namespace Retorno360Tacna.FORMS
                         var altasNp = partes.Count; // Altas NP = partes con inserción en el periodo
                         var vigenteBom = partes.Count(p => (p.EstatusComponente ?? string.Empty).Equals("VIGENTE EN BOM", StringComparison.OrdinalIgnoreCase));
 
-                        // % Base de Datos Limpia: =SI([Altas NP]=0, 1, [Vigente BOM]/[Altas NP])
-                        decimal pctBaseLimpia = (altasNp == 0) ? 1m : ((decimal)vigenteBom / (decimal)altasNp);
+                        // Nuevo cálculo solicitado:
+                        // Porcentaje = No.Parte con pedimento / BOM
+                        // No.Parte con pedimento: contar partes que tienen detalle de pedimentos (DetallePedimentosGlosa == "SI" o PedimentosRelacionados.Count>0)
+                        var partesConPedimento = partes.Count(p => (p.DetallePedimentosGlosa ?? string.Empty).Equals("SI", StringComparison.OrdinalIgnoreCase)
+                                                                || (p.PedimentosRelacionados != null && p.PedimentosRelacionados.Count > 0));
+
+                        // Evitar división por cero: si no hay BOM vigente, definir 1m (100%) por compatibilidad con lógica anterior
+                        decimal pctBaseLimpia = (vigenteBom == 0) ? 1m : ((decimal)partesConPedimento / (decimal)vigenteBom);
 
                         // Obtener porcentaje retorno para ese mes+base (RetornoService devuelve porcentaje en unidades, p.ej. 116.25)
                         ResultadoRetorno res = await Task.Run(() => retornoService.CalcularRetorno(razon.IdRazon, baseDb, inicioMes, finMes, false, true));

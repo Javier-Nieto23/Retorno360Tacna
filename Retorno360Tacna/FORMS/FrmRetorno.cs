@@ -461,7 +461,7 @@ namespace Retorno360Tacna.FORMS
                         dtpFechaFin.Value,
                         chkMateriaPrima.Checked
                     ));
-
+                    
                     MessageBox.Show("Cálculo por razón social completado exitosamente.\n\n" +
                         "Nota: Este cálculo utiliza todos los pedimentos de TR_Glosa sin validación cruzada.",
                         "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);

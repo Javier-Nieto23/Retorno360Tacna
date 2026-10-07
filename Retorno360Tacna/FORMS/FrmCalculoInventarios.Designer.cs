@@ -28,342 +28,35 @@
         /// </summary>
         private void InitializeComponent()
         {
-            chkUsarPerfil = new CheckBox();
-            pnlCantidadMeses = new Panel();
-            pnlHistorico = new Panel();
-            dgvHistorico = new DataGridView();
-            pnlHistoricoBotones = new Panel();
-            btnEliminarHistorico = new Button();
-            btnEditarHistorico = new Button();
-            btnExportarHistoricoExcel = new Button();
-            pnlHistoricoHeader = new Panel();
-            lblHistoricoTitulo = new Label();
+            lblConfigSubtitulo = new Label();
+            panelConfigHeader = new Panel();
+            splitCentral = new SplitContainer();
+            pnlLeft = new Panel();
+            pnlRight = new Panel();
+            btnProcesarPreview = new Button();
+            btnGuardarCalculos = new Button();
             panelConfigCuerpo = new Panel();
+            lblMesAno = new Label();
+            lblTotalGeneral = new Label();
+            btnHistorialVerificacion = new Button();
+            btnExportarExcel = new Button();
+            btnRecalcular = new Button();
+            btnVerificarPartes = new Button();
+            chkUsarPerfil = new CheckBox();
             lblLblRazon = new Label();
             cmbRazonSocial = new ComboBox();
             lblLblEmpresa = new Label();
             cmbEmpresa = new ComboBox();
-            lblLblMeses = new Label();
-            nudCantidadMeses = new NumericUpDown();
-            blCantidadMeses = new Label();
-            panelPlantilla = new Panel();
             lblPlantillaInfo = new Label();
-            btnCargarPlantilla = new Button();
-            btnIniciarCalculo = new Button();
-            panelConfigHeader = new Panel();
-            lblConfigSubtitulo = new Label();
-            pnlCaptura = new Panel();
-            flpPaneles = new FlowLayoutPanel();
-            dgvResultados = new DataGridView();
-            pnlBotonesInferiores = new Panel();
-            btnRecalcular = new Button();
-            btnExportarExcel = new Button();
-            lblTotalGeneral = new Label();
-            pnlCantidadMeses.SuspendLayout();
-            pnlHistorico.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvHistorico).BeginInit();
-            pnlHistoricoBotones.SuspendLayout();
-            pnlHistoricoHeader.SuspendLayout();
+            dgvRelsultados = new DataGridView();
+            btnAnalizarExcel = new Button();
+            pnlChart = new Panel();
+            label1 = new Label();
+            ((System.ComponentModel.ISupportInitialize)splitCentral).BeginInit();
+            splitCentral.SuspendLayout();
             panelConfigCuerpo.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)nudCantidadMeses).BeginInit();
-            panelPlantilla.SuspendLayout();
-            pnlCaptura.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvResultados).BeginInit();
-            pnlBotonesInferiores.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dgvRelsultados).BeginInit();
             SuspendLayout();
-            // 
-            // chkUsarPerfil
-            // 
-            chkUsarPerfil.AutoSize = true;
-            chkUsarPerfil.Font = new Font("Segoe UI", 9.5F);
-            chkUsarPerfil.Location = new Point(40, 395);
-            chkUsarPerfil.Name = "chkUsarPerfil";
-            chkUsarPerfil.Size = new Size(186, 21);
-            chkUsarPerfil.TabIndex = 10;
-            chkUsarPerfil.Text = "Usar empresas de mi perfil";
-            chkUsarPerfil.UseVisualStyleBackColor = true;
-            chkUsarPerfil.CheckedChanged += chkUsarPerfil_CheckedChanged;
-            // 
-            // pnlCantidadMeses
-            // 
-            pnlCantidadMeses.BackColor = Color.FromArgb(245, 247, 250);
-            pnlCantidadMeses.Controls.Add(pnlHistorico);
-            pnlCantidadMeses.Controls.Add(panelConfigCuerpo);
-            pnlCantidadMeses.Controls.Add(panelConfigHeader);
-            pnlCantidadMeses.Dock = DockStyle.Fill;
-            pnlCantidadMeses.Location = new Point(0, 0);
-            pnlCantidadMeses.Name = "pnlCantidadMeses";
-            pnlCantidadMeses.Size = new Size(1001, 734);
-            pnlCantidadMeses.TabIndex = 0;
-            // 
-            // pnlHistorico
-            // 
-            pnlHistorico.BorderStyle = BorderStyle.FixedSingle;
-            pnlHistorico.Controls.Add(dgvHistorico);
-            pnlHistorico.Controls.Add(pnlHistoricoBotones);
-            pnlHistorico.Controls.Add(pnlHistoricoHeader);
-            pnlHistorico.Dock = DockStyle.Bottom;
-            pnlHistorico.Location = new Point(0, 424);
-            pnlHistorico.Name = "pnlHistorico";
-            pnlHistorico.Size = new Size(1001, 310);
-            pnlHistorico.TabIndex = 2;
-            // 
-            // dgvHistorico
-            // 
-            dgvHistorico.AllowUserToAddRows = false;
-            dgvHistorico.AllowUserToDeleteRows = false;
-            dgvHistorico.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvHistorico.BackgroundColor = Color.White;
-            dgvHistorico.BorderStyle = BorderStyle.None;
-            dgvHistorico.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvHistorico.Dock = DockStyle.Fill;
-            dgvHistorico.Location = new Point(0, 96);
-            dgvHistorico.Name = "dgvHistorico";
-            dgvHistorico.ReadOnly = true;
-            dgvHistorico.RowHeadersWidth = 40;
-            dgvHistorico.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvHistorico.Size = new Size(999, 212);
-            dgvHistorico.TabIndex = 0;
-            // 
-            // pnlHistoricoBotones
-            // 
-            pnlHistoricoBotones.BackColor = Color.FromArgb(245, 247, 250);
-            pnlHistoricoBotones.Controls.Add(btnEliminarHistorico);
-            pnlHistoricoBotones.Controls.Add(btnEditarHistorico);
-            pnlHistoricoBotones.Controls.Add(btnExportarHistoricoExcel);
-            pnlHistoricoBotones.Dock = DockStyle.Top;
-            pnlHistoricoBotones.Location = new Point(0, 44);
-            pnlHistoricoBotones.Name = "pnlHistoricoBotones";
-            pnlHistoricoBotones.Padding = new Padding(10, 8, 10, 8);
-            pnlHistoricoBotones.Size = new Size(999, 52);
-            pnlHistoricoBotones.TabIndex = 1;
-            // 
-            // btnEliminarHistorico
-            // 
-            btnEliminarHistorico.BackColor = Color.FromArgb(192, 57, 43);
-            btnEliminarHistorico.FlatAppearance.BorderSize = 0;
-            btnEliminarHistorico.FlatStyle = FlatStyle.Flat;
-            btnEliminarHistorico.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            btnEliminarHistorico.ForeColor = Color.White;
-            btnEliminarHistorico.Location = new Point(340, 8);
-            btnEliminarHistorico.Name = "btnEliminarHistorico";
-            btnEliminarHistorico.Size = new Size(140, 36);
-            btnEliminarHistorico.TabIndex = 2;
-            btnEliminarHistorico.Text = "  Eliminar";
-            btnEliminarHistorico.UseVisualStyleBackColor = false;
-            btnEliminarHistorico.Click += btnEliminarHistorico_Click;
-            // 
-            // btnEditarHistorico
-            // 
-            btnEditarHistorico.BackColor = Color.FromArgb(41, 128, 185);
-            btnEditarHistorico.FlatAppearance.BorderSize = 0;
-            btnEditarHistorico.FlatStyle = FlatStyle.Flat;
-            btnEditarHistorico.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            btnEditarHistorico.ForeColor = Color.White;
-            btnEditarHistorico.Location = new Point(190, 8);
-            btnEditarHistorico.Name = "btnEditarHistorico";
-            btnEditarHistorico.Size = new Size(140, 36);
-            btnEditarHistorico.TabIndex = 1;
-            btnEditarHistorico.Text = "  Editar Total";
-            btnEditarHistorico.UseVisualStyleBackColor = false;
-            btnEditarHistorico.Click += btnEditarHistorico_Click;
-            // 
-            // btnExportarHistoricoExcel
-            // 
-            btnExportarHistoricoExcel.BackColor = Color.FromArgb(39, 174, 96);
-            btnExportarHistoricoExcel.FlatAppearance.BorderSize = 0;
-            btnExportarHistoricoExcel.FlatStyle = FlatStyle.Flat;
-            btnExportarHistoricoExcel.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            btnExportarHistoricoExcel.ForeColor = Color.White;
-            btnExportarHistoricoExcel.Location = new Point(10, 8);
-            btnExportarHistoricoExcel.Name = "btnExportarHistoricoExcel";
-            btnExportarHistoricoExcel.Size = new Size(170, 36);
-            btnExportarHistoricoExcel.TabIndex = 0;
-            btnExportarHistoricoExcel.Text = "  Exportar a Excel";
-            btnExportarHistoricoExcel.UseVisualStyleBackColor = false;
-            btnExportarHistoricoExcel.Click += btnExportarHistoricoExcel_Click;
-            // 
-            // pnlHistoricoHeader
-            // 
-            pnlHistoricoHeader.BackColor = Color.FromArgb(30, 80, 50);
-            pnlHistoricoHeader.Controls.Add(lblHistoricoTitulo);
-            pnlHistoricoHeader.Dock = DockStyle.Top;
-            pnlHistoricoHeader.Location = new Point(0, 0);
-            pnlHistoricoHeader.Name = "pnlHistoricoHeader";
-            pnlHistoricoHeader.Padding = new Padding(16, 0, 0, 0);
-            pnlHistoricoHeader.Size = new Size(999, 44);
-            pnlHistoricoHeader.TabIndex = 0;
-            // 
-            // lblHistoricoTitulo
-            // 
-            lblHistoricoTitulo.AutoSize = true;
-            lblHistoricoTitulo.Dock = DockStyle.Left;
-            lblHistoricoTitulo.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            lblHistoricoTitulo.ForeColor = Color.White;
-            lblHistoricoTitulo.Location = new Point(16, 0);
-            lblHistoricoTitulo.Name = "lblHistoricoTitulo";
-            lblHistoricoTitulo.Padding = new Padding(0, 12, 0, 0);
-            lblHistoricoTitulo.Size = new Size(202, 32);
-            lblHistoricoTitulo.TabIndex = 0;
-            lblHistoricoTitulo.Text = "📋  Historial de Inventarios";
-            // 
-            // panelConfigCuerpo
-            // 
-            panelConfigCuerpo.BackColor = Color.Transparent;
-            panelConfigCuerpo.Controls.Add(chkUsarPerfil);
-            panelConfigCuerpo.Controls.Add(lblLblRazon);
-            panelConfigCuerpo.Controls.Add(cmbRazonSocial);
-            panelConfigCuerpo.Controls.Add(lblLblEmpresa);
-            panelConfigCuerpo.Controls.Add(cmbEmpresa);
-            panelConfigCuerpo.Controls.Add(lblLblMeses);
-            panelConfigCuerpo.Controls.Add(nudCantidadMeses);
-            panelConfigCuerpo.Controls.Add(blCantidadMeses);
-            panelConfigCuerpo.Controls.Add(panelPlantilla);
-            panelConfigCuerpo.Controls.Add(btnIniciarCalculo);
-            panelConfigCuerpo.Dock = DockStyle.Fill;
-            panelConfigCuerpo.Location = new Point(0, 0);
-            panelConfigCuerpo.Name = "panelConfigCuerpo";
-            panelConfigCuerpo.Padding = new Padding(40, 30, 40, 30);
-            panelConfigCuerpo.Size = new Size(1001, 734);
-            panelConfigCuerpo.TabIndex = 0;
-            // 
-            // lblLblRazon
-            // 
-            lblLblRazon.AutoSize = true;
-            lblLblRazon.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblLblRazon.ForeColor = Color.FromArgb(50, 60, 70);
-            lblLblRazon.Location = new Point(40, 30);
-            lblLblRazon.Name = "lblLblRazon";
-            lblLblRazon.Size = new Size(94, 19);
-            lblLblRazon.TabIndex = 0;
-            lblLblRazon.Text = "Razón Social";
-            // 
-            // cmbRazonSocial
-            // 
-            cmbRazonSocial.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbRazonSocial.Font = new Font("Segoe UI", 10F);
-            cmbRazonSocial.FormattingEnabled = true;
-            cmbRazonSocial.Location = new Point(40, 54);
-            cmbRazonSocial.Name = "cmbRazonSocial";
-            cmbRazonSocial.Size = new Size(420, 25);
-            cmbRazonSocial.TabIndex = 0;
-            // 
-            // lblLblEmpresa
-            // 
-            lblLblEmpresa.AutoSize = true;
-            lblLblEmpresa.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblLblEmpresa.ForeColor = Color.FromArgb(50, 60, 70);
-            lblLblEmpresa.Location = new Point(40, 98);
-            lblLblEmpresa.Name = "lblLblEmpresa";
-            lblLblEmpresa.Size = new Size(66, 19);
-            lblLblEmpresa.TabIndex = 1;
-            lblLblEmpresa.Text = "Empresa";
-            // 
-            // cmbEmpresa
-            // 
-            cmbEmpresa.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbEmpresa.Font = new Font("Segoe UI", 10F);
-            cmbEmpresa.FormattingEnabled = true;
-            cmbEmpresa.Location = new Point(40, 122);
-            cmbEmpresa.Name = "cmbEmpresa";
-            cmbEmpresa.Size = new Size(420, 25);
-            cmbEmpresa.TabIndex = 1;
-            cmbEmpresa.SelectedIndexChanged += cmbEmpresa_SelectedIndexChanged;
-            // 
-            // lblLblMeses
-            // 
-            lblLblMeses.AutoSize = true;
-            lblLblMeses.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblLblMeses.ForeColor = Color.FromArgb(50, 60, 70);
-            lblLblMeses.Location = new Point(40, 166);
-            lblLblMeses.Name = "lblLblMeses";
-            lblLblMeses.Size = new Size(207, 19);
-            lblLblMeses.TabIndex = 2;
-            lblLblMeses.Text = "¿Cuántos meses va a calcular?";
-            // 
-            // nudCantidadMeses
-            // 
-            nudCantidadMeses.Font = new Font("Segoe UI", 10F);
-            nudCantidadMeses.Location = new Point(40, 190);
-            nudCantidadMeses.Maximum = new decimal(new int[] { 12, 0, 0, 0 });
-            nudCantidadMeses.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            nudCantidadMeses.Name = "nudCantidadMeses";
-            nudCantidadMeses.Size = new Size(80, 25);
-            nudCantidadMeses.TabIndex = 2;
-            nudCantidadMeses.Value = new decimal(new int[] { 1, 0, 0, 0 });
-            // 
-            // blCantidadMeses
-            // 
-            blCantidadMeses.AutoSize = true;
-            blCantidadMeses.Font = new Font("Segoe UI", 8.5F);
-            blCantidadMeses.ForeColor = Color.Gray;
-            blCantidadMeses.Location = new Point(108, 170);
-            blCantidadMeses.Name = "blCantidadMeses";
-            blCantidadMeses.Size = new Size(45, 15);
-            blCantidadMeses.TabIndex = 3;
-            blCantidadMeses.Text = "(1 – 12)";
-            // 
-            // panelPlantilla
-            // 
-            panelPlantilla.BackColor = Color.FromArgb(236, 245, 255);
-            panelPlantilla.BorderStyle = BorderStyle.FixedSingle;
-            panelPlantilla.Controls.Add(lblPlantillaInfo);
-            panelPlantilla.Controls.Add(btnCargarPlantilla);
-            panelPlantilla.Location = new Point(40, 242);
-            panelPlantilla.Name = "panelPlantilla";
-            panelPlantilla.Padding = new Padding(14, 12, 14, 12);
-            panelPlantilla.Size = new Size(500, 70);
-            panelPlantilla.TabIndex = 4;
-            // 
-            // lblPlantillaInfo
-            // 
-            lblPlantillaInfo.AutoSize = true;
-            lblPlantillaInfo.Font = new Font("Segoe UI", 9F);
-            lblPlantillaInfo.ForeColor = Color.FromArgb(50, 80, 130);
-            lblPlantillaInfo.Location = new Point(14, 14);
-            lblPlantillaInfo.Name = "lblPlantillaInfo";
-            lblPlantillaInfo.Size = new Size(153, 15);
-            lblPlantillaInfo.TabIndex = 0;
-            lblPlantillaInfo.Text = "📊  Sin plantilla configurada";
-            // 
-            // btnCargarPlantilla
-            // 
-            btnCargarPlantilla.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnCargarPlantilla.BackColor = Color.FromArgb(41, 128, 185);
-            btnCargarPlantilla.Cursor = Cursors.Hand;
-            btnCargarPlantilla.FlatAppearance.BorderSize = 0;
-            btnCargarPlantilla.FlatStyle = FlatStyle.Flat;
-            btnCargarPlantilla.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            btnCargarPlantilla.ForeColor = Color.White;
-            btnCargarPlantilla.Location = new Point(360, 18);
-            btnCargarPlantilla.Name = "btnCargarPlantilla";
-            btnCargarPlantilla.Size = new Size(124, 32);
-            btnCargarPlantilla.TabIndex = 1;
-            btnCargarPlantilla.Text = "Usar plantilla";
-            btnCargarPlantilla.UseVisualStyleBackColor = false;
-            btnCargarPlantilla.Click += btnCargarPlantilla_Click;
-            // 
-            // btnIniciarCalculo
-            // 
-            btnIniciarCalculo.BackColor = Color.FromArgb(22, 163, 74);
-            btnIniciarCalculo.FlatAppearance.BorderSize = 0;
-            btnIniciarCalculo.FlatStyle = FlatStyle.Flat;
-            btnIniciarCalculo.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            btnIniciarCalculo.ForeColor = Color.White;
-            btnIniciarCalculo.Location = new Point(40, 336);
-            btnIniciarCalculo.Name = "btnIniciarCalculo";
-            btnIniciarCalculo.Size = new Size(160, 46);
-            btnIniciarCalculo.TabIndex = 3;
-            btnIniciarCalculo.Text = "Continuar →";
-            btnIniciarCalculo.UseVisualStyleBackColor = false;
-            btnIniciarCalculo.Click += btnIniciarCalculo_Click;
-            // 
-            // panelConfigHeader
-            // 
-            panelConfigHeader.Location = new Point(0, 0);
-            panelConfigHeader.Name = "panelConfigHeader";
-            panelConfigHeader.Size = new Size(200, 100);
-            panelConfigHeader.TabIndex = 1;
             // 
             // lblConfigSubtitulo
             // 
@@ -377,147 +70,274 @@
             lblConfigSubtitulo.Text = "Selecciona la razón social, empresa y cantidad de meses a calcular.";
             lblConfigSubtitulo.Visible = false;
             // 
-            // pnlCaptura
+            // panelConfigHeader
             // 
-            pnlCaptura.Controls.Add(flpPaneles);
-            pnlCaptura.Controls.Add(dgvResultados);
-            pnlCaptura.Controls.Add(pnlBotonesInferiores);
-            pnlCaptura.Dock = DockStyle.Fill;
-            pnlCaptura.Location = new Point(0, 0);
-            pnlCaptura.Name = "pnlCaptura";
-            pnlCaptura.Size = new Size(1001, 734);
-            pnlCaptura.TabIndex = 1;
-            pnlCaptura.Visible = false;
+            panelConfigHeader.Location = new Point(0, 0);
+            panelConfigHeader.Name = "panelConfigHeader";
+            panelConfigHeader.Size = new Size(200, 100);
+            panelConfigHeader.TabIndex = 1;
             // 
-            // flpPaneles
+            // splitCentral
             // 
-            flpPaneles.AutoScroll = true;
-            flpPaneles.Location = new Point(3, 3);
-            flpPaneles.Name = "flpPaneles";
-            flpPaneles.Padding = new Padding(10);
-            flpPaneles.Size = new Size(1001, 380);
-            flpPaneles.TabIndex = 0;
+            splitCentral.Location = new Point(0, 0);
+            splitCentral.Name = "splitCentral";
+            splitCentral.Size = new Size(150, 100);
+            splitCentral.TabIndex = 0;
             // 
-            // dgvResultados
+            // pnlLeft
             // 
-            dgvResultados.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvResultados.Location = new Point(0, 440);
-            dgvResultados.Name = "dgvResultados";
-            dgvResultados.Size = new Size(1001, 294);
-            dgvResultados.TabIndex = 2;
+            pnlLeft.Location = new Point(0, 0);
+            pnlLeft.Name = "pnlLeft";
+            pnlLeft.Size = new Size(200, 100);
+            pnlLeft.TabIndex = 0;
             // 
-            // pnlBotonesInferiores
+            // pnlRight
             // 
-            pnlBotonesInferiores.Controls.Add(btnRecalcular);
-            pnlBotonesInferiores.Controls.Add(btnExportarExcel);
-            pnlBotonesInferiores.Controls.Add(lblTotalGeneral);
-            pnlBotonesInferiores.Location = new Point(0, 380);
-            pnlBotonesInferiores.Name = "pnlBotonesInferiores";
-            pnlBotonesInferiores.Size = new Size(1001, 60);
-            pnlBotonesInferiores.TabIndex = 1;
+            pnlRight.Location = new Point(0, 0);
+            pnlRight.Name = "pnlRight";
+            pnlRight.Size = new Size(200, 100);
+            pnlRight.TabIndex = 0;
             // 
-            // btnRecalcular
+            // btnProcesarPreview
             // 
-            btnRecalcular.BackColor = Color.FromArgb(81, 162, 255);
-            btnRecalcular.FlatAppearance.BorderSize = 0;
-            btnRecalcular.FlatStyle = FlatStyle.Flat;
-            btnRecalcular.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            btnRecalcular.ForeColor = Color.White;
-            btnRecalcular.Location = new Point(172, 7);
-            btnRecalcular.Name = "btnRecalcular";
-            btnRecalcular.Size = new Size(154, 50);
-            btnRecalcular.TabIndex = 2;
-            btnRecalcular.Text = "Conciliar";
-            btnRecalcular.UseVisualStyleBackColor = false;
-            btnRecalcular.Click += btnRecalcular_Click;
+            btnProcesarPreview.Location = new Point(0, 0);
+            btnProcesarPreview.Name = "btnProcesarPreview";
+            btnProcesarPreview.Size = new Size(130, 30);
+            btnProcesarPreview.TabIndex = 0;
+            btnProcesarPreview.Text = "Procesar preview";
             // 
-            // btnExportarExcel
+            // btnGuardarCalculos
             // 
-            btnExportarExcel.BackColor = Color.FromArgb(39, 174, 96);
-            btnExportarExcel.FlatAppearance.BorderSize = 0;
-            btnExportarExcel.FlatStyle = FlatStyle.Flat;
-            btnExportarExcel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            btnExportarExcel.ForeColor = Color.White;
-            btnExportarExcel.Image = Properties.Resources.ext_xlsx_icon_176245;
-            btnExportarExcel.ImageAlign = ContentAlignment.MiddleLeft;
-            btnExportarExcel.Location = new Point(12, 7);
-            btnExportarExcel.Name = "btnExportarExcel";
-            btnExportarExcel.Size = new Size(154, 50);
-            btnExportarExcel.TabIndex = 0;
-            btnExportarExcel.Text = "Exportar Excel";
-            btnExportarExcel.TextAlign = ContentAlignment.MiddleRight;
-            btnExportarExcel.UseVisualStyleBackColor = false;
-            btnExportarExcel.Click += btnExportarExcel_Click;
+            btnGuardarCalculos.Location = new Point(582, 21);
+            btnGuardarCalculos.Name = "btnGuardarCalculos";
+            btnGuardarCalculos.Size = new Size(100, 30);
+            btnGuardarCalculos.TabIndex = 0;
+            btnGuardarCalculos.Text = "Guardar";
+            btnGuardarCalculos.Click += btnGuardarCalculos_Click_1;
+            // 
+            // panelConfigCuerpo
+            // 
+            panelConfigCuerpo.BackColor = Color.Transparent;
+            panelConfigCuerpo.Controls.Add(label1);
+            panelConfigCuerpo.Controls.Add(lblMesAno);
+            panelConfigCuerpo.Controls.Add(lblTotalGeneral);
+            panelConfigCuerpo.Controls.Add(btnHistorialVerificacion);
+            panelConfigCuerpo.Controls.Add(btnGuardarCalculos);
+            panelConfigCuerpo.Controls.Add(btnExportarExcel);
+            panelConfigCuerpo.Controls.Add(btnRecalcular);
+            panelConfigCuerpo.Controls.Add(btnVerificarPartes);
+            panelConfigCuerpo.Controls.Add(chkUsarPerfil);
+            panelConfigCuerpo.Controls.Add(lblLblRazon);
+            panelConfigCuerpo.Controls.Add(cmbRazonSocial);
+            panelConfigCuerpo.Controls.Add(lblLblEmpresa);
+            panelConfigCuerpo.Controls.Add(cmbEmpresa);
+            panelConfigCuerpo.Controls.Add(lblPlantillaInfo);
+            panelConfigCuerpo.Controls.Add(dgvRelsultados);
+            panelConfigCuerpo.Controls.Add(btnAnalizarExcel);
+            panelConfigCuerpo.Controls.Add(pnlChart);
+            panelConfigCuerpo.Dock = DockStyle.Fill;
+            panelConfigCuerpo.Location = new Point(0, 0);
+            panelConfigCuerpo.Name = "panelConfigCuerpo";
+            panelConfigCuerpo.Padding = new Padding(40, 30, 40, 30);
+            panelConfigCuerpo.Size = new Size(1457, 800);
+            panelConfigCuerpo.TabIndex = 0;
+            // 
+            // lblMesAno
+            // 
+            lblMesAno.AutoSize = true;
+            lblMesAno.Location = new Point(430, 222);
+            lblMesAno.Name = "lblMesAno";
+            lblMesAno.Size = new Size(35, 15);
+            lblMesAno.TabIndex = 23;
+            lblMesAno.Text = "Mes: ";
             // 
             // lblTotalGeneral
             // 
             lblTotalGeneral.AutoSize = true;
-            lblTotalGeneral.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblTotalGeneral.Location = new Point(369, 24);
+            lblTotalGeneral.Location = new Point(63, 222);
             lblTotalGeneral.Name = "lblTotalGeneral";
-            lblTotalGeneral.Size = new Size(117, 19);
-            lblTotalGeneral.TabIndex = 1;
-            lblTotalGeneral.Text = "Total general: --";
+            lblTotalGeneral.Size = new Size(87, 15);
+            lblTotalGeneral.TabIndex = 4;
+            lblTotalGeneral.Text = "Total general: 0";
+            // 
+            // btnHistorialVerificacion
+            // 
+            btnHistorialVerificacion.Location = new Point(370, 21);
+            btnHistorialVerificacion.Name = "btnHistorialVerificacion";
+            btnHistorialVerificacion.Size = new Size(100, 30);
+            btnHistorialVerificacion.TabIndex = 3;
+            btnHistorialVerificacion.Text = "Historial";
+            // 
+            // btnExportarExcel
+            // 
+            btnExportarExcel.Location = new Point(476, 21);
+            btnExportarExcel.Name = "btnExportarExcel";
+            btnExportarExcel.Size = new Size(100, 30);
+            btnExportarExcel.TabIndex = 2;
+            btnExportarExcel.Text = "Exportar";
+            btnExportarExcel.Click += btnExportarExcel_Click_1;
+            // 
+            // btnRecalcular
+            // 
+            btnRecalcular.Location = new Point(264, 21);
+            btnRecalcular.Name = "btnRecalcular";
+            btnRecalcular.Size = new Size(100, 30);
+            btnRecalcular.TabIndex = 1;
+            btnRecalcular.Text = "Recalcular";
+            // 
+            // btnVerificarPartes
+            // 
+            btnVerificarPartes.Location = new Point(12, 21);
+            btnVerificarPartes.Name = "btnVerificarPartes";
+            btnVerificarPartes.Size = new Size(120, 30);
+            btnVerificarPartes.TabIndex = 0;
+            btnVerificarPartes.Text = "Verificar partes";
+            btnVerificarPartes.Click += btnVerificarPartes_Click;
+            // 
+            // chkUsarPerfil
+            // 
+            chkUsarPerfil.AutoSize = true;
+            chkUsarPerfil.Font = new Font("Segoe UI", 9.5F);
+            chkUsarPerfil.Location = new Point(31, 149);
+            chkUsarPerfil.Name = "chkUsarPerfil";
+            chkUsarPerfil.Size = new Size(186, 21);
+            chkUsarPerfil.TabIndex = 10;
+            chkUsarPerfil.Text = "Usar empresas de mi perfil";
+            chkUsarPerfil.UseVisualStyleBackColor = true;
+            chkUsarPerfil.CheckedChanged += chkUsarPerfil_CheckedChanged;
+            // 
+            // lblLblRazon
+            // 
+            lblLblRazon.AutoSize = true;
+            lblLblRazon.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblLblRazon.ForeColor = Color.FromArgb(50, 60, 70);
+            lblLblRazon.Location = new Point(31, 83);
+            lblLblRazon.Name = "lblLblRazon";
+            lblLblRazon.Size = new Size(94, 19);
+            lblLblRazon.TabIndex = 0;
+            lblLblRazon.Text = "Razón Social";
+            // 
+            // cmbRazonSocial
+            // 
+            cmbRazonSocial.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbRazonSocial.Font = new Font("Segoe UI", 10F);
+            cmbRazonSocial.FormattingEnabled = true;
+            cmbRazonSocial.Location = new Point(31, 107);
+            cmbRazonSocial.Name = "cmbRazonSocial";
+            cmbRazonSocial.Size = new Size(237, 25);
+            cmbRazonSocial.TabIndex = 0;
+            // 
+            // lblLblEmpresa
+            // 
+            lblLblEmpresa.AutoSize = true;
+            lblLblEmpresa.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblLblEmpresa.ForeColor = Color.FromArgb(50, 60, 70);
+            lblLblEmpresa.Location = new Point(290, 82);
+            lblLblEmpresa.Name = "lblLblEmpresa";
+            lblLblEmpresa.Size = new Size(66, 19);
+            lblLblEmpresa.TabIndex = 1;
+            lblLblEmpresa.Text = "Empresa";
+            // 
+            // cmbEmpresa
+            // 
+            cmbEmpresa.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbEmpresa.Font = new Font("Segoe UI", 10F);
+            cmbEmpresa.FormattingEnabled = true;
+            cmbEmpresa.Location = new Point(290, 107);
+            cmbEmpresa.Name = "cmbEmpresa";
+            cmbEmpresa.Size = new Size(217, 25);
+            cmbEmpresa.TabIndex = 1;
+            cmbEmpresa.SelectedIndexChanged += cmbEmpresa_SelectedIndexChanged;
+            // 
+            // lblPlantillaInfo
+            // 
+            lblPlantillaInfo.AutoSize = true;
+            lblPlantillaInfo.Font = new Font("Segoe UI", 9F);
+            lblPlantillaInfo.ForeColor = Color.FromArgb(50, 80, 130);
+            lblPlantillaInfo.Location = new Point(43, 185);
+            lblPlantillaInfo.Name = "lblPlantillaInfo";
+            lblPlantillaInfo.Size = new Size(153, 15);
+            lblPlantillaInfo.TabIndex = 20;
+            lblPlantillaInfo.Text = "📊  Sin plantilla configurada";
+            // 
+            // dgvRelsultados
+            // 
+            dgvRelsultados.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvRelsultados.Location = new Point(12, 256);
+            dgvRelsultados.Name = "dgvRelsultados";
+            dgvRelsultados.Size = new Size(731, 413);
+            dgvRelsultados.TabIndex = 22;
+            // 
+            // btnAnalizarExcel
+            // 
+            btnAnalizarExcel.Location = new Point(138, 21);
+            btnAnalizarExcel.Name = "btnAnalizarExcel";
+            btnAnalizarExcel.Size = new Size(120, 30);
+            btnAnalizarExcel.TabIndex = 4;
+            btnAnalizarExcel.Text = "Analizar Excel";
+            btnAnalizarExcel.Click += btnAnalizarExcel_Click;
+            // 
+            // pnlChart
+            // 
+            pnlChart.Location = new Point(775, 256);
+            pnlChart.Name = "pnlChart";
+            pnlChart.Size = new Size(670, 413);
+            pnlChart.TabIndex = 24;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            label1.Location = new Point(775, 222);
+            label1.Name = "label1";
+            label1.Size = new Size(118, 19);
+            label1.TabIndex = 25;
+            label1.Text = "Meses Cargados";
             // 
             // FrmCalculoInventarios
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1001, 734);
-            Controls.Add(pnlCaptura);
-            Controls.Add(pnlCantidadMeses);
+            ClientSize = new Size(1457, 800);
+            Controls.Add(panelConfigCuerpo);
             Name = "FrmCalculoInventarios";
             Text = "Cálculo de Inventarios";
-            pnlCantidadMeses.ResumeLayout(false);
-            pnlHistorico.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)dgvHistorico).EndInit();
-            pnlHistoricoBotones.ResumeLayout(false);
-            pnlHistoricoHeader.ResumeLayout(false);
-            pnlHistoricoHeader.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)splitCentral).EndInit();
+            splitCentral.ResumeLayout(false);
             panelConfigCuerpo.ResumeLayout(false);
             panelConfigCuerpo.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)nudCantidadMeses).EndInit();
-            panelPlantilla.ResumeLayout(false);
-            panelPlantilla.PerformLayout();
-            pnlCaptura.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)dgvResultados).EndInit();
-            pnlBotonesInferiores.ResumeLayout(false);
-            pnlBotonesInferiores.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)dgvRelsultados).EndInit();
             ResumeLayout(false);
         }
 
         #endregion
-
-        private Panel pnlCantidadMeses;
-        private Panel panelConfigHeader;
         private Label lblConfigSubtitulo;
+        private Panel panelConfigHeader;
+        private Button btnPreviewMes;
+        private Button btnAgregarMes;
+        private Button btnQuitarMes;
+        private Button btnAnalizarMeses;
+        private Button btnProcesarPreview;
+        private Button btnGuardarCalculos;
+        private SplitContainer splitCentral;
+        private Panel pnlLeft;
+        private Panel pnlRight;
         private Panel panelConfigCuerpo;
-        private Label lblLblRazon;
-        private Label lblLblEmpresa;
-        private Label lblLblMeses;
-        private Label blCantidadMeses;
-        private Button btnIniciarCalculo;
-        private NumericUpDown nudCantidadMeses;
-        private Panel panelPlantilla;
-        private Label lblPlantillaInfo;
-        private Button btnCargarPlantilla;
-        private Panel pnlCaptura;
-        private FlowLayoutPanel flpPaneles;
-        private Panel pnlBotonesInferiores;
-        private DataGridView dgvResultados;
-        private Button btnExportarExcel;
         private Label lblTotalGeneral;
+        private Button btnHistorialVerificacion;
+        private Button btnExportarExcel;
         private Button btnRecalcular;
-        private ComboBox cmbEmpresa;
-        private ComboBox cmbRazonSocial;
+        private Button btnVerificarPartes;
         private CheckBox chkUsarPerfil;
-        private DataGridView dgvHistorico;
-        private Panel pnlHistorico;
-        private Panel pnlHistoricoHeader;
-        private Label lblHistoricoTitulo;
-        private Panel pnlHistoricoBotones;
-        private Button btnExportarHistoricoExcel;
-        private Button btnEditarHistorico;
-        private Button btnEliminarHistorico;
+        private Label lblLblRazon;
+        private ComboBox cmbRazonSocial;
+        private Label lblLblEmpresa;
+        private ComboBox cmbEmpresa;
+        private Label lblPlantillaInfo;
+        private DataGridView dgvRelsultados;
+        private Panel pnlChart;
+        private Button btnAnalizarExcel;
+        private Label lblMesAno;
+        private Label label1;
     }
 }

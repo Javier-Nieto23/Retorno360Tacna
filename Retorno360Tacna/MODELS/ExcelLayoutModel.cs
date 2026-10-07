@@ -41,7 +41,8 @@ namespace Retorno360Tacna.MODELS
                 RutaArchivo = rutaArchivo;
                 Campos.Clear();
 
-                using XLWorkbook workbook = new XLWorkbook(rutaArchivo);
+                using var stream = new FileStream(rutaArchivo, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using XLWorkbook workbook = new XLWorkbook(stream);
 
                 Hojas = workbook.Worksheets
                     .Select(ws => ws.Name)
@@ -56,7 +57,8 @@ namespace Retorno360Tacna.MODELS
             if (string.IsNullOrEmpty(RutaArchivo))
                 throw new InvalidOperationException("Debe cargar un archivo antes de analizar una hoja. ");
 
-            using XLWorkbook workbook = new XLWorkbook(RutaArchivo);
+            using var stream = new FileStream(RutaArchivo, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using XLWorkbook workbook = new XLWorkbook(stream);
             IXLWorksheet? hoja = workbook.Worksheets.FirstOrDefault(ws => string.Equals(ws.Name, nombreHoja, StringComparison.OrdinalIgnoreCase));
             if (hoja == null || hoja.IsEmpty())
             {

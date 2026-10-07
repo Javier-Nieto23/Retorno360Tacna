@@ -30,18 +30,14 @@
         {
             cmbRazonSocial = new ComboBox();
             cmbCliente = new ComboBox();
-            dateTimePicker1 = new DateTimePicker();
-            dateTimePicker2 = new DateTimePicker();
             button1 = new Button();
             button2 = new Button();
-            dataGridView1 = new DataGridView();
+            panel1 = new DataGridView();
             button3 = new Button();
             label1 = new Label();
             label2 = new Label();
-            label3 = new Label();
-            label4 = new Label();
             chkUsarPerfil = new CheckBox();
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)panel1).BeginInit();
             SuspendLayout();
             // 
             // cmbRazonSocial
@@ -55,54 +51,50 @@
             // cmbCliente
             // 
             cmbCliente.FormattingEnabled = true;
-            cmbCliente.Location = new Point(49, 105);
+            cmbCliente.Location = new Point(270, 28);
             cmbCliente.Name = "cmbCliente";
             cmbCliente.Size = new Size(203, 23);
             cmbCliente.TabIndex = 1;
             // 
-            // dateTimePicker1
-            // 
-            dateTimePicker1.Location = new Point(326, 28);
-            dateTimePicker1.Name = "dateTimePicker1";
-            dateTimePicker1.Size = new Size(139, 23);
-            dateTimePicker1.TabIndex = 2;
-            // 
-            // dateTimePicker2
-            // 
-            dateTimePicker2.Location = new Point(326, 102);
-            dateTimePicker2.Name = "dateTimePicker2";
-            dateTimePicker2.Size = new Size(139, 23);
-            dateTimePicker2.TabIndex = 3;
-            // 
             // button1
             // 
-            button1.Location = new Point(115, 166);
+            button1.BackColor = Color.FromArgb(231, 76, 60);
+            button1.FlatAppearance.BorderSize = 0;
+            button1.FlatStyle = FlatStyle.Flat;
+            button1.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            button1.ForeColor = Color.White;
+            button1.Location = new Point(550, 508);
             button1.Name = "button1";
-            button1.Size = new Size(75, 23);
+            button1.Size = new Size(92, 48);
             button1.TabIndex = 4;
             button1.Text = "Cancelar";
-            button1.UseVisualStyleBackColor = true;
+            button1.UseVisualStyleBackColor = false;
             // 
             // button2
             // 
-            button2.Location = new Point(214, 166);
+            button2.BackColor = Color.FromArgb(39, 174, 96);
+            button2.FlatAppearance.BorderSize = 0;
+            button2.FlatStyle = FlatStyle.Flat;
+            button2.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            button2.ForeColor = Color.White;
+            button2.Location = new Point(649, 508);
             button2.Name = "button2";
-            button2.Size = new Size(75, 23);
+            button2.Size = new Size(92, 48);
             button2.TabIndex = 5;
             button2.Text = "Confirmar";
-            button2.UseVisualStyleBackColor = true;
+            button2.UseVisualStyleBackColor = false;
             // 
-            // dataGridView1
+            // panel1
             // 
-            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView1.Location = new Point(49, 195);
-            dataGridView1.Name = "dataGridView1";
-            dataGridView1.Size = new Size(240, 150);
-            dataGridView1.TabIndex = 6;
+            panel1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            panel1.Location = new Point(49, 88);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(692, 404);
+            panel1.TabIndex = 6;
             // 
             // button3
             // 
-            button3.Location = new Point(304, 322);
+            button3.Location = new Point(516, 24);
             button3.Name = "button3";
             button3.Size = new Size(75, 23);
             button3.TabIndex = 7;
@@ -121,34 +113,16 @@
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(49, 87);
+            label2.Location = new Point(270, 10);
             label2.Name = "label2";
             label2.Size = new Size(38, 15);
             label2.TabIndex = 9;
             label2.Text = "label2";
             // 
-            // label3
-            // 
-            label3.AutoSize = true;
-            label3.Location = new Point(326, 10);
-            label3.Name = "label3";
-            label3.Size = new Size(38, 15);
-            label3.TabIndex = 10;
-            label3.Text = "label3";
-            // 
-            // label4
-            // 
-            label4.AutoSize = true;
-            label4.Location = new Point(326, 87);
-            label4.Name = "label4";
-            label4.Size = new Size(38, 15);
-            label4.TabIndex = 11;
-            label4.Text = "label4";
-            // 
             // chkUsarPerfil
             // 
             chkUsarPerfil.AutoSize = true;
-            chkUsarPerfil.Location = new Point(519, 30);
+            chkUsarPerfil.Location = new Point(616, 30);
             chkUsarPerfil.Name = "chkUsarPerfil";
             chkUsarPerfil.Size = new Size(82, 19);
             chkUsarPerfil.TabIndex = 12;
@@ -161,22 +135,18 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(950, 568);
             Controls.Add(chkUsarPerfil);
-            Controls.Add(label4);
-            Controls.Add(label3);
             Controls.Add(label2);
             Controls.Add(label1);
             Controls.Add(button3);
-            Controls.Add(dataGridView1);
+            Controls.Add(panel1);
             Controls.Add(button2);
             Controls.Add(button1);
-            Controls.Add(dateTimePicker2);
-            Controls.Add(dateTimePicker1);
             Controls.Add(cmbCliente);
             Controls.Add(cmbRazonSocial);
             Name = "RevisionPL";
             Text = "RevisionPL";
             Load += RevisionPL_Load;
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)panel1).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -185,16 +155,12 @@
 
         private ComboBox cmbRazonSocial;
         private ComboBox cmbCliente;
-        private DateTimePicker dateTimePicker1;
-        private DateTimePicker dateTimePicker2;
         private Button button1;
         private Button button2;
-        private DataGridView dataGridView1;
+        private DataGridView panel1;
         private Button button3;
         private Label label1;
         private Label label2;
-        private Label label3;
-        private Label label4;
         private CheckBox chkUsarPerfil;
     }
 }

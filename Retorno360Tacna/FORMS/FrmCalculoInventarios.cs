@@ -1,4 +1,4 @@
-using ClosedXML.Excel;
+ï»¿using ClosedXML.Excel;
 using Microsoft.Data.SqlClient;
 using Retorno360Tacna.CNX;
 using Retorno360Tacna.MODELS;
@@ -18,15 +18,287 @@ namespace Retorno360Tacna.FORMS
 {
     public partial class FrmCalculoInventarios : Form
     {
-        private readonly SesionCalculoInventario _sesion = new();
-
-        // ----------------------------------------------------
-        // VARIABLES PARA ALMACENAR RAZÓN SOCIAL Y EMPRESA
-        // ----------------------------------------------------
-        private string _razonSocial = string.Empty;
-        private string _nombreEmpresa = string.Empty;
         private MODELS.Usuario? usuarioActual;
+        // Servicio de perfil usado para cargar razones/empresas cuando se dispone de usuario
         private SERVICES.PerfilUsuarioService? perfilService;
+
+        // Exponer los ids seleccionados como propiedades pÃºblicas para que otros formularios
+        // puedan obtener la razÃ³n social / empresa activa sin acceder directamente a los
+        // controles del diseÃ±ador (que son privados).
+        public int SelectedIdRazon
+        {
+            get
+            {
+                if (cmbRazonSocial != null && cmbRazonSocial.SelectedValue != null && int.TryParse(cmbRazonSocial.SelectedValue.ToString(), out int id))
+                    return id;
+                return 0;
+            }
+        }
+
+        // Generar PDF con los datos del preview (total, razÃ³n social, empresa, mes)
+        private void btnExportarExcel_Click_1(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Determinar ids y aÃ±o a exportar
+                int idRazon = SelectedIdRazon;
+                int idEmpresa = SelectedIdEmpresa;
+
+                if (idRazon == 0 || idEmpresa == 0)
+                {
+                    MessageBox.Show("Selecciona razÃ³n social y empresa antes de exportar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // AÃ±o a exportar: intentar extraer de lblMesAno (yyyy or yyyy-MM or "Mes: MMMM yyyy")
+                int year = DateTime.Now.Year;
+                try
+                {
+                    var txt = lblMesAno?.Text ?? string.Empty;
+                    if (txt.Contains(":")) txt = txt.Substring(txt.IndexOf(":") + 1).Trim();
+                    if (System.Text.RegularExpressions.Regex.IsMatch(txt, "^\\d{4}-\\d{2}$"))
+                    {
+                        year = int.Parse(txt.Substring(0, 4));
+                    }
+                    else
+                    {
+                        if (DateTime.TryParseExact(txt, "MMMM yyyy", new System.Globalization.CultureInfo("es-ES"), System.Globalization.DateTimeStyles.None, out DateTime dt))
+                        {
+                            year = dt.Year;
+                        }
+                        else
+                        {
+                            var m = System.Text.RegularExpressions.Regex.Match(txt, "\\d{4}");
+                            if (m.Success)
+                                year = int.Parse(m.Value);
+                        }
+                    }
+                }
+                catch { }
+
+                // Consultar la suma por mes desde la tabla historial (join header->detalle)
+                var valoresPorMes = new decimal[13]; // 1..12
+                for (int i = 1; i <= 12; i++) valoresPorMes[i] = 0m;
+
+                using (var conn = new Microsoft.Data.SqlClient.SqlConnection(new CNX.Conexion().GetConnectionString()))
+                {
+                    conn.Open();
+                    string sql = @"SELECT MONTH(hc.FechaCalculo) AS Mes, ISNULL(SUM(hci.TotalCosto),0) AS TotalMes 
+                                   FROM Historial_CalculoCostos hc 
+                                   JOIN Historial_CalculoInventario hci ON hc.IdCalculo = hci.IdCalculo
+                                   WHERE hc.IdEmpresa = @IdEmpresa AND hc.IdRazonSocial = @IdRazon AND YEAR(hc.FechaCalculo) = @Anio
+                                   GROUP BY MONTH(hc.FechaCalculo)";
+
+                    using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
+                        cmd.Parameters.AddWithValue("@IdRazon", idRazon);
+                        cmd.Parameters.AddWithValue("@Anio", year);
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            while (rdr.Read())
+                            {
+                                int mes = rdr.GetInt32(0);
+                                decimal total = rdr.IsDBNull(1) ? 0m : rdr.GetDecimal(1);
+                                if (mes >= 1 && mes <= 12) valoresPorMes[mes] = total;
+                            }
+                        }
+                    }
+                }
+
+                // Preparar archivo Excel
+                using (var sfd = new SaveFileDialog())
+                {
+                    sfd.Filter = "Excel Workbook|*.xlsx";
+                    sfd.FileName = $"Historial_{cmbRazonSocial?.Text}_{cmbEmpresa?.Text}_{year}.xlsx";
+                    if (sfd.ShowDialog(this) != DialogResult.OK) return;
+
+                    using (var wb = new ClosedXML.Excel.XLWorkbook())
+                    {
+                        var ws = wb.Worksheets.Add("Historial");
+
+                        // Guardar logo temporal desde recursos (intentar varias fuentes)
+                        string tmpLogo = null;
+                        try
+                        {
+                            System.Drawing.Image? img = null;
+                            try
+                            {
+                                // Intentar mediante ResourceManager para nombres variados
+                                var rm = Retorno360Tacna.Properties.Resources.ResourceManager;
+                                object? o = rm.GetObject("logo_tacna") ?? rm.GetObject("Bitmap1") ?? rm.GetObject("bitmap1") ?? rm.GetObject("Logo_tacna");
+                                if (o is System.Drawing.Image im) img = im;
+                            }
+                            catch { }
+
+                            // Si no se obtuvo desde Resources, intentar archivo fÃ­sico en carpeta Resources
+                            if (img == null)
+                            {
+                                try
+                                {
+                                    var path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Bitmap1.bmp");
+                                    if (System.IO.File.Exists(path)) img = System.Drawing.Image.FromFile(path);
+                                }
+                                catch { }
+                            }
+
+                            // continuar con la inserciÃ³n del logo (si se obtuvo)
+
+                            if (img != null)
+                            {
+                                tmpLogo = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "logo_tacna_export.png");
+                                using (var ms = new System.IO.MemoryStream())
+                                {
+                                    img.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                                    System.IO.File.WriteAllBytes(tmpLogo, ms.ToArray());
+                                }
+                                // AÃ±adir imagen si ClosedXML lo permite (no es crÃ­tico)
+                                try
+                                {
+                                    var pic = ws.AddPicture(tmpLogo);
+                                    // Asegurar espacio en filas/columnas superiores
+                                    try { ws.Row(1).Height = 60; } catch { }
+                                    try { ws.Column(1).Width = 18; } catch { }
+                                    // Posicionar y escalar
+                                    try { pic.MoveTo(ws.Cell(1, 1)); pic.Scale(0.6); } catch { try { pic.MoveTo(ws.Cell(1, 1)); } catch { } }
+                                }
+                                catch { }
+                            }
+                        }
+                        catch { }
+
+                        // Ãrea del logo: combinar celdas A1:C4 y colocar la imagen encima
+                        try { ws.Range(ws.Cell(1, 1), ws.Cell(4, 3)).Merge(); } catch { }
+                        // TÃ­tulos y metadatos (colocar a la derecha del logo)
+                        int baseCol = 4; // dejar columnas 1-3 para el logo
+                        ws.Range(ws.Cell(1, baseCol), ws.Cell(1, baseCol + 12)).Merge().Value = "INVENTARIO DE MATERIA PRIMA";
+                        ws.Range(ws.Cell(1, baseCol), ws.Cell(1, baseCol + 12)).Style.Font.Bold = true;
+                        ws.Range(ws.Cell(1, baseCol), ws.Cell(1, baseCol + 12)).Style.Font.FontSize = 14;
+                        ws.Range(ws.Cell(2, baseCol), ws.Cell(2, baseCol + 12)).Merge().Value = $"EMPRESA: {cmbEmpresa?.Text ?? string.Empty}";
+                        ws.Range(ws.Cell(3, baseCol), ws.Cell(3, baseCol + 12)).Merge().Value = $"RAZÃ“N SOCIAL: {cmbRazonSocial?.Text ?? string.Empty}";
+                        ws.Range(ws.Cell(4, baseCol), ws.Cell(4, baseCol + 12)).Merge().Value = $"PERÃODO: ENERO - DICIEMBRE {year}";
+                        ws.Range(ws.Cell(2, baseCol), ws.Cell(4, baseCol + 12)).Style.Font.FontSize = 11;
+
+                        // Encabezados de meses en fila 6, iniciando en baseCol
+                        ws.Cell(6, baseCol).Value = "EMPRESA";
+                        var mesesNombres = new[] { "", "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE" };
+                        for (int m = 1; m <= 12; m++)
+                        {
+                            ws.Cell(6, baseCol + m).Value = mesesNombres[m];
+                            ws.Cell(6, baseCol + m).Style.Font.Bold = true;
+                            ws.Cell(6, baseCol + m).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.DarkBlue;
+                            ws.Cell(6, baseCol + m).Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+                        }
+
+                        // Fila de empresa en fila 7
+                        ws.Cell(7, baseCol).Value = cmbRazonSocial?.Text ?? string.Empty;
+                        for (int m = 1; m <= 12; m++)
+                        {
+                            var cell = ws.Cell(7, baseCol + m);
+                            decimal val = valoresPorMes[m];
+                            cell.Value = val;
+                            cell.Style.NumberFormat.Format = "#,##0.00";
+                            if (val == 0m)
+                            {
+                                // marcar en rojo
+                                cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#FFCDD2");
+                            }
+                        }
+
+                        // Formato de columnas
+                        ws.Column(1).Width = 18;
+                        ws.Column(2).Width = 6;
+                        ws.Column(3).Width = 6;
+                        for (int c = baseCol; c <= baseCol + 12; c++) ws.Column(c).Width = 18;
+
+                        // Crear hoja de detalle con las filas de Historial_CalculoInventario asociadas al aÃ±o/razon/empresa
+                        try
+                        {
+                            using (var conn2 = new Microsoft.Data.SqlClient.SqlConnection(new CNX.Conexion().GetConnectionString()))
+                            {
+                                conn2.Open();
+                                string sqlDet = @"SELECT hc.IdCalculo, hci.NoParte, hci.Cantidad, hci.UM, hci.CostoUnit, hci.TotalCosto, hc.FechaCalculo
+                                                    FROM Historial_CalculoCostos hc
+                                                    JOIN Historial_CalculoInventario hci ON hc.IdCalculo = hci.IdCalculo
+                                                    WHERE hc.IdEmpresa = @IdEmpresa AND hc.IdRazonSocial = @IdRazon AND YEAR(hc.FechaCalculo) = @Anio
+                                                    ORDER BY hc.FechaCalculo, hci.NoParte";
+
+                                using (var cmdDet = new Microsoft.Data.SqlClient.SqlCommand(sqlDet, conn2))
+                                {
+                                    cmdDet.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
+                                    cmdDet.Parameters.AddWithValue("@IdRazon", idRazon);
+                                    cmdDet.Parameters.AddWithValue("@Anio", year);
+
+                                    using (var rdr = cmdDet.ExecuteReader())
+                                    {
+                                        var wsDet = wb.Worksheets.Add("Detalle");
+                                        // Encabezados
+                                        wsDet.Cell(1, 1).Value = "IdCalculo";
+                                        wsDet.Cell(1, 2).Value = "FechaCalculo";
+                                        wsDet.Cell(1, 3).Value = "NoParte";
+                                        wsDet.Cell(1, 4).Value = "Cantidad";
+                                        wsDet.Cell(1, 5).Value = "UM";
+                                        wsDet.Cell(1, 6).Value = "CostoUnit";
+                                        wsDet.Cell(1, 7).Value = "TotalCosto";
+                                        for (int i = 1; i <= 7; i++) { wsDet.Cell(1, i).Style.Font.Bold = true; }
+
+                                        int rowDet = 2;
+                                        while (rdr.Read())
+                                        {
+                                            int idc = rdr.IsDBNull(0) ? 0 : rdr.GetInt32(0);
+                                            string nop = rdr.IsDBNull(1) ? string.Empty : rdr.GetString(1);
+                                            int cant = rdr.IsDBNull(2) ? 0 : rdr.GetInt32(2);
+                                            string um = rdr.IsDBNull(3) ? string.Empty : rdr.GetString(3);
+                                            decimal costoUnit = rdr.IsDBNull(4) ? 0m : rdr.GetDecimal(4);
+                                            decimal totalC = rdr.IsDBNull(5) ? 0m : rdr.GetDecimal(5);
+                                            DateTime fc = rdr.IsDBNull(6) ? DateTime.MinValue : rdr.GetDateTime(6);
+
+                                            wsDet.Cell(rowDet, 1).Value = idc;
+                                            wsDet.Cell(rowDet, 2).Value = fc == DateTime.MinValue ? "" : fc.ToString("yyyy-MM-dd");
+                                            wsDet.Cell(rowDet, 3).Value = nop;
+                                            wsDet.Cell(rowDet, 4).Value = cant;
+                                            wsDet.Cell(rowDet, 5).Value = um;
+                                            wsDet.Cell(rowDet, 6).Value = costoUnit;
+                                            wsDet.Cell(rowDet, 7).Value = totalC;
+
+                                            wsDet.Cell(rowDet, 6).Style.NumberFormat.Format = "#,##0.0000";
+                                            wsDet.Cell(rowDet, 7).Style.NumberFormat.Format = "#,##0.00";
+
+                                            rowDet++;
+                                        }
+
+                                        // Ajustes de ancho
+                                        wsDet.Columns().AdjustToContents();
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+
+                        wb.SaveAs(sfd.FileName);
+
+                        // eliminar logo temporal
+                        try { if (!string.IsNullOrEmpty(tmpLogo) && System.IO.File.Exists(tmpLogo)) System.IO.File.Delete(tmpLogo); } catch { }
+                    }
+
+                    MessageBox.Show("Excel generado.", "Ã‰xito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al exportar Excel: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        public int SelectedIdEmpresa
+        {
+            get
+            {
+                if (cmbEmpresa != null && cmbEmpresa.SelectedValue != null && int.TryParse(cmbEmpresa.SelectedValue.ToString(), out int id))
+                    return id;
+                return 0;
+            }
+        }
 
         public FrmCalculoInventarios() : this(null) { }
 
@@ -35,185 +307,290 @@ namespace Retorno360Tacna.FORMS
             InitializeComponent();
             usuarioActual = usuario;
 
+            // Si se proporcionÃ³ usuario, inicializar el servicio de perfil
             if (usuario != null)
                 perfilService = new SERVICES.PerfilUsuarioService();
 
             this.Load += FrmCalculoInventarios_Load;
+            // Registrar sÃ³lo una vez el manejador del botÃ³n de historial
+            try { btnHistorialVerificacion.Click += btnHistorialVerificacion_Click; } catch { }
+            // Registrar el manejador del botÃ³n de recalcular (limpia el formulario)
+            try { btnRecalcular.Click += btnRecalcular_Click; } catch { }
+            // Registrar actualizador de grÃ¡fico al cambiar razÃ³n/empresa
+            try { cmbRazonSocial.SelectedIndexChanged += (s, e) => UpdateChartMeses(); } catch { }
+            try { cmbEmpresa.SelectedIndexChanged += (s, e) => UpdateChartMeses(); } catch { }
+            // Aplicar estilo UI consistente
+            try { ApplyUiStyling(); } catch { }
 
-            pnlCantidadMeses.Visible = true;
-            pnlCaptura.Visible = false;
-        }
-
-        // ----------------------------------------------------
-        // EVENTO LOAD DEL FORMULARIO
-        // ----------------------------------------------------
-        private void FrmCalculoInventarios_Load(object sender, EventArgs e)
-        {
-            // 1. Cargar el primer ComboBox
-            CargarRazonesSociales();
-
-            // 2. Suscribir el evento para cambios posteriores del usuario
-            cmbRazonSocial.SelectedIndexChanged += cmbRazonSocial_SelectedIndexChanged;
-
-            // 3. Forzar manualmente la primera carga del segundo ComboBox (Empresas)
-            if (cmbRazonSocial.SelectedValue != null && int.TryParse(cmbRazonSocial.SelectedValue.ToString(), out int idRazon))
-            {
-                CargarEmpresas(idRazon);
-            }
-
-            // 4. Mostrar estado de la plantilla guardada
-            ActualizarEstadoPlantilla();
-
-            //5. Cargar histórico de inventarios
-            CargarHistorico();
-        }
-
-        // ----------------------------------------------------
-        // ESTADO DE LA PLANTILLA CONFIGURADA
-        // ----------------------------------------------------
-        private void cmbEmpresa_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            ActualizarEstadoPlantilla();
-            CargarHistorico();
-        }
-
-        private void ActualizarEstadoPlantilla()
-        {
-            if (cmbEmpresa.SelectedValue != null &&
-                int.TryParse(cmbEmpresa.SelectedValue.ToString(), out int idEmpresa))
-            {
-                var cfg = PlantillaInventarioServicio.ObtenerParaEmpresa(idEmpresa);
-                if (cfg != null && cfg.EstaConfigurada)
-                {
-                    lblPlantillaInfo.Text = $"??  Plantilla: {Path.GetFileName(cfg.RutaArchivo)}  |  Hoja: {cfg.Hoja}  |  Operación: {cfg.Operacion}";
-                    lblPlantillaInfo.ForeColor = Color.FromArgb(22, 90, 50);
-                    btnCargarPlantilla.Text    = "? Plantilla configurada";
-                    btnCargarPlantilla.Enabled = true;
-                    return;
-                }
-            }
-
-            lblPlantillaInfo.Text      = "??  Sin plantilla para esta empresa  (configura una en Configuración)";
-            lblPlantillaInfo.ForeColor = Color.FromArgb(120, 60, 30);
-            btnCargarPlantilla.Enabled = false;
-            btnCargarPlantilla.Text    = "Sin plantilla";
-        }
-
-
-
-        public class InventarioHistorialItem
-        {
-            public int NumeroMes { get; set; }
-            public string Mes { get; set; } = string.Empty;
-            public string TipoInventario { get; set; } = string.Empty;
-            public string Operacion { get; set; } = string.Empty;
-            public string CampoTotal { get; set; } = string.Empty;
-            public string? CampoA { get; set; }
-            public string? CampoB { get; set; }
-            public decimal Total { get; set; }
-            public int IdEmpresa { get; set; }
-            public int IdRazonSocial { get; set; }
-        }
-
-
-        private void CargarHistorico()
-        {
-            if (cmbEmpresa.SelectedValue == null || cmbRazonSocial.SelectedValue == null)
-            {
-                dgvHistorico.DataSource = null;
-                return;
-            }
-
-            if (!int.TryParse(cmbEmpresa.SelectedValue.ToString(), out int idEmpresa) ||
-                !int.TryParse(cmbRazonSocial.SelectedValue.ToString(), out int idRazon))
-            {
-                dgvHistorico.DataSource = null;
-                return;
-            }
-
+            // Ajustes de ventana: quitar botones de minimizar/maximizar/cerrar, centrar y evitar mover
             try
             {
-                var historialService = new InventarioHistorialService();
-                var historico = historialService.ObtenerHistorico(idEmpresa, idRazon);
+                this.StartPosition = FormStartPosition.CenterScreen;
+                this.ControlBox = false; // elimina los botones de control
+                this.MinimizeBox = false;
+                this.MaximizeBox = false;
+                this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            }
+            catch { }
+        }
 
-                dgvHistorico.DataSource = null;
-                dgvHistorico.DataSource = historico;
-                ConfigurarColumnasHistorico();
+        // Limpia todos los campos del formulario para reiniciar el proceso
+        private void btnRecalcular_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Limpiar selecciones y controles visibles
+                try { if (cmbRazonSocial != null) cmbRazonSocial.SelectedIndex = -1; } catch { }
+                try { if (cmbEmpresa != null) cmbEmpresa.SelectedIndex = -1; } catch { }
+                try { if (chkUsarPerfil != null) chkUsarPerfil.Checked = false; } catch { }
+
+                // Limpiar etiquetas de totales / periodo
+                try { if (lblTotalGeneral != null) lblTotalGeneral.Text = "Total general: 0"; } catch { }
+                try { if (lblMesAno != null) lblMesAno.Text = string.Empty; } catch { }
+
+                // Limpiar grid de resultados
+                try
+                {
+                    if (dgvRelsultados != null)
+                    {
+                        dgvRelsultados.Rows.Clear();
+                        dgvRelsultados.Columns.Clear();
+                    }
+                }
+                catch { }
+
+                // Intentar restablecer otros estados temporales si existen
+                try { /* aquÃ­ pueden aÃ±adirse resets de variables internas si se requieren */ } catch { }
+
+                // Mensaje al usuario
+                try { lblTotalGeneral.Text = "Total general: 0"; } catch { }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar el histérico: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error al reiniciar el formulario: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void ConfigurarColumnasHistorico()
+        private void ApplyUiStyling()
         {
-            if (dgvHistorico.Columns.Count == 0) return;
-
-            // Ocultar columnas internas
-            foreach (DataGridViewColumn col in dgvHistorico.Columns)
-                col.Visible = false;
-
-            string[] visibles = { "Mes", "TipoInventario", "Operacion", "CampoTotal", "CampoA", "CampoB", "Total" };
-            string[] encabezados = { "Mes", "Tipo Inventario", "Operación", "Campo Total", "Campo A", "Campo B", "Total" };
-
-            for (int i = 0; i < visibles.Length; i++)
+            try
             {
-                if (dgvHistorico.Columns.Contains(visibles[i]))
+                // Mantener cambios mÃ­nimos: fondo y fuente por defecto. El resto del diseÃ±o debe estar en el diseÃ±ador.
+                this.BackColor = Color.White;
+                this.Font = new Font("Segoe UI", 9F);
+
+                try { cmbRazonSocial.DropDownStyle = ComboBoxStyle.DropDownList; cmbEmpresa.DropDownStyle = ComboBoxStyle.DropDownList; } catch { }
+            }
+            catch { }
+        }
+
+        // Evitar que la ventana sea movida por el usuario (bloquear comando de movimiento y arrastre del caption)
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_SYSCOMMAND = 0x0112;
+            const int SC_MOVE = 0xF010;
+            const int WM_NCLBUTTONDOWN = 0x00A1;
+            const int HTCAPTION = 2;
+
+            try
+            {
+                if (m.Msg == WM_SYSCOMMAND && ((int)m.WParam == SC_MOVE))
                 {
-                    dgvHistorico.Columns[visibles[i]].Visible = true;
-                    dgvHistorico.Columns[visibles[i]].HeaderText = encabezados[i];
+                    // Ignorar intento de mover
+                    return;
+                }
+                if (m.Msg == WM_NCLBUTTONDOWN && m.WParam == (IntPtr)HTCAPTION)
+                {
+                    // Ignorar clics en la barra de tÃ­tulo que inician el arrastre
+                    return;
                 }
             }
+            catch { }
 
-            if (dgvHistorico.Columns.Contains("Total"))
-            {
-                dgvHistorico.Columns["Total"].DefaultCellStyle.Format = "N2";
-                dgvHistorico.Columns["Total"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-            }
-
-            // Estilo de cabecera
-            dgvHistorico.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(30, 80, 50);
-            dgvHistorico.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            dgvHistorico.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-            dgvHistorico.EnableHeadersVisualStyles = false;
-
-            // Filas alternas
-            dgvHistorico.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(240, 248, 243);
+            base.WndProc(ref m);
         }
 
-
-        private void btnCargarPlantilla_Click(object sender, EventArgs e)
+        private void btnHistorialVerificacion_Click(object? sender, EventArgs e)
         {
-            if (cmbEmpresa.SelectedValue == null ||
-                !int.TryParse(cmbEmpresa.SelectedValue.ToString(), out int idEmpresa))
+            try
             {
-                MessageBox.Show("Selecciona una empresa primero.", "Aviso",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
+                var frm = new FrmHistorialExplorer(SelectedIdRazon, SelectedIdEmpresa);
+                frm.ShowDialog(this);
             }
-
-            var cfg = PlantillaInventarioServicio.ObtenerParaEmpresa(idEmpresa);
-            if (cfg == null || !cfg.EstaConfigurada)
+            catch (Exception ex)
             {
-                MessageBox.Show("No hay plantilla configurada para esta empresa.\nVe a Configuración ? Plantilla.",
-                    "Sin plantilla", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
+                MessageBox.Show($"Error al abrir historial: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
-            MessageBox.Show(
-                $"Plantilla cargada:\n• Archivo: {Path.GetFileName(cfg.RutaArchivo)}\n• Hoja: {cfg.Hoja}\n• Operación: {cfg.Operacion}\n\nAl cargar el Excel mensual se te pedirá relacionar sus columnas con los campos de la plantilla.",
-                "Plantilla lista", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        // ----------------------------------------------------
-        // CARGAR DATOS DE LA RAZÓN SOCIAL
-        // ----------------------------------------------------
+        // Anexa las filas del DataTable al DataGridView dgvRelsultados y actualiza el label de total
+        // Hacer pÃºblico interno para permitir llamadas desde formularios del mismo ensamblado
+        internal void AppendResultadoParaAgregar(System.Data.DataTable dt, decimal totalCosto)
+        {
+            try
+            {
+                // LOG: registrar intento de agregar resultados para depuraciÃ³n
+                try
+                {
+                    var logPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Retorno360Tacna_AddResultados.log");
+                    var sbLog = new System.Text.StringBuilder();
+                    sbLog.AppendLine($"[{DateTime.Now:O}] AppendResultadoParaAgregar invoked");
+                    sbLog.AppendLine($"TotalCosto param: {totalCosto}");
+                    if (dt == null)
+                    {
+                        sbLog.AppendLine("DataTable == null");
+                    }
+                    else
+                    {
+                        sbLog.AppendLine($"DataTable Columns: {dt.Columns.Count}, Rows: {dt.Rows.Count}");
+                        sbLog.AppendLine("Columns:");
+                        foreach (System.Data.DataColumn col in dt.Columns)
+                        {
+                            sbLog.AppendLine($" - {col.ColumnName} ({col.DataType?.Name})");
+                        }
+                        int maxRows = Math.Min(10, dt.Rows.Count);
+                        sbLog.AppendLine($"First {maxRows} rows (as CSV):");
+                        for (int r = 0; r < maxRows; r++)
+                        {
+                            var row = dt.Rows[r];
+                            var parts = new string[dt.Columns.Count];
+                            for (int c = 0; c < dt.Columns.Count; c++) parts[c] = row[c]?.ToString() ?? "";
+                            sbLog.AppendLine(string.Join(",", parts));
+                        }
+                    }
+                    sbLog.AppendLine("StackTrace:");
+                    sbLog.AppendLine(Environment.StackTrace ?? "");
+                    sbLog.AppendLine(new string('-', 80));
+                    System.IO.File.AppendAllText(logPath, sbLog.ToString());
+                }
+                catch { }
+
+                if (dt == null || dt.Rows.Count == 0) return;
+
+                // Si dgvRelsultados no tiene columnas, crear columnas desde el DataTable
+                if (dgvRelsultados.Columns.Count == 0)
+                {
+                    foreach (System.Data.DataColumn col in dt.Columns)
+                    {
+                        dgvRelsultados.Columns.Add(col.ColumnName, col.ColumnName);
+                    }
+                }
+
+                // Insertar filas
+                foreach (System.Data.DataRow dr in dt.Rows)
+                {
+                    var vals = new object[dt.Columns.Count];
+                    for (int i = 0; i < dt.Columns.Count; i++) vals[i] = dr[i];
+                    dgvRelsultados.Rows.Add(vals);
+                }
+
+                // Recalcular total general sumando la columna de "total costo" presente en dgvRelsultados
+                try
+                {
+                    // Determinar Ã­ndice de la columna que representa el total por fila
+                    int idxTotal = -1;
+                    // 1) Preferir columna con nombre exacto usado en el diÃ¡logo de verificaciÃ³n
+                    for (int i = 0; i < dgvRelsultados.Columns.Count; i++)
+                    {
+                        var nm = (dgvRelsultados.Columns[i].Name ?? string.Empty);
+                        if (string.Equals(nm, "colTotalCosto", StringComparison.OrdinalIgnoreCase))
+                        {
+                            idxTotal = i; break;
+                        }
+                    }
+                    // 2) Preferir encabezado exacto "Total Costo"
+                    if (idxTotal == -1)
+                    {
+                        for (int i = 0; i < dgvRelsultados.Columns.Count; i++)
+                        {
+                            var hdr = (dgvRelsultados.Columns[i].HeaderText ?? string.Empty);
+                            if (string.Equals(hdr.Trim(), "Total Costo", StringComparison.OrdinalIgnoreCase) || string.Equals(hdr.Trim(), "TotalCosto", StringComparison.OrdinalIgnoreCase))
+                            {
+                                idxTotal = i; break;
+                            }
+                        }
+                    }
+                    // 3) Fallback: buscar columna que contenga "total" en el encabezado y no contenga "unit" (evitar Costo Unit.)
+                    if (idxTotal == -1)
+                    {
+                        for (int i = 0; i < dgvRelsultados.Columns.Count; i++)
+                        {
+                            var hdr = (dgvRelsultados.Columns[i].HeaderText ?? string.Empty).ToLowerInvariant();
+                            if (hdr.Contains("total") && !hdr.Contains("unit") && !hdr.Contains("unit.") && !hdr.Contains("unitario"))
+                            {
+                                idxTotal = i; break;
+                            }
+                        }
+                    }
+
+                    decimal suma = 0m;
+                    if (idxTotal >= 0)
+                    {
+                        foreach (DataGridViewRow r in dgvRelsultados.Rows)
+                        {
+                            if (r.IsNewRow) continue;
+                            var v = r.Cells[idxTotal].Value;
+                            if (v == null) continue;
+                            if (decimal.TryParse(v.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out decimal parsed))
+                            {
+                                suma += parsed;
+                            }
+                            else
+                            {
+                                // intentar parse con InvariantCulture por si usa punto
+                                if (decimal.TryParse(v.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out parsed))
+                                    suma += parsed;
+                            }
+                        }
+                    }
+
+                    lblTotalGeneral.Text = $"Total general: {suma:N2}";
+                }
+                catch { }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al anexar resultados: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Guardar preview (dgvRelsultados) en tablas de historial
+
+        private void FrmCalculoInventarios_Load(object sender, EventArgs e)
+        {
+            // Poblamos los combos de razÃ³n social y empresas para que la
+            // verificaciÃ³n utilice la base de datos correcta.
+            try
+            {
+                CargarRazonesSociales();
+
+                // Asegurar que el evento no se suscriba doblemente
+                try { cmbRazonSocial.SelectedIndexChanged -= cmbRazonSocial_SelectedIndexChanged; } catch { }
+                cmbRazonSocial.SelectedIndexChanged += cmbRazonSocial_SelectedIndexChanged;
+
+                // Si ya hay una razÃ³n seleccionada, cargar empresas
+                if (cmbRazonSocial.SelectedValue != null && int.TryParse(cmbRazonSocial.SelectedValue.ToString(), out int idRazon))
+                {
+                    CargarEmpresas(idRazon);
+                }
+
+                ActualizarEstadoPlantilla();
+            }
+            catch
+            {
+                // No bloquear la carga del formulario por errores en carga de combos
+            }
+        }
+
+        // Implementaciones mÃ­nimas para poblar y reaccionar a los combos de
+        // razÃ³n social y empresa. Estas versiones son livianas y solo cubren
+        // el flujo necesario para la verificaciÃ³n de partes.
         private void CargarRazonesSociales()
         {
             try
             {
-                if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+                // Si el usuario pidiÃ³ usar su perfil y existe el servicio, preferir la lista del perfil
+                if (usuarioActual != null && perfilService != null && chkUsarPerfil.Checked)
                 {
                     var razones = perfilService.ObtenerRazonesSocialesDePerfil(usuarioActual.IdUsuario);
                     cmbRazonSocial.DataSource = null;
@@ -224,44 +601,28 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
+                // Consulta general a RAZONXTABLA en RetornoMaster
                 Conexion conexion = new Conexion();
-                string cnx = @"SELECT IdRazon, Nombre_Razon FROM RAZONXTABLA ORDER BY Nombre_Razon";
-
+                string sql = "SELECT IdRazon, Nombre_Razon FROM RAZONXTABLA ORDER BY Nombre_Razon";
                 using SqlConnection connection = new SqlConnection(conexion.GetConnectionString());
-                using SqlDataAdapter da = new SqlDataAdapter(cnx, connection);
+                using SqlDataAdapter da = new SqlDataAdapter(sql, connection);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                // Si la consulta devuelve filas
                 if (dt.Rows.Count > 0)
                 {
-                    // 1. Limpiar asignaciones previas
                     cmbRazonSocial.DataSource = null;
-
-                    // 2. Determinar columnas existentes (robusto a mayúsculas/minúsculas)
-                    string displayCol = dt.Columns.Cast<DataColumn>()
-                        .Select(c => c.ColumnName)
+                    string displayCol = dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)
                         .FirstOrDefault(n => string.Equals(n, "Nombre_Razon", StringComparison.OrdinalIgnoreCase))
                         ?? dt.Columns[0].ColumnName;
-
-                    string valueCol = dt.Columns.Cast<DataColumn>()
-                        .Select(c => c.ColumnName)
+                    string valueCol = dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)
                         .FirstOrDefault(n => string.Equals(n, "IdRazon", StringComparison.OrdinalIgnoreCase))
                         ?? dt.Columns[0].ColumnName;
 
-                    // 3. Definir miembros ANTES del DataSource
                     cmbRazonSocial.DisplayMember = displayCol;
                     cmbRazonSocial.ValueMember = valueCol;
-
-                    // 4. Asignar origen de datos
                     cmbRazonSocial.DataSource = dt;
-
-                    // 5. Seleccionar el primer elemento por defecto para forzar la carga
                     cmbRazonSocial.SelectedIndex = 0;
-                }
-                else
-                {
-                    MessageBox.Show("No se encontraron razones sociales en la base de datos.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
@@ -270,15 +631,9 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
-        // ---------------------------------------------------- 
-        // EVENTO AL CAMBIAR DE RAZÓN SOCIAL
-        // ----------------------------------------------------
-        private void cmbRazonSocial_SelectedIndexChanged(object? sender, EventArgs e) // Modificado object? para corregir CS8622
+        private void cmbRazonSocial_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            // Guard de seguridad integral
-            if (cmbEmpresa == null || cmbRazonSocial == null) return;
-
-            // Conversión segura de SelectedValue a int
+            if (cmbRazonSocial == null || cmbEmpresa == null) return;
             if (cmbRazonSocial.SelectedValue != null && int.TryParse(cmbRazonSocial.SelectedValue.ToString(), out int idRazon))
             {
                 CargarEmpresas(idRazon);
@@ -287,41 +642,14 @@ namespace Retorno360Tacna.FORMS
             {
                 cmbEmpresa.DataSource = null;
             }
+            try { UpdateChartMeses(); } catch { }
         }
 
-        private void GuardarCalculoEnHistorial(SesionCalculoInventario sesion)
-        {
-            try
-            {
-                var historialService = new InventarioHistorialService();
-                historialService.GuardarResultados(sesion.Resultados);
-
-                MessageBox.Show("El historial de inventarios se ha guardado correctamente. ",
-                        "Exito", MessageBoxButtons.OK,MessageBoxIcon.Information);
-             
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al guardar el historial: {ex.Message}",
-                    "Error",MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-
-        }
-
-
-
-
-
-        /// <summary>
-        /// Carga las empresas asociadas a una razón social específica en el ComboBox de empresas.
-        /// </summary>
         private void CargarEmpresas(int idRazon)
         {
-            if (cmbEmpresa == null) return;
-
             try
             {
-                if (chkUsarPerfil.Checked && usuarioActual != null && perfilService != null)
+                if (usuarioActual != null && perfilService != null && chkUsarPerfil.Checked)
                 {
                     var empresas = perfilService.ObtenerEmpresasDePerfilPorRazon(usuarioActual.IdUsuario, idRazon);
                     cmbEmpresa.DataSource = null;
@@ -334,7 +662,7 @@ namespace Retorno360Tacna.FORMS
                     }
                     else
                     {
-                        MessageBox.Show("No se encontraron empresas guardadas en su perfil para la razón social seleccionada.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        cmbEmpresa.DataSource = null;
                     }
 
                     ActualizarEstadoPlantilla();
@@ -342,34 +670,22 @@ namespace Retorno360Tacna.FORMS
                 }
 
                 Conexion conexion = new Conexion();
-                // Consulta con parámetro para prevenir inyección SQL
-                string cnx = "SELECT n.IdTabla, n.NOMBRE_TABLA FROM NOM_TABLARAZON n WHERE n.IdRazon = @IdRazon ORDER BY n.NOMBRE_TABLA";
-
+                string sql = "SELECT IdTabla, NOMBRE_TABLA FROM NOM_TABLARAZON WHERE IdRazon = @IdRazon ORDER BY NOMBRE_TABLA";
                 using SqlConnection connection = new SqlConnection(conexion.GetConnectionString());
-                using SqlCommand cmd = new SqlCommand(cnx, connection);
+                using SqlCommand cmd = new SqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@IdRazon", idRazon);
-
                 using SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-
-                cmbEmpresa.DataSource = null; // Limpiar asignaciones previas
                 if (dt.Rows.Count > 0)
                 {
-                    // Determinar columnas existentes (robusto a mayúsculas/minúsculas)
-                    string displayCol = dt.Columns.Cast<DataColumn>()
-                        .Select(c => c.ColumnName)
-                        .FirstOrDefault(n => string.Equals(n, "NOMBRE_TABLA", StringComparison.OrdinalIgnoreCase)
-                                             || string.Equals(n, "Nombre_Tabla", StringComparison.OrdinalIgnoreCase)
-                                             || string.Equals(n, "NOMBRE_TABLA", StringComparison.OrdinalIgnoreCase))
+                    cmbEmpresa.DataSource = null;
+                    string displayCol = dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)
+                        .FirstOrDefault(n => string.Equals(n, "NOMBRE_TABLA", StringComparison.OrdinalIgnoreCase))
                         ?? dt.Columns[0].ColumnName;
-
-                    string valueCol = dt.Columns.Cast<DataColumn>()
-                        .Select(c => c.ColumnName)
-                        .FirstOrDefault(n => string.Equals(n, "IdTabla", StringComparison.OrdinalIgnoreCase)
-                                             || string.Equals(n, "Idtabla", StringComparison.OrdinalIgnoreCase)
-                                             || string.Equals(n, "IdTabla", StringComparison.OrdinalIgnoreCase))
+                    string valueCol = dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)
+                        .FirstOrDefault(n => string.Equals(n, "IdTabla", StringComparison.OrdinalIgnoreCase))
                         ?? dt.Columns[0].ColumnName;
 
                     cmbEmpresa.DisplayMember = displayCol;
@@ -379,8 +695,7 @@ namespace Retorno360Tacna.FORMS
                 }
                 else
                 {
-                    // Mostrar aviso si no hay empresas asociadas
-                    MessageBox.Show("No se encontraron empresas para la razón social seleccionada.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    cmbEmpresa.DataSource = null;
                 }
 
                 ActualizarEstadoPlantilla();
@@ -391,606 +706,654 @@ namespace Retorno360Tacna.FORMS
             }
         }
 
-        private readonly List<UcMesInventario> _paneles = new();
+        private void ActualizarEstadoPlantilla()
+        {
+            try
+            {
+                if (cmbEmpresa != null && cmbEmpresa.SelectedValue != null && int.TryParse(cmbEmpresa.SelectedValue.ToString(), out int idEmpresa))
+                {
+                    var cfg = PlantillaInventarioServicio.ObtenerParaEmpresa(idEmpresa);
+                    if (cfg != null && cfg.EstaConfigurada)
+                    {
+                        try { lblPlantillaInfo.Text = $"??  Plantilla: {Path.GetFileName(cfg.RutaArchivo)}  |  Hoja: {cfg.Hoja}  |  Operaciï¿½n: {cfg.Operacion}"; } catch { }
+                        try { lblPlantillaInfo.ForeColor = Color.FromArgb(22, 90, 50); } catch { }
+
+                        return;
+                    }
+                }
+
+                try { lblPlantillaInfo.Text = "??  Sin plantilla para esta empresa  (configura una en Configuraciï¿½n)"; } catch { }
+                try { lblPlantillaInfo.ForeColor = Color.FromArgb(120, 60, 30); } catch { }
+
+            }
+            catch { }
+        }
+
+        public async System.Threading.Tasks.Task VerificarPartesAsync(
+            int idRazon,
+            int idEmpresa,
+            List<(string Parte, decimal Cantidad, string Unidad)> entradas)
+        {
+            var svc = new VerificacionPartesService();
+            await svc.VerificarPartesConCantidadAsync(idRazon, idEmpresa, entradas);
+        }
+
+        // Actualiza el panel pnlChart mostrando por mes si existe cÃ¡lculo en Historial_CalculoCostos
+        private void UpdateChartMeses()
+        {
+            try
+            {
+                if (pnlChart == null) return;
+
+                int idRazon = SelectedIdRazon;
+                int idEmpresa = SelectedIdEmpresa;
+
+                // Preparar datos de meses (0 = NO, 1 = SI)
+                var valores = Enumerable.Range(1, 12).Select(i => 0).ToArray();
+
+                if (idRazon != 0 && idEmpresa != 0)
+                {
+                    try
+                    {
+                        using var conn = new Microsoft.Data.SqlClient.SqlConnection(new CNX.Conexion().GetConnectionString());
+                        conn.Open();
+                        string sql = @"SELECT MONTH(FechaCalculo) AS Mes, COUNT(1) AS Cant
+                                       FROM Historial_CalculoCostos
+                                       WHERE IdRazonSocial = @IdRazon AND IdEmpresa = @IdEmpresa
+                                       GROUP BY MONTH(FechaCalculo)";
+                        using var cmd = new Microsoft.Data.SqlClient.SqlCommand(sql, conn);
+                        cmd.Parameters.AddWithValue("@IdRazon", idRazon);
+                        cmd.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
+                        using var rdr = cmd.ExecuteReader();
+                        while (rdr.Read())
+                        {
+                            int mes = rdr.IsDBNull(0) ? 0 : rdr.GetInt32(0);
+                            int cnt = rdr.IsDBNull(1) ? 0 : rdr.GetInt32(1);
+                            if (mes >= 1 && mes <= 12) valores[mes - 1] = cnt > 0 ? 1 : 0;
+                        }
+                    }
+                    catch { }
+                }
+
+                // Render simple chart using labels inside the panel: un control ligero
+                try
+                {
+                    pnlChart.SuspendLayout();
+                    pnlChart.Controls.Clear();
+                    for (int i = 0; i < 12; i++)
+                    {
+                        var lbl = new Label();
+                        lbl.AutoSize = false;
+                        lbl.TextAlign = ContentAlignment.MiddleCenter;
+                        lbl.Size = new Size(40, 120);
+                        lbl.Location = new Point(10 + i * 45, 10);
+                        lbl.Text = new DateTime(DateTime.Now.Year, i + 1, 1).ToString("MMM", new System.Globalization.CultureInfo("es-ES")) + "\n" + (valores[i] == 1 ? "SI" : "NO");
+                        lbl.BackColor = valores[i] == 1 ? Color.FromArgb(30, 150, 70) : Color.FromArgb(230, 230, 230);
+                        lbl.ForeColor = valores[i] == 1 ? Color.White : Color.FromArgb(80, 80, 80);
+                        lbl.BorderStyle = BorderStyle.FixedSingle;
+                        pnlChart.Controls.Add(lbl);
+                    }
+                    pnlChart.ResumeLayout();
+                }
+                catch { }
+            }
+            catch { }
+        }
+
+        // Intenta mapear columnas del archivo subido usando la plantilla configurada.
+        // Devuelve true si se pudo obtener hoja y nombres de columnas (parte, cantidad, um).
+        private bool TryAutoMapUsingTemplate(string plantillaPath, string plantillaHoja, XLWorkbook uploadedWorkbook, out string sheetNombre, out string colParte, out string colCant, out string colUm)
+        {
+            sheetNombre = string.Empty; colParte = string.Empty; colCant = string.Empty; colUm = string.Empty;
+            try
+            {
+                if (!File.Exists(plantillaPath)) return false;
+                using var tplWb = new XLWorkbook(plantillaPath);
+
+                var tplWs = tplWb.Worksheets.FirstOrDefault(w => string.Equals(w.Name, plantillaHoja, StringComparison.OrdinalIgnoreCase))
+                    ?? tplWb.Worksheets.FirstOrDefault();
+                if (tplWs == null) return false;
+
+                // Detectar fila de encabezado en plantilla
+                int tplLastRow = tplWs.LastRowUsed()?.RowNumber() ?? 0;
+                int tplHeaderRow = 1;
+                for (int r = 1; r <= Math.Min(tplLastRow, 20); r++)
+                {
+                    var row = tplWs.Row(r);
+                    if (row.CellsUsed().Any()) { tplHeaderRow = r; break; }
+                }
+
+                var headersTpl = new List<string>();
+                int tplLastCol = tplWs.Row(tplHeaderRow).LastCellUsed()?.Address.ColumnNumber ?? 0;
+                for (int c = 1; c <= tplLastCol; c++) headersTpl.Add(tplWs.Cell(tplHeaderRow, c).GetString().Trim());
+
+                // Revisar cada hoja del archivo subido y buscar coincidencias de nombres de columnas
+                foreach (var upWs in uploadedWorkbook.Worksheets)
+                {
+                    int upLastRow = upWs.LastRowUsed()?.RowNumber() ?? 0;
+                    int upHeaderRow = 1;
+                    for (int r = 1; r <= Math.Min(upLastRow, 20); r++) { if (upWs.Row(r).CellsUsed().Any()) { upHeaderRow = r; break; } }
+                    int upLastCol = upWs.Row(upHeaderRow).LastCellUsed()?.Address.ColumnNumber ?? 0;
+
+                    var headersUp = new List<string>();
+                    for (int c = 1; c <= upLastCol; c++) headersUp.Add(upWs.Cell(upHeaderRow, c).GetString().Trim());
+
+                    // Intentar encontrar columna de parte comparando nombres exactos o contenciÃ³n
+                    string foundParte = string.Empty, foundCant = string.Empty, foundUm = string.Empty;
+                    foreach (var h in headersTpl)
+                    {
+                        if (string.IsNullOrWhiteSpace(h)) continue;
+                        // HeurÃ­stica: buscar campos conocidos en plantilla como 'Parte','NoParte','Cantidad','UM','Unidad'
+                        if (RegexMatchAny(h, new[] { "parte", "no parte", "no_parte", "no_parte", "noParte", "noParte" }))
+                        {
+                            // buscar coincidencia en headersUp
+                            var match = headersUp.FirstOrDefault(x => x.Equals(h, StringComparison.OrdinalIgnoreCase) || x.IndexOf(h, StringComparison.OrdinalIgnoreCase) >= 0);
+                            if (match != null) foundParte = match;
+                        }
+                        if (string.IsNullOrWhiteSpace(foundCant) && RegexMatchAny(h, new[] { "cantidad", "cant", "qty", "quantity" }))
+                        {
+                            var match = headersUp.FirstOrDefault(x => x.Equals(h, StringComparison.OrdinalIgnoreCase) || x.IndexOf(h, StringComparison.OrdinalIgnoreCase) >= 0);
+                            if (match != null) foundCant = match;
+                        }
+                        if (string.IsNullOrWhiteSpace(foundUm) && RegexMatchAny(h, new[] { "um", "unidad", "unidad_medida", "uom" }))
+                        {
+                            var match = headersUp.FirstOrDefault(x => x.Equals(h, StringComparison.OrdinalIgnoreCase) || x.IndexOf(h, StringComparison.OrdinalIgnoreCase) >= 0);
+                            if (match != null) foundUm = match;
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(foundParte))
+                    {
+                        sheetNombre = upWs.Name;
+                        colParte = foundParte;
+                        colCant = foundCant;
+                        colUm = foundUm;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            catch { return false; }
+        }
+
+        private bool RegexMatchAny(string input, string[] terms)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return false;
+            var low = input.ToLowerInvariant();
+            foreach (var t in terms) if (low.Contains(t.ToLowerInvariant())) return true;
+            return false;
+        }
+
+        // Genera una lista de claves yyyy-MM para los n meses anteriores (incluye mes actual)
+        private System.Collections.Generic.IEnumerable<string> GenerarMesesRecientes(int meses)
+        {
+            var lista = new System.Collections.Generic.List<string>();
+            var ahora = DateTime.Now;
+            for (int i = 0; i < meses; i++)
+            {
+                var dt = ahora.AddMonths(-i);
+                lista.Add(dt.ToString("yyyy-MM"));
+            }
+            return lista;
+        }
+
+        private async void btnVerificarPartes_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using var frm = new FrmIngresarPartes();
+                // Poblar combos de aÃ±o/mes con valores recientes para que el usuario pueda elegir
+                try
+                {
+                    frm.CargarMeses(GenerarMesesRecientes(12), DateTime.Now.ToString("yyyy-MM"));
+                }
+                catch { }
+
+                if (frm.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                string? texto = frm.PartesIngresadas;
+                if (string.IsNullOrWhiteSpace(texto))
+                {
+                    MessageBox.Show("No se ingresaron nÃºmeros de parte.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                int idRazon = 0, idEmpresa = 0;
+                if (cmbRazonSocial != null && cmbRazonSocial.SelectedValue != null)
+                    int.TryParse(cmbRazonSocial.SelectedValue.ToString(), out idRazon);
+                if (cmbEmpresa != null && cmbEmpresa.SelectedValue != null)
+                    int.TryParse(cmbEmpresa.SelectedValue.ToString(), out idEmpresa);
+
+                // Requerir seleccion de razÃ³n social y empresa para determinar la BD
+                if (idRazon == 0 || idEmpresa == 0)
+                {
+                    MessageBox.Show("Selecciona una razÃ³n social y una empresa antes de verificar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var entradas = new List<(string Parte, decimal Cantidad, string Unidad)>();
+                var lines = texto.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var raw in lines)
+                {
+                    string line = raw.Trim();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    string[] parts = line.Contains(',')
+                        ? line.Split(',')
+                        : line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+
+                    string parte = parts.Length > 0 ? parts[0].Trim() : string.Empty;
+                    decimal cantidad = 1m;
+                    string unidad = string.Empty;
+
+                    if (parts.Length == 2)
+                    {
+                        if (!decimal.TryParse(parts[1].Trim(), out cantidad))
+                            unidad = parts[1].Trim();
+                    }
+                    else if (parts.Length >= 3)
+                    {
+                        bool parsed = false;
+                        for (int i = 1; i < parts.Length; i++)
+                        {
+                            var t = parts[i].Trim();
+                            if (!parsed && decimal.TryParse(t, out decimal q))
+                            {
+                                cantidad = q; parsed = true; continue;
+                            }
+                            if (!string.IsNullOrEmpty(t) && string.IsNullOrEmpty(unidad)) unidad = t;
+                        }
+                    }
+
+                    if (string.IsNullOrWhiteSpace(parte)) continue;
+                    entradas.Add((parte, cantidad, unidad));
+                }
+
+                if (entradas.Count == 0)
+                {
+                    MessageBox.Show("No se encontraron filas vÃ¡lidas para verificar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                var servicio = new VerificacionPartesService();
+                var resultado = await servicio.VerificarPartesConCantidadAsync(idRazon, idEmpresa, entradas);
+
+                using var frmRes = new FrmResultadoVerificacion(resultado);
+                // Pasar al formulario de resultados los ids seleccionados para evitar
+                // que vuelva a solicitarlos desde el Owner cuando el usuario agregue filas.
+                frmRes.SelectedIdRazon = this.SelectedIdRazon;
+                frmRes.SelectedIdEmpresa = this.SelectedIdEmpresa;
+                // Pasar mes seleccionado al diÃ¡logo para que lo muestre en su lblFecha
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(frm.MesSeleccionado))
+                    {
+                        var parts = frm.MesSeleccionado.Split('-');
+                        string mostrar = frm.MesSeleccionado;
+                        if (parts.Length >= 2 && int.TryParse(parts[0], out int y) && int.TryParse(parts[1], out int m))
+                        {
+                            try { mostrar = new System.DateTime(y, m, 1).ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-ES")); } catch { mostrar = frm.MesSeleccionado; }
+                        }
+                        try { frmRes.FechaTexto = mostrar; frmRes.MesKey = frm.MesSeleccionado; } catch { }
+                    }
+                }
+                catch { }
+
+                frmRes.ShowDialog(this);
+
+                // Si el diÃ¡logo devolviÃ³ un DataTable para agregar, anexarlo a dgvRelsultados
+                try
+                {
+                    if (frmRes.ResultadoParaAgregar != null && frmRes.ResultadoParaAgregar.Rows.Count > 0)
+                    {
+                        AppendResultadoParaAgregar(frmRes.ResultadoParaAgregar, frmRes.TotalCostoParaAgregar);
+                        // Actualizar etiqueta de mes/aÃ±o para el preview (usar FechaTexto legible si estÃ¡ disponible)
+                        try
+                        {
+                            string textoMes = !string.IsNullOrWhiteSpace(frmRes.FechaTexto) ? frmRes.FechaTexto : (!string.IsNullOrWhiteSpace(frmRes.MesKey) ? frmRes.MesKey : (frm.MesSeleccionado ?? string.Empty));
+                            if (!string.IsNullOrWhiteSpace(textoMes)) lblMesAno.Text = $"Mes: {textoMes}";
+                        }
+                        catch { }
+                    }
+                }
+                catch { }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al verificar partes: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ----------------------------------------------------
+        // Stubs para eventos que aÃºn declara el diseÃ±ador pero cuya lÃ³gica
+        // original se eliminÃ³. Mantener los stubs evita errores de compilaciÃ³n
+        // y permite reimplementar comportamiento si es necesario.
+        // ----------------------------------------------------
+        private void btnIniciarCalculo_Click(object? sender, EventArgs e)
+        {
+            // Intencionalmente vacÃ­o: la lÃ³gica de inicio de cÃ¡lculo fue removida.
+        }
+
+        private async void btnAnalizarExcel_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                using var ofd = new OpenFileDialog() { Filter = "Excel|*.xlsx;*.xls", Multiselect = false };
+                if (ofd.ShowDialog(this) != DialogResult.OK) return;
+
+                var ruta = ofd.FileName;
+                var layout = new MODELS.ExcelLayoutModel();
+                try { layout.CargarArchivo(ruta); } catch (Exception ex) { MessageBox.Show($"No se pudo abrir el archivo: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
+
+                if (layout.Hojas == null || layout.Hojas.Count == 0)
+                {
+                    MessageBox.Show("El archivo no contiene hojas detectables.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // Usar el formulario FrmMapearColumnas para mapear campos (editorable desde el diseÃ±ador)
+                using var mapForm = new FrmMapearColumnas() { IdRazon = this.SelectedIdRazon, IdEmpresa = this.SelectedIdEmpresa };
+                try { mapForm.LoadLayout(layout); } catch { /* seguir */ }
+                if (mapForm.ShowDialog(this) != DialogResult.OK) return;
+
+                var hojaSel = mapForm.SelectedSheet;
+                var colParte = mapForm.SelectedColParte;
+                var colCant = mapForm.SelectedColCantidad;
+                var colUm = mapForm.SelectedColUM;
+
+                if (string.IsNullOrWhiteSpace(colParte)) { MessageBox.Show("Selecciona la columna que contiene el nÃºmero de parte.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+
+                // Leer la hoja y obtener filas
+                var entradas = new System.Collections.Generic.List<(string Parte, decimal Cantidad, string Unidad)>();
+                var totalesPorFila = new System.Collections.Generic.List<decimal?>();
+                // lista temporal para costos unitarios por fila (declarada fuera del using para usarla luego)
+                var costosUnitariosTemp = new System.Collections.Generic.List<decimal?>();
+                using (var stream = new FileStream(ruta, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var wb = new XLWorkbook(stream))
+                {
+                    var ws = wb.Worksheets.FirstOrDefault(w => string.Equals(w.Name, hojaSel, StringComparison.OrdinalIgnoreCase));
+                    if (ws == null) { MessageBox.Show("Hoja no encontrada.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
+
+                    // Detectar fila de encabezado similar a ExcelLayoutModel
+                    int ultimaFila = ws.LastRowUsed()?.RowNumber() ?? 0;
+                    int filaMax = Math.Min(ultimaFila, 20);
+                    int filaEnc = 0;
+                    for (int r = 1; r <= filaMax; r++)
+                    {
+                        var row = ws.Row(r);
+                        if (row.CellsUsed().Any())
+                        {
+                            // Comprobar que contiene la columna de parte (por nombre)
+                            bool tieneParte = false;
+                            foreach (var c in row.Cells())
+                            {
+                                var val = c.GetString().Trim();
+                                if (string.Equals(val, colParte, StringComparison.OrdinalIgnoreCase) || val.IndexOf(colParte, StringComparison.OrdinalIgnoreCase) >= 0)
+                                { tieneParte = true; break; }
+                            }
+                            if (tieneParte) { filaEnc = r; break; }
+                        }
+                    }
+                    if (filaEnc == 0) filaEnc = 1;
+
+                    int ultimaCol = ws.Row(filaEnc).LastCellUsed()?.Address.ColumnNumber ?? 0;
+                    // localizar indices de las columnas seleccionadas
+                    int idxParte = -1, idxCant = -1, idxUm = -1, idxTotal = -1, idxCostoUnit = -1;
+                    var colTotalName = mapForm.SelectedColTotalCosto;
+                    var colCostoUnitName = mapForm.SelectedColCostoUnitario;
+                    for (int c = 1; c <= ultimaCol; c++)
+                    {
+                        var txt = ws.Cell(filaEnc, c).GetString().Trim();
+                        if (string.Equals(txt, colParte, StringComparison.OrdinalIgnoreCase) || txt.IndexOf(colParte, StringComparison.OrdinalIgnoreCase) >= 0) idxParte = c;
+                        if (!string.IsNullOrWhiteSpace(colCant) && (string.Equals(txt, colCant, StringComparison.OrdinalIgnoreCase) || txt.IndexOf(colCant, StringComparison.OrdinalIgnoreCase) >= 0)) idxCant = c;
+                        if (!string.IsNullOrWhiteSpace(colUm) && (string.Equals(txt, colUm, StringComparison.OrdinalIgnoreCase) || txt.IndexOf(colUm, StringComparison.OrdinalIgnoreCase) >= 0)) idxUm = c;
+                        if (!string.IsNullOrWhiteSpace(colTotalName) && (string.Equals(txt, colTotalName, StringComparison.OrdinalIgnoreCase) || txt.IndexOf(colTotalName, StringComparison.OrdinalIgnoreCase) >= 0)) idxTotal = c;
+                        if (!string.IsNullOrWhiteSpace(colCostoUnitName) && (string.Equals(txt, colCostoUnitName, StringComparison.OrdinalIgnoreCase) || txt.IndexOf(colCostoUnitName, StringComparison.OrdinalIgnoreCase) >= 0)) idxCostoUnit = c;
+                    }
+
+                    if (idxParte == -1) { MessageBox.Show("No se pudo localizar la columna de nÃºmero de parte en la hoja seleccionada.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
+
+                    int lastRow = ws.LastRowUsed()?.RowNumber() ?? filaEnc;
+
+                    for (int r = filaEnc + 1; r <= lastRow; r++)
+                    {
+                        var cellParte = ws.Cell(r, idxParte).GetString()?.Trim() ?? string.Empty;
+                        if (string.IsNullOrWhiteSpace(cellParte)) continue;
+                        string sCant = idxCant > 0 ? ws.Cell(r, idxCant).GetString()?.Trim() ?? string.Empty : string.Empty;
+                        string sUm = idxUm > 0 ? ws.Cell(r, idxUm).GetString()?.Trim() ?? string.Empty : string.Empty;
+
+                        decimal cantidad = 1m;
+                        if (!string.IsNullOrWhiteSpace(sCant))
+                        {
+                            if (!decimal.TryParse(sCant, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out cantidad))
+                                decimal.TryParse(sCant, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out cantidad);
+                        }
+
+                        // leer columna Costo Unitario si fue seleccionada
+                        decimal? costoUnit = null;
+                        if (idxCostoUnit > 0)
+                        {
+                            var sCost = ws.Cell(r, idxCostoUnit).GetString()?.Trim() ?? string.Empty;
+                            if (!string.IsNullOrWhiteSpace(sCost))
+                            {
+                                if (!decimal.TryParse(sCost, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out decimal cu))
+                                    decimal.TryParse(sCost, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out cu);
+                                costoUnit = cu;
+                            }
+                        }
+
+                        // si no hay costo unitario pero hay columna total, intentar derivar unitario = total / cantidad
+                        if (costoUnit == null && idxTotal > 0)
+                        {
+                            var sTot = ws.Cell(r, idxTotal).GetString()?.Trim() ?? string.Empty;
+                            if (!string.IsNullOrWhiteSpace(sTot))
+                            {
+                                if (!decimal.TryParse(sTot, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out decimal t))
+                                    decimal.TryParse(sTot, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out t);
+                                if (cantidad != 0) costoUnit = t / cantidad;
+                            }
+                        }
+
+                        entradas.Add((cellParte, cantidad, sUm));
+                        // aÃ±adir temporalmente a una lista local; la variable final se construirÃ¡ fuera
+                        costosUnitariosTemp.Add(costoUnit);
+                    }
+                }
+
+                if (entradas.Count == 0) { MessageBox.Show("No se encontraron filas vÃ¡lidas en el archivo.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+
+                // trasladar valores temporales de costos unitarios a la lista final que estarÃ¡ en scope
+                var costosUnitariosPorFila = costosUnitariosTemp != null ? new System.Collections.Generic.List<decimal?>(costosUnitariosTemp) : new System.Collections.Generic.List<decimal?>();
+
+                int idRazon = SelectedIdRazon; int idEmpresa = SelectedIdEmpresa;
+                if (idRazon == 0 || idEmpresa == 0) { MessageBox.Show("Selecciona razÃ³n social y empresa antes de analizar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+
+                var svc = new VerificacionPartesService();
+                // Si se seleccionÃ³ columna de costo unitario en el mapeo, pasar la lista de costos unitarios por fila
+                var resultado = await svc.VerificarPartesConCantidadAsync(idRazon, idEmpresa, entradas, costosUnitariosPorFila.Count > 0 ? costosUnitariosPorFila : null);
+
+                // Convertir resultado a DataTable y agregar al grid
+                var dt = new DataTable();
+                dt.Columns.Add("NoParte"); dt.Columns.Add("Cantidad"); dt.Columns.Add("UM"); dt.Columns.Add("CostoUnit"); dt.Columns.Add("TotalCosto");
+                decimal totalGeneral = 0m;
+                foreach (var it in resultado.Items)
+                {
+                    var row = dt.NewRow();
+                    row[0] = it.Parte;
+                    row[1] = it.Cantidad;
+                    row[2] = it.UnidadUsuario ?? it.MedComercial;
+                    row[3] = it.CostoUnitario;
+                    row[4] = it.TotalCosto;
+                    dt.Rows.Add(row);
+                    totalGeneral += it.TotalCosto;
+                }
+
+                // Anexar al grid (usa mÃ©todo existente)
+                try { AppendResultadoParaAgregar(dt, totalGeneral); }
+                catch
+                { /* fallback: intentar aÃ±adir manualmente */
+                    foreach (DataRow r in dt.Rows)
+                    {
+                        var vals = new object[r.Table.Columns.Count];
+                        for (int i = 0; i < r.Table.Columns.Count; i++) vals[i] = r[i];
+                        dgvRelsultados.Rows.Add(vals);
+                    }
+                    try { lblTotalGeneral.Text = $"Total general: {totalGeneral:N2}"; } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al analizar Excel: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void cmbEmpresa_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            try { UpdateChartMeses(); } catch { }
+        }
 
         private void chkUsarPerfil_CheckedChanged(object? sender, EventArgs e)
         {
-            if (chkUsarPerfil.Checked && (usuarioActual == null || perfilService == null))
+            try
             {
-                MessageBox.Show("No se ha cargado el perfil de usuario. Cierre y vuelva a abrir el formulario.",
-                    "Perfil no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                chkUsarPerfil.Checked = false;
-                return;
+                // Cuando el usuario cambia esta opciÃ³n, recargar las razones/empresas
+                CargarRazonesSociales();
+                // Si ya hay una razÃ³n seleccionada, forzar recarga de empresas
+                if (cmbRazonSocial != null && cmbRazonSocial.SelectedValue != null && int.TryParse(cmbRazonSocial.SelectedValue.ToString(), out int idRazon))
+                    CargarEmpresas(idRazon);
             }
-            CargarRazonesSociales();
+            catch { }
         }
 
-        private void btnIniciarCalculo_Click(object sender, EventArgs e)
+        private void btnGuardarCalculos_Click_1(object sender, EventArgs e)
         {
-            if (cmbRazonSocial.SelectedIndex == -1 || cmbRazonSocial.SelectedValue == null)
+            try
             {
-                MessageBox.Show("Debe seleccionar una razón social.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                cmbRazonSocial.Focus();
-                return;
-            }
+                if (dgvRelsultados.Rows.Count == 0) { MessageBox.Show("No hay datos para guardar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
 
-            if (cmbEmpresa.SelectedIndex == -1 || cmbEmpresa.SelectedValue == null)
-            {
-                MessageBox.Show("Debe seleccionar una empresa.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                cmbEmpresa.Focus();
-                return;
-            }
+                // Obtener IdRazon / IdEmpresa
+                int idRazon = SelectedIdRazon;
+                int idEmpresa = SelectedIdEmpresa;
+                if (idRazon == 0 || idEmpresa == 0) { MessageBox.Show("Selecciona razÃ³n social y empresa antes de guardar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
 
-            _razonSocial = cmbRazonSocial.Text.Trim();
-            _nombreEmpresa = cmbEmpresa.Text.Trim();
-
-            // ----------------------------------------------------
-            // NUEVO: capturar los IDs seleccionados de forma segura
-            // ----------------------------------------------------
-            int idEmpresaSeleccionada = cmbEmpresa.SelectedValue != null &&
-                int.TryParse(cmbEmpresa.SelectedValue.ToString(), out int idEmpParsed)
-                ? idEmpParsed : 0;
-
-            int idRazonSeleccionada = cmbRazonSocial.SelectedValue != null &&
-                int.TryParse(cmbRazonSocial.SelectedValue.ToString(), out int idRazonParsed)
-                ? idRazonParsed : 0;
-
-            int cantidadMeses = (int)nudCantidadMeses.Value;
-
-            if (cantidadMeses < 1)
-            {
-                MessageBox.Show("Debe indicar al menos 1 mes a calcular.",
-                    "Datos incompletos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            pnlCantidadMeses.Visible = false;
-            pnlCaptura.Visible = true;
-
-            _sesion.Iniciar(cantidadMeses);
-
-            flpPaneles.SuspendLayout();
-            flpPaneles.Controls.Clear();
-            _paneles.Clear();
-
-            for (int i = 1; i <= cantidadMeses; i++)
-            {
-                var panel = new UcMesInventario(i)
-                {
-                    Width = flpPaneles.ClientSize.Width - 30,
-                    IdEmpresaActiva = idEmpresaSeleccionada,
-                    IdRazonSocialActiva = idRazonSeleccionada   // NUEVO
-                };
-
-                panel.ResultadoActualizado += Panel_ResultadoActualizado;
-                _paneles.Add(panel);
-                flpPaneles.Controls.Add(panel);
-            }
-
-            flpPaneles.ResumeLayout();
-        }
-        private void Panel_ResultadoActualizado(object? sender, EventArgs e)
-        {
-            ActualizarGridYTotalGeneral();
-        }
-
-        private void ActualizarGridYTotalGeneral()
-        {
-            var resultados = _paneles
-                .Where(p => p.Resultado != null && !p.Resultado.TieneError)
-                .Select(p => p.Resultado!)
-                .ToList();
-
-            dgvResultados.DataSource = null;
-            dgvResultados.DataSource = resultados;
-
-            decimal totalGeneral = resultados.Sum(r => r.Total);
-            lblTotalGeneral.Text = $"Total general: {totalGeneral:N2}";
-
-            btnExportarExcel.Enabled = resultados.Count == _paneles.Count;
-        }
-
-        private void flpPaneles_Resize(object sender, EventArgs e)
-        {
-            foreach (Control ctrl in flpPaneles.Controls)
-            {
-                if (ctrl is UcMesInventario uc)
-                {
-                    uc.Width = flpPaneles.ClientSize.Width - 30;
-                }
-            }
-        }
-
-        private void btnRecalcular_Click(object sender, EventArgs e)
-        {
-            if (_paneles.Count == 0)
-            {
-                MessageBox.Show("No hay paneles de meses para conciliar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            int calculados = 0;
-            foreach (var panel in _paneles)
-            {
-                panel.IntentarCalcular();
-                if (panel.Resultado != null && !panel.Resultado.TieneError)
-                {
-                    calculados++;
-                }
-            }
-
-            ActualizarGridYTotalGeneral();
-
-            // Obtener los resultados válidos para guardarlos en el historial
-            var resultadosValidos = _paneles
-                .Where(p => p.Resultado != null && !p.Resultado.TieneError)
-                .Select(p => p.Resultado!)
-                .ToList();
-
-            if (resultadosValidos.Count > 0)
-            {
+                // Fecha/mes desde lblMesAno (espera formato "Mes: <texto>" o clave yyyy-MM)
+                string mesKey = string.Empty;
                 try
                 {
-                    var historialService = new InventarioHistorialService();
-                    historialService.GuardarResultados(resultadosValidos);
+                    var txt = lblMesAno?.Text ?? string.Empty;
+                    if (txt.Contains(":")) txt = txt.Substring(txt.IndexOf(":") + 1).Trim();
+                    // intentar convertir texto legible a yyyy-MM
+                    if (DateTime.TryParseExact(txt, "MMMM yyyy", new System.Globalization.CultureInfo("es-ES"), System.Globalization.DateTimeStyles.None, out DateTime dt))
+                        mesKey = dt.ToString("yyyy-MM");
+                    else if (System.Text.RegularExpressions.Regex.IsMatch(txt, "^\\d{4}-\\d{2}$")) mesKey = txt;
                 }
-                catch (Exception ex)
+                catch { }
+
+                // Total general desde lblTotalGeneral: texto "Total general: 123.45"
+                decimal totalGeneral = 0m;
+                try
                 {
-                    MessageBox.Show($"La conciliación finalizó, pero ocurrió un error al guardar el historial en la base de datos: {ex.Message}",
-                                    "Error de Base de Datos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-            }
-
-            MessageBox.Show($"Conciliación completada y guardada en el historial. Se actualizaron {calculados} de {_paneles.Count} mes(es).",
-                            "Proceso Terminado", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-
-        private void btnExportarExcel_Click(object sender, EventArgs e)
-        {
-            if (_paneles.Count == 0)
-            {
-                MessageBox.Show("No hay datos para exportar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var resultadosValidos = _paneles
-                .Where(p => p.Resultado != null && !p.Resultado.TieneError)
-                .Select(p => p.Resultado!)
-                .ToList();
-
-            using SaveFileDialog sfd = new SaveFileDialog
-            {
-                Filter = "Archivo Excel (*.xlsx)|*.xlsx",
-                FileName = $"Reporte_Inventarios_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
-            };
-
-            if (sfd.ShowDialog() != DialogResult.OK) return;
-
-            string rutaGuardado = sfd.FileName;
-
-            try
-            {
-                using XLWorkbook workbook = new XLWorkbook();
-                var ws = workbook.Worksheets.Add("MATERIA PRIMA");
-
-                ws.Style.Font.FontName = "Century Gothic";
-                ws.Style.Font.FontSize = 10;
-
-                // ----------------------------------------------------
-                // 1. ENCABEZADO Y TÍTULOS
-                // ----------------------------------------------------
-                ws.Cell("D2").Value = "INVENTARIO DE MATERIA PRIMA";
-                ws.Cell("D2").Style.Font.Bold = true;
-                ws.Cell("D2").Style.Font.FontSize = 12;
-
-                ws.Cell("D3").Value = $"{_razonSocial.ToUpper()} - {_nombreEmpresa.ToUpper()}";
-                ws.Cell("D3").Style.Font.Bold = true;
-
-                ws.Cell("D4").Value = $"ENERO-DICIEMBRE {DateTime.Now.Year}";
-                ws.Cell("D4").Style.Font.Bold = true;
-
-                // ----------------------------------------------------
-                // 2. LEYENDA
-                // ----------------------------------------------------
-                var azulOscuro = XLColor.FromHtml("#0D233A");
-                var rojoTacna = XLColor.FromHtml("#BA0000");
-
-                ws.Cell("I1").Style.Fill.BackgroundColor = azulOscuro;
-                ws.Cell("J1").Value = "CALCULO A TRAVES DEL INVENTARIO ENVIADO";
-                ws.Cell("J1").Style.Font.FontSize = 8;
-
-                ws.Cell("I2").Style.Fill.BackgroundColor = rojoTacna;
-                ws.Cell("J2").Value = "SIN INVENTARIO ENTREGADO, CALCULO A TRAVES DEL SISTEMA";
-                ws.Cell("J2").Style.Font.FontSize = 8;
-
-                // ----------------------------------------------------
-                // 3. TABLA HORIZONTAL
-                // ----------------------------------------------------
-                string[] mesesNombres = {
-                    "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
-                    "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
-                };
-
-                ws.Cell("A6").Value = "EMPRESA";
-                ws.Cell("A6").Style.Font.Bold = true;
-                ws.Cell("A6").Style.Fill.BackgroundColor = azulOscuro;
-                ws.Cell("A6").Style.Font.FontColor = XLColor.White;
-
-                ws.Cell("B6").Value = $"DICIEMBRE {DateTime.Now.Year - 1}";
-                ws.Cell("B6").Style.Font.Bold = true;
-                ws.Cell("B6").Style.Fill.BackgroundColor = azulOscuro;
-                ws.Cell("B6").Style.Font.FontColor = XLColor.White;
-
-                var resultadosMap = _paneles
-                    .Where(p => p.Resultado != null && !p.Resultado.TieneError)
-                    .GroupBy(p => p.Resultado!.NumeroMes)
-                    .ToDictionary(g => g.Key, g => g.Sum(p => p.Resultado!.Total));
-
-                int colInicio = 3;
-
-                for (int i = 1; i <= 12; i++)
-                {
-                    IXLCell celdaHeader = ws.Cell(6, colInicio + (i - 1));
-                    IXLCell celdaValor = ws.Cell(7, colInicio + (i - 1));
-
-                    celdaHeader.Value = mesesNombres[i - 1];
-                    celdaHeader.Style.Font.Bold = true;
-                    celdaHeader.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                    bool estaCalculado = resultadosMap.TryGetValue(i, out decimal valorTotal);
-
-                    if (estaCalculado)
+                    var t = lblTotalGeneral?.Text ?? string.Empty;
+                    var m = System.Text.RegularExpressions.Regex.Match(t, "([0-9.,]+)$");
+                    if (m.Success)
                     {
-                        celdaHeader.Style.Fill.BackgroundColor = azulOscuro;
-                        celdaHeader.Style.Font.FontColor = XLColor.White;
-                        celdaValor.Value = valorTotal;
+                        var s = m.Groups[1].Value;
+                        if (!decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out totalGeneral))
+                            decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out totalGeneral);
                     }
-                    else
+                }
+                catch { }
+
+                // Insertar en Historial_CalculoCostos y obtener IdCalculo
+                int idCalculo = 0;
+                using (var conn = new Microsoft.Data.SqlClient.SqlConnection(new CNX.Conexion().GetConnectionString()))
+                {
+                    conn.Open();
+                    using (var tr = conn.BeginTransaction())
                     {
-                        celdaHeader.Style.Fill.BackgroundColor = rojoTacna;
-                        celdaHeader.Style.Font.FontColor = XLColor.White;
-                        celdaValor.Value = 0m;
+                        try
+                        {
+                            string sqlIns = "INSERT INTO Historial_CalculoCostos (IdEmpresa, IdRazonSocial, FechaCalculo, TotalCosto) VALUES (@IdEmpresa, @IdRazonSocial, @FechaCalculo, @TotalCosto); SELECT SCOPE_IDENTITY();";
+                            // Calcular fechaCalculo fuera del using para reutilizar en detalle
+                            DateTime fechaCalculo = DateTime.Now;
+                            if (!string.IsNullOrWhiteSpace(mesKey))
+                            {
+                                var parts = mesKey.Split('-');
+                                if (parts.Length == 2 && int.TryParse(parts[0], out int y) && int.TryParse(parts[1], out int mo)) fechaCalculo = new DateTime(y, mo, 1);
+                            }
+                            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(sqlIns, conn, tr))
+                            {
+                                cmd.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
+                                cmd.Parameters.AddWithValue("@IdRazonSocial", idRazon);
+                                // FechaCalculo: primer dÃ­a del mes calculado (para agrupaciones mensuales)
+                                cmd.Parameters.AddWithValue("@FechaCalculo", fechaCalculo);
+                                cmd.Parameters.AddWithValue("@TotalCosto", totalGeneral);
+                                var res = cmd.ExecuteScalar();
+                                if (res != null && int.TryParse(res.ToString(), out int idc)) idCalculo = idc;
+                            }
+
+                            if (idCalculo <= 0) throw new Exception("No se pudo crear registro en Historial_CalculoCostos.");
+
+                            // Preparar inserciÃ³n masiva para detalle (sin IdConsecutivo)
+                            // Insert detalle incluye ahora columna Fecha (DATETIME2 NOT NULL)
+                            string sqlInsDet = "INSERT INTO Historial_CalculoInventario (IdCalculo, Fecha, NoParte, Cantidad, UM, CostoUnit, TotalCosto) VALUES (@IdCalculo, @Fecha, @NoParte, @Cantidad, @UM, @CostoUnit, @TotalCosto);";
+                            using (var cmdDet = new Microsoft.Data.SqlClient.SqlCommand(sqlInsDet, conn, tr))
+                            {
+                                cmdDet.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@IdCalculo", System.Data.SqlDbType.Int));
+                                cmdDet.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@Fecha", System.Data.SqlDbType.DateTime2));
+                                cmdDet.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@NoParte", System.Data.SqlDbType.VarChar, 500));
+                                cmdDet.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@Cantidad", System.Data.SqlDbType.Int));
+                                cmdDet.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@UM", System.Data.SqlDbType.VarChar, 50));
+                                cmdDet.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@CostoUnit", System.Data.SqlDbType.Decimal));
+                                cmdDet.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@TotalCosto", System.Data.SqlDbType.Decimal));
+
+                                foreach (DataGridViewRow row in dgvRelsultados.Rows)
+                                {
+                                    if (row.IsNewRow) continue;
+                                    // Mapear columnas por nombre/encabezado
+                                    string noParte = row.Cells[0].Value?.ToString() ?? string.Empty;
+                                    int cantidad = 0; decimal costoUnit = 0m; decimal totalCosto = 0m; string um = string.Empty;
+                                    // intentar buscar columnas por encabezado
+                                    for (int i = 0; i < dgvRelsultados.Columns.Count; i++)
+                                    {
+                                        var hdr = (dgvRelsultados.Columns[i].HeaderText ?? dgvRelsultados.Columns[i].Name ?? string.Empty).ToLowerInvariant();
+                                        var val = row.Cells[i].Value?.ToString() ?? string.Empty;
+                                        if (hdr.Contains("parte")) noParte = val;
+                                        else if (hdr.Contains("cant")) int.TryParse(val.Replace(".", string.Empty), out cantidad);
+                                        else if (hdr.Contains("um") && !hdr.Contains("bd")) um = val;
+                                        else if (hdr.Contains("costo unit") || hdr.Contains("costounit") || hdr.Contains("unit")) decimal.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out costoUnit);
+                                        else if (hdr.Contains("total")) decimal.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out totalCosto);
+                                    }
+
+                                    cmdDet.Parameters["@IdCalculo"].Value = idCalculo;
+                                    cmdDet.Parameters["@Fecha"].Value = fechaCalculo;
+                                    cmdDet.Parameters["@NoParte"].Value = noParte;
+                                    cmdDet.Parameters["@Cantidad"].Value = cantidad;
+                                    cmdDet.Parameters["@UM"].Value = um;
+                                    cmdDet.Parameters["@CostoUnit"].Value = costoUnit;
+                                    cmdDet.Parameters["@TotalCosto"].Value = totalCosto;
+                                    cmdDet.ExecuteNonQuery();
+                                }
+                            }
+
+                            tr.Commit();
+                        }
+                        catch
+                        {
+                            try { tr.Rollback(); } catch { }
+                            throw;
+                        }
                     }
-
-                    celdaValor.Style.NumberFormat.Format = "$ #,##0.00";
-                    celdaValor.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
                 }
 
-                // ----------------------------------------------------
-                // 4. DATOS DE FILA (Dinamizados con la variable de empresa)
-                // ----------------------------------------------------
-                ws.Cell("A7").Value = string.IsNullOrEmpty(_nombreEmpresa) ? "EMPRESA" : _nombreEmpresa.ToUpper();
-                ws.Cell("A7").Style.Font.Bold = true;
-                ws.Cell("B7").Value = 0m;
-                ws.Cell("B7").Style.NumberFormat.Format = "$ #,##0.00";
-
-                var rangoTabla = ws.Range(6, 1, 7, colInicio + 11);
-                rangoTabla.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                rangoTabla.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-
-                // ----------------------------------------------------
-                // 5. INSERTAR LOGO TACNA (Si existe)
-                // ----------------------------------------------------
-                string rutaLogo = Path.Combine(Application.StartupPath, "logo_tacna.png");
-                if (File.Exists(rutaLogo))
-                {
-                    ws.AddPicture(rutaLogo)
-                      .MoveTo(ws.Cell("A1"))
-                      .WithSize(180, 50);
-                }
-
-                ws.Columns().AdjustToContents();
-                ws.Column("A").Width = 25;
-
-                workbook.SaveAs(rutaGuardado);
-
-                var respuesta = MessageBox.Show(
-                    "¡Reporte generado exitosamente!\n\n¿Desea abrir el archivo Excel en este momento?",
-                    "Exportación Completada",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-
-                if (respuesta == DialogResult.Yes)
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = rutaGuardado,
-                        UseShellExecute = true
-                    });
-                }
+                MessageBox.Show("Guardado completado.", "Ã‰xito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al exportar a Excel: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error al guardar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-   
-            private void btnExportarHistoricoExcel_Click(object sender, EventArgs e)
-        {
-            if (dgvHistorico.Rows.Count == 0)
-            {
-                MessageBox.Show("No hay datos en el historial para exportar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var historico = dgvHistorico.DataSource as List<InventarioHistorialItem>;
-            if (historico == null || historico.Count == 0)
-            {
-                MessageBox.Show("No hay datos en el historial para exportar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            using SaveFileDialog sfd = new SaveFileDialog
-            {
-                Filter = "Archivo Excel (*.xlsx)|*.xlsx",
-                FileName = $"Historico_Inventarios_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
-            };
-
-            if (sfd.ShowDialog() != DialogResult.OK) return;
-
-            string rutaGuardado = sfd.FileName;
-
-            try
-            {
-                using XLWorkbook workbook = new XLWorkbook();
-                var ws = workbook.Worksheets.Add("MATERIA PRIMA");
-
-                ws.Style.Font.FontName = "Century Gothic";
-                ws.Style.Font.FontSize = 10;
-
-                // ----------------------------------------------------
-                // 1. ENCABEZADO Y TÍTULOS
-                // ----------------------------------------------------
-                ws.Cell("D2").Value = "HISTORIAL DE INVENTARIOS";
-                ws.Cell("D2").Style.Font.Bold = true;
-                ws.Cell("D2").Style.Font.FontSize = 12;
-
-                ws.Cell("D3").Value = $"{_razonSocial.ToUpper()} - {_nombreEmpresa.ToUpper()}";
-                ws.Cell("D3").Style.Font.Bold = true;
-
-                ws.Cell("D4").Value = $"ENERO-DICIEMBRE {DateTime.Now.Year}";
-                ws.Cell("D4").Style.Font.Bold = true;
-
-                // ----------------------------------------------------
-                // 2. LEYENDA
-                // ----------------------------------------------------
-                var azulOscuro = XLColor.FromHtml("#0D233A");
-                var rojoTacna = XLColor.FromHtml("#BA0000");
-
-                ws.Cell("I1").Style.Fill.BackgroundColor = azulOscuro;
-                ws.Cell("J1").Value = "CALCULO A TRAVES DEL INVENTARIO ENVIADO";
-                ws.Cell("J1").Style.Font.FontSize = 8;
-
-                ws.Cell("I2").Style.Fill.BackgroundColor = rojoTacna;
-                ws.Cell("J2").Value = "SIN INVENTARIO ENTREGADO, CALCULO A TRAVES DEL SISTEMA";
-                ws.Cell("J2").Style.Font.FontSize = 8;
-
-                // ----------------------------------------------------
-                // 3. TABLA HORIZONTAL
-                // ----------------------------------------------------
-                string[] mesesNombres = {
-            "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
-            "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
-        };
-
-                ws.Cell("A6").Value = "EMPRESA";
-                ws.Cell("A6").Style.Font.Bold = true;
-                ws.Cell("A6").Style.Fill.BackgroundColor = azulOscuro;
-                ws.Cell("A6").Style.Font.FontColor = XLColor.White;
-
-                ws.Cell("B6").Value = $"DICIEMBRE {DateTime.Now.Year - 1}";
-                ws.Cell("B6").Style.Font.Bold = true;
-                ws.Cell("B6").Style.Fill.BackgroundColor = azulOscuro;
-                ws.Cell("B6").Style.Font.FontColor = XLColor.White;
-
-                // ----------------------------------------------------
-                // Filtrar histórico al año actual y agrupar por mes
-                // (Mes viene como texto "MMMM yyyy", igual que en btnEditarHistorico/btnEliminarHistorico)
-                // ----------------------------------------------------
-                var itemsDelAnio = historico
-                    .Where(h => DateTime.TryParseExact(h.Mes, "MMMM yyyy",
-                                    new CultureInfo("es-ES"), DateTimeStyles.None, out DateTime fecha)
-                                && fecha.Year == DateTime.Now.Year)
-                    .ToList();
-
-                var resultadosMap = itemsDelAnio
-                    .GroupBy(h => h.NumeroMes)
-                    .ToDictionary(g => g.Key, g => g.Sum(h => h.Total));
-
-                // Determina si el mes fue calculado con inventario ENVIADO (azul) o por SISTEMA (rojo).
-                // Ajusta esta condición si "TipoInventario" usa otros valores/textos.
-                var tipoPorMes = itemsDelAnio
-                    .GroupBy(h => h.NumeroMes)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Any(h => (h.TipoInventario ?? "").Contains("Sistema", StringComparison.OrdinalIgnoreCase))
-                    );
-
-                int colInicio = 3;
-
-                for (int i = 1; i <= 12; i++)
-                {
-                    IXLCell celdaHeader = ws.Cell(6, colInicio + (i - 1));
-                    IXLCell celdaValor = ws.Cell(7, colInicio + (i - 1));
-
-                    celdaHeader.Value = mesesNombres[i - 1];
-                    celdaHeader.Style.Font.Bold = true;
-                    celdaHeader.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                    bool estaCalculado = resultadosMap.TryGetValue(i, out decimal valorTotal);
-                    bool esSistema = tipoPorMes.TryGetValue(i, out bool esSist) && esSist;
-
-                    if (estaCalculado && !esSistema)
-                    {
-                        celdaHeader.Style.Fill.BackgroundColor = azulOscuro;
-                        celdaHeader.Style.Font.FontColor = XLColor.White;
-                        celdaValor.Value = valorTotal;
-                    }
-                    else
-                    {
-                        celdaHeader.Style.Fill.BackgroundColor = rojoTacna;
-                        celdaHeader.Style.Font.FontColor = XLColor.White;
-                        celdaValor.Value = estaCalculado ? valorTotal : 0m;
-                    }
-
-                    celdaValor.Style.NumberFormat.Format = "$ #,##0.00";
-                    celdaValor.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-                }
-
-                // ----------------------------------------------------
-                // 4. DATOS DE FILA (Dinamizados con la variable de empresa)
-                // ----------------------------------------------------
-                ws.Cell("A7").Value = string.IsNullOrEmpty(_nombreEmpresa) ? "EMPRESA" : _nombreEmpresa.ToUpper();
-                ws.Cell("A7").Style.Font.Bold = true;
-                ws.Cell("B7").Value = 0m;
-                ws.Cell("B7").Style.NumberFormat.Format = "$ #,##0.00";
-
-                var rangoTabla = ws.Range(6, 1, 7, colInicio + 11);
-                rangoTabla.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                rangoTabla.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-
-                // ----------------------------------------------------
-                // 5. INSERTAR LOGO TACNA (Si existe)
-                // ----------------------------------------------------
-                string rutaLogo = Path.Combine(Application.StartupPath, "logo_tacna.png");
-                if (File.Exists(rutaLogo))
-                {
-                    ws.AddPicture(rutaLogo)
-                      .MoveTo(ws.Cell("A1"))
-                      .WithSize(180, 50);
-                }
-
-                ws.Columns().AdjustToContents();
-                ws.Column("A").Width = 25;
-
-                workbook.SaveAs(rutaGuardado);
-
-                var respuesta = MessageBox.Show(
-                    "¡Reporte generado exitosamente!\n\n¿Desea abrir el archivo Excel en este momento?",
-                    "Exportación Completada",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-
-                if (respuesta == DialogResult.Yes)
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = rutaGuardado,
-                        UseShellExecute = true
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al exportar a Excel: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        
-
-        private void btnEditarHistorico_Click(object sender, EventArgs e)
-        {
-            if (dgvHistorico.CurrentRow == null)
-            {
-                MessageBox.Show("Seleccione un registro del historial para editar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var item = dgvHistorico.CurrentRow.DataBoundItem as InventarioHistorialItem;
-            if (item == null) return;
-
-            string? input = MostrarInputDialog(
-                $"Editar Total para {item.Mes}:\n(Valor actual: {item.Total:N2})",
-                "Editar Total",
-                item.Total.ToString("F2"));
-
-            if (string.IsNullOrWhiteSpace(input)) return;
-
-            if (!decimal.TryParse(input.Replace(",", "."),
-                System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out decimal nuevoTotal))
-            {
-                MessageBox.Show("El valor ingresado no es un n\u00famero v\u00e1lido.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                int anio = DateTime.Now.Year;
-                if (DateTime.TryParseExact(item.Mes, "MMMM yyyy",
-                    new System.Globalization.CultureInfo("es-ES"),
-                    System.Globalization.DateTimeStyles.None, out DateTime fechaMes))
-                    anio = fechaMes.Year;
-
-                new InventarioHistorialService()
-                    .ActualizarTotal(item.IdEmpresa, item.IdRazonSocial, item.NumeroMes, anio, nuevoTotal);
-
-                CargarHistorico();
-                MessageBox.Show("Total actualizado correctamente.", "\u00c9xito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al actualizar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void btnEliminarHistorico_Click(object sender, EventArgs e)
-        {
-            if (dgvHistorico.CurrentRow == null)
-            {
-                MessageBox.Show("Seleccione un registro del historial para eliminar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var item = dgvHistorico.CurrentRow.DataBoundItem as InventarioHistorialItem;
-            if (item == null) return;
-
-            if (MessageBox.Show(
-                $"\u00bfEst\u00e1 seguro de eliminar el registro de {item.Mes} con Total {item.Total:N2}?",
-                "Confirmar eliminaci\u00f3n", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
-
-            try
-            {
-                int anio = DateTime.Now.Year;
-                if (DateTime.TryParseExact(item.Mes, "MMMM yyyy",
-                    new System.Globalization.CultureInfo("es-ES"),
-                    System.Globalization.DateTimeStyles.None, out DateTime fechaMes))
-                    anio = fechaMes.Year;
-
-                new InventarioHistorialService()
-                    .EliminarRegistro(item.IdEmpresa, item.IdRazonSocial, item.NumeroMes, anio);
-
-                CargarHistorico();
-                MessageBox.Show("Registro eliminado correctamente.", "\u00c9xito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al eliminar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private static string? MostrarInputDialog(string mensaje, string titulo, string valorInicial)
-        {
-            using var form = new Form
-            {
-                Text = titulo,
-                Size = new Size(380, 160),
-                StartPosition = FormStartPosition.CenterParent,
-                FormBorderStyle = FormBorderStyle.FixedDialog,
-                MaximizeBox = false,
-                MinimizeBox = false
-            };
-            var lbl = new Label { Text = mensaje, AutoSize = true, Location = new Point(16, 14) };
-            var txt = new TextBox { Text = valorInicial, Location = new Point(16, 50), Width = 330 };
-            var btnOk = new Button { Text = "Aceptar", DialogResult = DialogResult.OK, Location = new Point(200, 85), Width = 80 };
-            var btnCancel = new Button { Text = "Cancelar", DialogResult = DialogResult.Cancel, Location = new Point(290, 85), Width = 80 };
-            form.Controls.AddRange(new Control[] { lbl, txt, btnOk, btnCancel });
-            form.AcceptButton = btnOk;
-            form.CancelButton = btnCancel;
-            return form.ShowDialog() == DialogResult.OK ? txt.Text.Trim() : null;
         }
     }
 }

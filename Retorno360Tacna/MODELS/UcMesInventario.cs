@@ -37,6 +37,44 @@ namespace Retorno360Tacna.MODELS
             CargarTiposOperacion();
         }
 
+        // Permite cargar un archivo Excel desde código (sin mostrar diálogo)
+        public void CargarArchivoDesdeRuta(string rutaArchivo)
+        {
+            if (string.IsNullOrEmpty(rutaArchivo) || !File.Exists(rutaArchivo))
+                throw new FileNotFoundException("El archivo no existe.", rutaArchivo);
+
+            _layoutModel.CargarArchivo(rutaArchivo);
+            lblArchivo.Text = Path.GetFileName(rutaArchivo);
+            lblArchivo.ForeColor = Color.Black;
+
+            // Intentar usar plantilla configurada para la empresa activa
+            var plantilla = PlantillaInventarioServicio.ObtenerParaEmpresa(IdEmpresaActiva);
+
+            if (plantilla != null && plantilla.EstaConfigurada &&
+                plantilla.CamposPlantilla().Any())
+            {
+                List<string> columnasExcel;
+                try
+                {
+                    columnasExcel = _layoutModel.AnalizarHoja(plantilla.Hoja);
+                }
+                catch
+                {
+                    columnasExcel = new List<string>();
+                }
+
+                if (columnasExcel.Count > 0)
+                {
+                    // Aplicar mapeo vacío por ahora (se puede exponer más tarde)
+                    AplicarMapeoDePlantilla(plantilla, new Dictionary<string, string>(), columnasExcel);
+                    return;
+                }
+            }
+
+            // Flujo manual: cargar hojas normalmente
+            cmbHoja.DataSource = _layoutModel.Hojas;
+        }
+
         
 
         private void CargarMeses()

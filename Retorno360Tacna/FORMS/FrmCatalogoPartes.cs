@@ -41,8 +41,13 @@ namespace Retorno360Tacna.FORMS
             public int EnBom { get; set; }
             public int EnPedimento { get; set; }
             public int Cumplen { get; set; }
+            // NoCumplen stays as previously defined (based on Cumplen vs TotalSubidos)
             public int NoCumplen => Math.Max(0, TotalSubidos - Cumplen);
-            public double PorcentajeCumplimiento => TotalSubidos == 0 ? 0D : Math.Round((double)Cumplen * 100D / TotalSubidos, 2);
+
+            // PorcentajeCumplimiento debe reflejar pctBaseLimpia = (No.Parte en BOM con pedimento) / (Vigente BOM)
+            // Usamos 'Cumplen' como numerador (partes que están en BOM y en pedimento) para evitar porcentajes > 100%.
+            public double PorcentajeCumplimiento => EnBom == 0 ? 0D : Math.Round((double)Cumplen * 100D / EnBom, 2);
+
             public double PorcentajeIncumplimiento => Math.Max(0D, Math.Round(100D - PorcentajeCumplimiento, 2));
         }
 
@@ -638,7 +643,8 @@ namespace Retorno360Tacna.FORMS
             }
 
             ResumenCumplimiento resumenActual = CrearResumenCumplimiento("MP", datosConsultadosMP);
-            lblTotalPartes.Text = $"Total de partes MP: {resumenActual.TotalSubidos:N0} | Cumplimiento: {resumenActual.PorcentajeCumplimiento:N2}%";
+            // Mostrar también pctBaseLimpia (Cumplen / EnBom) en el label de totales
+            lblTotalPartes.Text = $"Total de partes MP: {resumenActual.TotalSubidos:N0} | Cumplimiento (base limpia): {resumenActual.PorcentajeCumplimiento:N2}%";
         }
 
         private void MostrarVistaPedimentosMP()
@@ -701,29 +707,36 @@ namespace Retorno360Tacna.FORMS
         {
             ResumenCumplimiento resumen = CrearResumenCumplimiento("MP", datos);
 
-            var serieCumplen = new PieSeries<int>
+            // El gráfico principal debe mostrar estado respecto a BOM (En BOM / No en BOM).
+            int enBom = resumen.EnBom;
+            int noEnBom = Math.Max(0, resumen.TotalSubidos - resumen.EnBom);
+
+            double porcentajeEnBom = resumen.TotalSubidos == 0 ? 0D : Math.Round((double)enBom * 100D / resumen.TotalSubidos, 2);
+            double porcentajeNoEnBom = Math.Max(0D, Math.Round(100D - porcentajeEnBom, 2));
+
+            var serieEnBom = new PieSeries<int>
             {
-                Values = new[] { resumen.Cumplen },
-                Name = $"Cumplen: {resumen.Cumplen:N0} ({resumen.PorcentajeCumplimiento:N2}%)",
+                Values = new[] { enBom },
+                Name = $"En BOM: {enBom:N0} ({porcentajeEnBom:N2}%)",
                 Fill = new SolidColorPaint(SKColor.Parse("#2ecc71")),
                 DataLabelsPaint = new SolidColorPaint(SKColors.White),
                 DataLabelsSize = 16,
                 DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                DataLabelsFormatter = point => $"{resumen.Cumplen:N0}"
+                DataLabelsFormatter = point => $"{enBom:N0}"
             };
 
-            var serieNoCumplen = new PieSeries<int>
+            var serieNoEnBom = new PieSeries<int>
             {
-                Values = new[] { resumen.NoCumplen },
-                Name = $"No cumplen: {resumen.NoCumplen:N0} ({resumen.PorcentajeIncumplimiento:N2}%)",
+                Values = new[] { noEnBom },
+                Name = $"No en BOM: {noEnBom:N0} ({porcentajeNoEnBom:N2}%)",
                 Fill = new SolidColorPaint(SKColor.Parse("#e74c3c")),
                 DataLabelsPaint = new SolidColorPaint(SKColors.White),
                 DataLabelsSize = 16,
                 DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                DataLabelsFormatter = point => $"{resumen.NoCumplen:N0}"
+                DataLabelsFormatter = point => $"{noEnBom:N0}"
             };
 
-            chartEstatus.Series = new ISeries[] { serieCumplen, serieNoCumplen };
+            chartEstatus.Series = new ISeries[] { serieEnBom, serieNoEnBom };
 
             chartEstatus.Title = new LiveChartsCore.SkiaSharpView.VisualElements.LabelVisual
             {
@@ -1050,7 +1063,8 @@ namespace Retorno360Tacna.FORMS
                 $"En pedimento: {resumenGeneral.EnPedimento:N0}",
                 $"Cumplen BOM + pedimento: {resumenGeneral.Cumplen:N0}",
                 $"No cumplen: {resumenGeneral.NoCumplen:N0}",
-                $"Porcentaje de cumplimiento: {resumenGeneral.PorcentajeCumplimiento:N2}%"
+                // Aclaramos que el porcentaje mostrado es pctBaseLimpia = (partes en BOM con pedimento) / (vigente en BOM)
+                $"Porcentaje de cumplimiento (Pct. base limpia - partes en pedimento / En BOM): {resumenGeneral.PorcentajeCumplimiento:N2}%"
             };
 
             List<string> resumenPedimentos = new List<string>

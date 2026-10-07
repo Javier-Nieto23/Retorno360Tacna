@@ -55,11 +55,13 @@
     <!-- Evitar que los .resx en la carpeta FORMS\DESIGN se compilen como recursos embebidos y provoquen colisiones de nombres -->
     <EmbeddedResource Remove="FORMS\DESIGN\*.resx" />
   </ItemGroup>
-
   <ItemGroup>
-    <None Update="Resources\logo_tacna.png">
+    <None Remove="Resources\logo_tacna.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\logo_tacna.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    </Resource>
   </ItemGroup>
 
 

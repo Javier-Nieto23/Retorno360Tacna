@@ -156,7 +156,7 @@ namespace Retorno360Tacna.FORMS
             {
                 if (btnReporteAd != null)
                 {
-                    // ensure we don't double-subscribe
+                   
                     btnReporteAd.Click -= btnReporteAd_Click_Handler;
                     btnReporteAd.Click += btnReporteAd_Click_Handler;
                 }
@@ -618,6 +618,39 @@ namespace Retorno360Tacna.FORMS
             FrmCalculoInventarios Inventario = new FrmCalculoInventarios(usuarioActual);
             MostrarFormularioEnPanel(Inventario, limpiarPanelPrimero: false);
 
+        }
+
+        private void btnSubMenuRevisionPL_Click(object sender, EventArgs e)
+        {
+
+            ActivarBoton(btnSubMenuRevisionPL);
+            lblTitulo.Text = "Revisión PL";
+            LimpiarPanel();
+
+            if (!sidebarColapsado)
+            {
+                btnToggleSidebar_Click(sender, e);
+            }
+
+            if (conexionActual != null &&
+                !string.IsNullOrWhiteSpace(conexionActual.Servidor) &&
+                !string.IsNullOrWhiteSpace(conexionActual.UsuarioSQL) &&
+                !string.IsNullOrWhiteSpace(conexionActual.PasswordSQL))
+            {
+                var conexionRevisionPL = new CNX.Conexion(
+                    conexionActual.Servidor,
+                    conexionActual.UsuarioSQL,
+                    conexionActual.PasswordSQL);
+
+                var frm = new RevisionPL(conexionActual, usuarioActual);
+                MostrarFormularioEnPanel(frm, limpiarPanelPrimero: false);
+            }
+            else
+            {
+                ErrorMessageHelper.ShowError("No hay información de conexión disponible.",
+                    "Error", contexto: "Apertura de Revisión PL sin conexión disponible");
+            }
+          
         }
 
         private void btnToggleSidebar_Click(object sender, EventArgs e)

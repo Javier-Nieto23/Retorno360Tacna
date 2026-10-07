@@ -29,6 +29,7 @@ namespace Retorno360Tacna.FORMS
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainMenu));
+            btnSubMenuRevisionPL = new Button();
             panelSidebar = new Panel();
             pictureBox1 = new PictureBox();
             btnConfiguracion = new Button();
@@ -74,6 +75,28 @@ namespace Retorno360Tacna.FORMS
             panelNotificaciones.SuspendLayout();
             panelNotificacionesHeader.SuspendLayout();
             SuspendLayout();
+            // 
+            // btnSubMenuRevisionPL
+            // 
+            btnSubMenuRevisionPL.Cursor = Cursors.Hand;
+            btnSubMenuRevisionPL.Dock = DockStyle.Top;
+            btnSubMenuRevisionPL.FlatAppearance.BorderSize = 0;
+            btnSubMenuRevisionPL.FlatStyle = FlatStyle.Flat;
+            btnSubMenuRevisionPL.Font = new Font("Segoe UI", 10F);
+            btnSubMenuRevisionPL.ForeColor = Color.LightGray;
+            btnSubMenuRevisionPL.Image = Properties.Resources.financial_report_calculator_chart_pie_icon_205131;
+            btnSubMenuRevisionPL.ImageAlign = ContentAlignment.MiddleRight;
+            btnSubMenuRevisionPL.Location = new Point(0, 0);
+            btnSubMenuRevisionPL.Name = "btnSubMenuRevisionPL";
+            btnSubMenuRevisionPL.Padding = new Padding(35, 0, 0, 0);
+            btnSubMenuRevisionPL.Size = new Size(250, 60);
+            btnSubMenuRevisionPL.TabIndex = 3;
+            btnSubMenuRevisionPL.Text = "Revisión PL";
+            btnSubMenuRevisionPL.TextAlign = ContentAlignment.MiddleLeft;
+            btnSubMenuRevisionPL.UseVisualStyleBackColor = true;
+            btnSubMenuRevisionPL.Click += btnSubMenuRevisionPL_Click;
+            btnSubMenuRevisionPL.MouseEnter += MenuButton_MouseEnter;
+            btnSubMenuRevisionPL.MouseLeave += MenuButton_MouseLeave;
             // 
             // panelSidebar
             // 
@@ -157,7 +180,7 @@ namespace Retorno360Tacna.FORMS
             panelSubMenuCluster.Controls.Add(btnSubMenuCumplimiento);
             panelSubMenuCluster.Controls.Add(btnReporteAd);
             panelSubMenuCluster.Dock = DockStyle.Top;
-            panelSubMenuCluster.Location = new Point(0, 630);
+            panelSubMenuCluster.Location = new Point(0, 690);
             panelSubMenuCluster.Name = "panelSubMenuCluster";
             panelSubMenuCluster.Size = new Size(250, 120);
             panelSubMenuCluster.TabIndex = 11;
@@ -217,7 +240,7 @@ namespace Retorno360Tacna.FORMS
             btnCluster.ForeColor = Color.White;
             btnCluster.Image = Properties.Resources.Teachers_35749;
             btnCluster.ImageAlign = ContentAlignment.MiddleRight;
-            btnCluster.Location = new Point(0, 570);
+            btnCluster.Location = new Point(0, 630);
             btnCluster.Name = "btnCluster";
             btnCluster.Padding = new Padding(20, 0, 0, 0);
             btnCluster.Size = new Size(250, 60);
@@ -235,7 +258,7 @@ namespace Retorno360Tacna.FORMS
             panelSubMenuInventarios.Controls.Add(btnReportesInventario);
             panelSubMenuInventarios.Controls.Add(btnCatalogoPartes);
             panelSubMenuInventarios.Dock = DockStyle.Top;
-            panelSubMenuInventarios.Location = new Point(0, 450);
+            panelSubMenuInventarios.Location = new Point(0, 510);
             panelSubMenuInventarios.Name = "panelSubMenuInventarios";
             panelSubMenuInventarios.Size = new Size(250, 120);
             panelSubMenuInventarios.TabIndex = 9;
@@ -295,7 +318,7 @@ namespace Retorno360Tacna.FORMS
             btnInventarios.ForeColor = Color.White;
             btnInventarios.Image = Properties.Resources.business_inventory_maintenance_product_box_boxes_2326;
             btnInventarios.ImageAlign = ContentAlignment.MiddleRight;
-            btnInventarios.Location = new Point(0, 390);
+            btnInventarios.Location = new Point(0, 450);
             btnInventarios.Name = "btnInventarios";
             btnInventarios.Padding = new Padding(20, 0, 0, 0);
             btnInventarios.Size = new Size(250, 60);
@@ -313,10 +336,11 @@ namespace Retorno360Tacna.FORMS
             panelSubMenuAdmin.Controls.Add(btnSubMenuContabilidad);
             panelSubMenuAdmin.Controls.Add(btnSubMenuReporteIGI);
             panelSubMenuAdmin.Controls.Add(btnSubMenuPorcentaje);
+            panelSubMenuAdmin.Controls.Add(btnSubMenuRevisionPL);
             panelSubMenuAdmin.Dock = DockStyle.Top;
             panelSubMenuAdmin.Location = new Point(0, 210);
             panelSubMenuAdmin.Name = "panelSubMenuAdmin";
-            panelSubMenuAdmin.Size = new Size(250, 180);
+            panelSubMenuAdmin.Size = new Size(250, 240);
             panelSubMenuAdmin.TabIndex = 6;
             panelSubMenuAdmin.Visible = false;
             // 
@@ -330,7 +354,7 @@ namespace Retorno360Tacna.FORMS
             btnSubMenuContabilidad.ForeColor = Color.LightGray;
             btnSubMenuContabilidad.Image = Properties.Resources.income_money_dollar_upward_green_arrow_gain_appreciation_icon_205133;
             btnSubMenuContabilidad.ImageAlign = ContentAlignment.MiddleRight;
-            btnSubMenuContabilidad.Location = new Point(0, 120);
+            btnSubMenuContabilidad.Location = new Point(0, 180);
             btnSubMenuContabilidad.Name = "btnSubMenuContabilidad";
             btnSubMenuContabilidad.Padding = new Padding(35, 0, 0, 0);
             btnSubMenuContabilidad.Size = new Size(250, 60);
@@ -352,7 +376,7 @@ namespace Retorno360Tacna.FORMS
             btnSubMenuReporteIGI.ForeColor = Color.LightGray;
             btnSubMenuReporteIGI.Image = Properties.Resources.Earning_statement_253912;
             btnSubMenuReporteIGI.ImageAlign = ContentAlignment.MiddleRight;
-            btnSubMenuReporteIGI.Location = new Point(0, 60);
+            btnSubMenuReporteIGI.Location = new Point(0, 120);
             btnSubMenuReporteIGI.Name = "btnSubMenuReporteIGI";
             btnSubMenuReporteIGI.Padding = new Padding(35, 0, 0, 0);
             btnSubMenuReporteIGI.Size = new Size(250, 60);
@@ -374,7 +398,7 @@ namespace Retorno360Tacna.FORMS
             btnSubMenuPorcentaje.ForeColor = Color.LightGray;
             btnSubMenuPorcentaje.Image = Properties.Resources.increase_25373;
             btnSubMenuPorcentaje.ImageAlign = ContentAlignment.MiddleRight;
-            btnSubMenuPorcentaje.Location = new Point(0, 0);
+            btnSubMenuPorcentaje.Location = new Point(0, 60);
             btnSubMenuPorcentaje.Name = "btnSubMenuPorcentaje";
             btnSubMenuPorcentaje.Padding = new Padding(35, 0, 0, 0);
             btnSubMenuPorcentaje.Size = new Size(250, 60);
@@ -708,6 +732,7 @@ namespace Retorno360Tacna.FORMS
             panelNotificacionesHeader.ResumeLayout(false);
             panelNotificacionesHeader.PerformLayout();
             ResumeLayout(false);
+
         }
 
         #endregion
@@ -748,5 +773,6 @@ namespace Retorno360Tacna.FORMS
         private Button btnCatalogoPartes;
         private Button btnReportesInventario;
         private PictureBox pictureBox1;
+        private Button btnSubMenuRevisionPL;  
     }
 }

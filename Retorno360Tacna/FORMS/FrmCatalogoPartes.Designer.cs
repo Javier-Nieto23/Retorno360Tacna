@@ -105,7 +105,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblRazonSocial.AutoSize = true;
             lblRazonSocial.Font = new Font("Segoe UI", 9F);
-            lblRazonSocial.Location = new Point(15, 43);
+            lblRazonSocial.Location = new Point(15, 58);
             lblRazonSocial.Name = "lblRazonSocial";
             lblRazonSocial.Size = new Size(76, 15);
             lblRazonSocial.TabIndex = 1;
@@ -115,7 +115,7 @@ namespace Retorno360Tacna.FORMS
             // 
             cboRazonSocial.DropDownStyle = ComboBoxStyle.DropDownList;
             cboRazonSocial.FormattingEnabled = true;
-            cboRazonSocial.Location = new Point(15, 63);
+            cboRazonSocial.Location = new Point(15, 78);
             cboRazonSocial.Name = "cboRazonSocial";
             cboRazonSocial.Size = new Size(250, 23);
             cboRazonSocial.TabIndex = 2;
@@ -125,7 +125,7 @@ namespace Retorno360Tacna.FORMS
             // 
             lblBaseDatos.AutoSize = true;
             lblBaseDatos.Font = new Font("Segoe UI", 9F);
-            lblBaseDatos.Location = new Point(280, 43);
+            lblBaseDatos.Location = new Point(280, 58);
             lblBaseDatos.Name = "lblBaseDatos";
             lblBaseDatos.Size = new Size(83, 15);
             lblBaseDatos.TabIndex = 3;
@@ -136,7 +136,7 @@ namespace Retorno360Tacna.FORMS
             cboBaseDatos.DropDownStyle = ComboBoxStyle.DropDownList;
             cboBaseDatos.Enabled = false;
             cboBaseDatos.FormattingEnabled = true;
-            cboBaseDatos.Location = new Point(280, 63);
+            cboBaseDatos.Location = new Point(280, 78);
             cboBaseDatos.Name = "cboBaseDatos";
             cboBaseDatos.Size = new Size(200, 23);
             cboBaseDatos.TabIndex = 4;
@@ -208,7 +208,7 @@ namespace Retorno360Tacna.FORMS
             btnConsultar.ForeColor = Color.White;
             btnConsultar.Image = Properties.Resources.search_magnifying_glass_icon_1926311;
             btnConsultar.ImageAlign = ContentAlignment.MiddleRight;
-            btnConsultar.Location = new Point(851, 16);
+            btnConsultar.Location = new Point(1005, 91);
             btnConsultar.Name = "btnConsultar";
             btnConsultar.Size = new Size(151, 50);
             btnConsultar.TabIndex = 9;
@@ -228,7 +228,7 @@ namespace Retorno360Tacna.FORMS
             btnExportarExcel.ForeColor = Color.White;
             btnExportarExcel.Image = Properties.Resources.ext_xlsx_icon_176245;
             btnExportarExcel.ImageAlign = ContentAlignment.MiddleRight;
-            btnExportarExcel.Location = new Point(1187, 16);
+            btnExportarExcel.Location = new Point(1341, 91);
             btnExportarExcel.Name = "btnExportarExcel";
             btnExportarExcel.Size = new Size(151, 50);
             btnExportarExcel.TabIndex = 14;
@@ -248,7 +248,7 @@ namespace Retorno360Tacna.FORMS
             btnExportarPdf.ForeColor = Color.White;
             btnExportarPdf.Image = Properties.Resources.applicationpdf_1036141;
             btnExportarPdf.ImageAlign = ContentAlignment.MiddleRight;
-            btnExportarPdf.Location = new Point(1019, 16);
+            btnExportarPdf.Location = new Point(1173, 91);
             btnExportarPdf.Name = "btnExportarPdf";
             btnExportarPdf.Size = new Size(151, 50);
             btnExportarPdf.TabIndex = 11;
@@ -260,7 +260,7 @@ namespace Retorno360Tacna.FORMS
             // chkPdfTodasEmpresas
             // 
             chkPdfTodasEmpresas.AutoSize = true;
-            chkPdfTodasEmpresas.Location = new Point(1019, 82);
+            chkPdfTodasEmpresas.Location = new Point(785, 29);
             chkPdfTodasEmpresas.Name = "chkPdfTodasEmpresas";
             chkPdfTodasEmpresas.Size = new Size(239, 19);
             chkPdfTodasEmpresas.TabIndex = 15;
@@ -271,7 +271,7 @@ namespace Retorno360Tacna.FORMS
             // chkTodasRazonesSociales
             // 
             chkTodasRazonesSociales.AutoSize = true;
-            chkTodasRazonesSociales.Location = new Point(1019, 107);
+            chkTodasRazonesSociales.Location = new Point(785, 54);
             chkTodasRazonesSociales.Name = "chkTodasRazonesSociales";
             chkTodasRazonesSociales.Size = new Size(213, 19);
             chkTodasRazonesSociales.TabIndex = 16;
@@ -283,9 +283,9 @@ namespace Retorno360Tacna.FORMS
             // 
             chkUsarPerfil.AutoSize = true;
             chkUsarPerfil.Font = new Font("Segoe UI", 9.5F);
-            chkUsarPerfil.Location = new Point(1019, 127);
+            chkUsarPerfil.Location = new Point(785, 74);
             chkUsarPerfil.Name = "chkUsarPerfil";
-            chkUsarPerfil.Size = new Size(210, 21);
+            chkUsarPerfil.Size = new Size(186, 21);
             chkUsarPerfil.TabIndex = 17;
             chkUsarPerfil.Text = "Usar empresas de mi perfil";
             chkUsarPerfil.UseVisualStyleBackColor = true;
@@ -296,7 +296,7 @@ namespace Retorno360Tacna.FORMS
             lblTotalPartes.AutoSize = true;
             lblTotalPartes.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblTotalPartes.ForeColor = Color.FromArgb(41, 128, 185);
-            lblTotalPartes.Location = new Point(851, 128);
+            lblTotalPartes.Location = new Point(528, 122);
             lblTotalPartes.Name = "lblTotalPartes";
             lblTotalPartes.Size = new Size(125, 19);
             lblTotalPartes.TabIndex = 10;
