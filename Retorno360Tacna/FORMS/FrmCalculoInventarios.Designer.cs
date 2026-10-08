@@ -36,6 +36,7 @@
             btnProcesarPreview = new Button();
             btnGuardarCalculos = new Button();
             panelConfigCuerpo = new Panel();
+            label1 = new Label();
             lblMesAno = new Label();
             lblTotalGeneral = new Label();
             btnHistorialVerificacion = new Button();
@@ -47,11 +48,12 @@
             cmbRazonSocial = new ComboBox();
             lblLblEmpresa = new Label();
             cmbEmpresa = new ComboBox();
+            chkCargarTodasRazonesEmpresas = new CheckBox();        
             lblPlantillaInfo = new Label();
             dgvRelsultados = new DataGridView();
+            btnCargarInventario = new Button();
             btnAnalizarExcel = new Button();
             pnlChart = new Panel();
-            label1 = new Label();
             ((System.ComponentModel.ISupportInitialize)splitCentral).BeginInit();
             splitCentral.SuspendLayout();
             panelConfigCuerpo.SuspendLayout();
@@ -108,9 +110,9 @@
             // 
             // btnGuardarCalculos
             // 
-            btnGuardarCalculos.Location = new Point(582, 21);
+            btnGuardarCalculos.Location = new Point(642, 21);
             btnGuardarCalculos.Name = "btnGuardarCalculos";
-            btnGuardarCalculos.Size = new Size(100, 30);
+            btnGuardarCalculos.Size = new Size(120, 30);
             btnGuardarCalculos.TabIndex = 0;
             btnGuardarCalculos.Text = "Guardar";
             btnGuardarCalculos.Click += btnGuardarCalculos_Click_1;
@@ -131,8 +133,10 @@
             panelConfigCuerpo.Controls.Add(cmbRazonSocial);
             panelConfigCuerpo.Controls.Add(lblLblEmpresa);
             panelConfigCuerpo.Controls.Add(cmbEmpresa);
+            panelConfigCuerpo.Controls.Add(chkCargarTodasRazonesEmpresas);
             panelConfigCuerpo.Controls.Add(lblPlantillaInfo);
             panelConfigCuerpo.Controls.Add(dgvRelsultados);
+            panelConfigCuerpo.Controls.Add(btnCargarInventario);
             panelConfigCuerpo.Controls.Add(btnAnalizarExcel);
             panelConfigCuerpo.Controls.Add(pnlChart);
             panelConfigCuerpo.Dock = DockStyle.Fill;
@@ -141,6 +145,16 @@
             panelConfigCuerpo.Padding = new Padding(40, 30, 40, 30);
             panelConfigCuerpo.Size = new Size(1457, 800);
             panelConfigCuerpo.TabIndex = 0;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            label1.Location = new Point(775, 222);
+            label1.Name = "label1";
+            label1.Size = new Size(118, 19);
+            label1.TabIndex = 25;
+            label1.Text = "Meses Cargados";
             // 
             // lblMesAno
             // 
@@ -162,17 +176,17 @@
             // 
             // btnHistorialVerificacion
             // 
-            btnHistorialVerificacion.Location = new Point(370, 21);
+            btnHistorialVerificacion.Location = new Point(390, 21);
             btnHistorialVerificacion.Name = "btnHistorialVerificacion";
-            btnHistorialVerificacion.Size = new Size(100, 30);
+            btnHistorialVerificacion.Size = new Size(120, 30);
             btnHistorialVerificacion.TabIndex = 3;
             btnHistorialVerificacion.Text = "Historial";
             // 
             // btnExportarExcel
             // 
-            btnExportarExcel.Location = new Point(476, 21);
+            btnExportarExcel.Location = new Point(516, 21);
             btnExportarExcel.Name = "btnExportarExcel";
-            btnExportarExcel.Size = new Size(100, 30);
+            btnExportarExcel.Size = new Size(120, 30);
             btnExportarExcel.TabIndex = 2;
             btnExportarExcel.Text = "Exportar";
             btnExportarExcel.Click += btnExportarExcel_Click_1;
@@ -181,7 +195,7 @@
             // 
             btnRecalcular.Location = new Point(264, 21);
             btnRecalcular.Name = "btnRecalcular";
-            btnRecalcular.Size = new Size(100, 30);
+            btnRecalcular.Size = new Size(120, 30);
             btnRecalcular.TabIndex = 1;
             btnRecalcular.Text = "Recalcular";
             // 
@@ -249,6 +263,18 @@
             cmbEmpresa.TabIndex = 1;
             cmbEmpresa.SelectedIndexChanged += cmbEmpresa_SelectedIndexChanged;
             // 
+            // chkCargarTodasRazonesEmpresas
+            // 
+            chkCargarTodasRazonesEmpresas.AutoSize = true;
+            chkCargarTodasRazonesEmpresas.Font = new Font("Segoe UI", 9F);
+            chkCargarTodasRazonesEmpresas.Location = new Point(775, 69);
+            chkCargarTodasRazonesEmpresas.Name = "chkCargarTodasRazonesEmpresas";
+            chkCargarTodasRazonesEmpresas.Size = new Size(274, 19);
+            chkCargarTodasRazonesEmpresas.TabIndex = 3;
+            chkCargarTodasRazonesEmpresas.Text = "Cargar inventario: todas las razones y empresas";
+            chkCargarTodasRazonesEmpresas.UseVisualStyleBackColor = true;
+            chkCargarTodasRazonesEmpresas.CheckedChanged += chkCargarTodasRazonesEmpresas_CheckedChanged_1;
+            // 
             // lblPlantillaInfo
             // 
             lblPlantillaInfo.AutoSize = true;
@@ -268,6 +294,15 @@
             dgvRelsultados.Size = new Size(731, 413);
             dgvRelsultados.TabIndex = 22;
             // 
+            // btnCargarInventario
+            // 
+            btnCargarInventario.Location = new Point(768, 21);
+            btnCargarInventario.Name = "btnCargarInventario";
+            btnCargarInventario.Size = new Size(120, 30);
+            btnCargarInventario.TabIndex = 5;
+            btnCargarInventario.Text = "Cargar inventario";
+            btnCargarInventario.Click += btnCargarInventario_Click;
+            // 
             // btnAnalizarExcel
             // 
             btnAnalizarExcel.Location = new Point(138, 21);
@@ -283,16 +318,43 @@
             pnlChart.Name = "pnlChart";
             pnlChart.Size = new Size(670, 413);
             pnlChart.TabIndex = 24;
+
+            // panelCargando
+            panelCargando = new Panel();
+            lblCargando = new Label();
+            progressBarCargando = new ProgressBar();
+            panelCargando.SuspendLayout();
             // 
-            // label1
+            // panelCargando
             // 
-            label1.AutoSize = true;
-            label1.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            label1.Location = new Point(775, 222);
-            label1.Name = "label1";
-            label1.Size = new Size(118, 19);
-            label1.TabIndex = 25;
-            label1.Text = "Meses Cargados";
+            panelCargando.BackColor = Color.FromArgb(236, 240, 241);
+            panelCargando.BorderStyle = BorderStyle.FixedSingle;
+            panelCargando.Controls.Add(lblCargando);
+            panelCargando.Controls.Add(progressBarCargando);
+            panelCargando.Location = new Point(400, 250);
+            panelCargando.Name = "panelCargando";
+            panelCargando.Size = new Size(400, 120);
+            panelCargando.TabIndex = 30;
+            panelCargando.Visible = false;
+            // 
+            // lblCargando
+            // 
+            lblCargando.AutoSize = true;
+            lblCargando.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblCargando.Location = new Point(20, 18);
+            lblCargando.Name = "lblCargando";
+            lblCargando.Size = new Size(200, 23);
+            lblCargando.Text = "Cargando, por favor espera...";
+            // 
+            // progressBarCargando
+            // 
+            progressBarCargando.Location = new Point(20, 52);
+            progressBarCargando.Name = "progressBarCargando";
+            progressBarCargando.Size = new Size(360, 20);
+            progressBarCargando.Style = ProgressBarStyle.Marquee;
+            progressBarCargando.MarqueeAnimationSpeed = 30;
+            panelCargando.ResumeLayout(false);
+            panelCargando.PerformLayout();
             // 
             // FrmCalculoInventarios
             // 
@@ -300,6 +362,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1457, 800);
             Controls.Add(panelConfigCuerpo);
+            Controls.Add(panelCargando);
             Name = "FrmCalculoInventarios";
             Text = "Cálculo de Inventarios";
             ((System.ComponentModel.ISupportInitialize)splitCentral).EndInit();
@@ -323,6 +386,9 @@
         private Panel pnlLeft;
         private Panel pnlRight;
         private Panel panelConfigCuerpo;
+        private Panel panelCargando;
+        private Label lblCargando;
+        private ProgressBar progressBarCargando;
         private Label lblTotalGeneral;
         private Button btnHistorialVerificacion;
         private Button btnExportarExcel;
@@ -333,9 +399,11 @@
         private ComboBox cmbRazonSocial;
         private Label lblLblEmpresa;
         private ComboBox cmbEmpresa;
+        private CheckBox chkCargarTodasRazonesEmpresas;
         private Label lblPlantillaInfo;
         private DataGridView dgvRelsultados;
         private Panel pnlChart;
+        private Button btnCargarInventario;
         private Button btnAnalizarExcel;
         private Label lblMesAno;
         private Label label1;
