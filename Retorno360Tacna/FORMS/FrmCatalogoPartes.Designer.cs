@@ -17,11 +17,11 @@ namespace Retorno360Tacna.FORMS
 
         private void InitializeComponent()
         {
-            LiveChartsCore.SkiaSharpView.SKCharts.SKDefaultLegend skDefaultLegend1 = new LiveChartsCore.SkiaSharpView.SKCharts.SKDefaultLegend();
+            LiveChartsCore.SkiaSharpView.SKCharts.SKDefaultLegend skDefaultLegend2 = new LiveChartsCore.SkiaSharpView.SKCharts.SKDefaultLegend();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmCatalogoPartes));
-            LiveChartsCore.Drawing.Padding padding1 = new LiveChartsCore.Drawing.Padding();
-            LiveChartsCore.SkiaSharpView.SKCharts.SKDefaultTooltip skDefaultTooltip1 = new LiveChartsCore.SkiaSharpView.SKCharts.SKDefaultTooltip();
-            LiveChartsCore.Drawing.Padding padding2 = new LiveChartsCore.Drawing.Padding();
+            LiveChartsCore.Drawing.Padding padding3 = new LiveChartsCore.Drawing.Padding();
+            LiveChartsCore.SkiaSharpView.SKCharts.SKDefaultTooltip skDefaultTooltip2 = new LiveChartsCore.SkiaSharpView.SKCharts.SKDefaultTooltip();
+            LiveChartsCore.Drawing.Padding padding4 = new LiveChartsCore.Drawing.Padding();
             panelFiltros = new Panel();
             lblTitulo = new Label();
             lblRazonSocial = new Label();
@@ -37,10 +37,12 @@ namespace Retorno360Tacna.FORMS
             btnConsultar = new Button();
             btnExportarExcel = new Button();
             btnExportarPdf = new Button();
+            btnCargarInventario = new Button();
             chkPdfTodasEmpresas = new CheckBox();
             chkTodasRazonesSociales = new CheckBox();
             chkUsarPerfil = new CheckBox();
             lblTotalPartes = new Label();
+            chkCargarTodasRazonesEmpresas = new CheckBox();
             panelContenido = new Panel();
             dgvMateriaPrima = new DataGridView();
             panelGrafico = new Panel();
@@ -80,10 +82,12 @@ namespace Retorno360Tacna.FORMS
             panelFiltros.Controls.Add(btnConsultar);
             panelFiltros.Controls.Add(btnExportarExcel);
             panelFiltros.Controls.Add(btnExportarPdf);
+            panelFiltros.Controls.Add(btnCargarInventario);
             panelFiltros.Controls.Add(chkPdfTodasEmpresas);
             panelFiltros.Controls.Add(chkTodasRazonesSociales);
             panelFiltros.Controls.Add(chkUsarPerfil);
             panelFiltros.Controls.Add(lblTotalPartes);
+            panelFiltros.Controls.Add(chkCargarTodasRazonesEmpresas);
             panelFiltros.Dock = DockStyle.Top;
             panelFiltros.Location = new Point(0, 0);
             panelFiltros.Name = "panelFiltros";
@@ -208,7 +212,7 @@ namespace Retorno360Tacna.FORMS
             btnConsultar.ForeColor = Color.White;
             btnConsultar.Image = Properties.Resources.search_magnifying_glass_icon_1926311;
             btnConsultar.ImageAlign = ContentAlignment.MiddleRight;
-            btnConsultar.Location = new Point(1005, 91);
+            btnConsultar.Location = new Point(782, 12);
             btnConsultar.Name = "btnConsultar";
             btnConsultar.Size = new Size(151, 50);
             btnConsultar.TabIndex = 9;
@@ -228,7 +232,7 @@ namespace Retorno360Tacna.FORMS
             btnExportarExcel.ForeColor = Color.White;
             btnExportarExcel.Image = Properties.Resources.ext_xlsx_icon_176245;
             btnExportarExcel.ImageAlign = ContentAlignment.MiddleRight;
-            btnExportarExcel.Location = new Point(1341, 91);
+            btnExportarExcel.Location = new Point(1257, 12);
             btnExportarExcel.Name = "btnExportarExcel";
             btnExportarExcel.Size = new Size(151, 50);
             btnExportarExcel.TabIndex = 14;
@@ -248,7 +252,7 @@ namespace Retorno360Tacna.FORMS
             btnExportarPdf.ForeColor = Color.White;
             btnExportarPdf.Image = Properties.Resources.applicationpdf_1036141;
             btnExportarPdf.ImageAlign = ContentAlignment.MiddleRight;
-            btnExportarPdf.Location = new Point(1173, 91);
+            btnExportarPdf.Location = new Point(939, 12);
             btnExportarPdf.Name = "btnExportarPdf";
             btnExportarPdf.Size = new Size(151, 50);
             btnExportarPdf.TabIndex = 11;
@@ -257,10 +261,28 @@ namespace Retorno360Tacna.FORMS
             btnExportarPdf.UseVisualStyleBackColor = false;
             btnExportarPdf.Click += btnExportarPdf_Click;
             // 
+            // btnCargarInventario
+            // 
+            btnCargarInventario.BackColor = Color.FromArgb(52, 152, 219);
+            btnCargarInventario.Cursor = Cursors.Hand;
+            btnCargarInventario.FlatAppearance.BorderSize = 0;
+            btnCargarInventario.FlatStyle = FlatStyle.Flat;
+            btnCargarInventario.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnCargarInventario.ForeColor = Color.White;
+            btnCargarInventario.ImageAlign = ContentAlignment.MiddleRight;
+            btnCargarInventario.Location = new Point(1096, 12);
+            btnCargarInventario.Name = "btnCargarInventario";
+            btnCargarInventario.Size = new Size(151, 50);
+            btnCargarInventario.TabIndex = 15;
+            btnCargarInventario.Text = "Cargar Inventario";
+            btnCargarInventario.TextAlign = ContentAlignment.MiddleLeft;
+            btnCargarInventario.UseVisualStyleBackColor = false;
+            btnCargarInventario.Click += btnCargarInventario_Click;
+            // 
             // chkPdfTodasEmpresas
             // 
             chkPdfTodasEmpresas.AutoSize = true;
-            chkPdfTodasEmpresas.Location = new Point(785, 29);
+            chkPdfTodasEmpresas.Location = new Point(782, 68);
             chkPdfTodasEmpresas.Name = "chkPdfTodasEmpresas";
             chkPdfTodasEmpresas.Size = new Size(239, 19);
             chkPdfTodasEmpresas.TabIndex = 15;
@@ -271,7 +293,7 @@ namespace Retorno360Tacna.FORMS
             // chkTodasRazonesSociales
             // 
             chkTodasRazonesSociales.AutoSize = true;
-            chkTodasRazonesSociales.Location = new Point(785, 54);
+            chkTodasRazonesSociales.Location = new Point(782, 93);
             chkTodasRazonesSociales.Name = "chkTodasRazonesSociales";
             chkTodasRazonesSociales.Size = new Size(213, 19);
             chkTodasRazonesSociales.TabIndex = 16;
@@ -283,7 +305,7 @@ namespace Retorno360Tacna.FORMS
             // 
             chkUsarPerfil.AutoSize = true;
             chkUsarPerfil.Font = new Font("Segoe UI", 9.5F);
-            chkUsarPerfil.Location = new Point(785, 74);
+            chkUsarPerfil.Location = new Point(782, 117);
             chkUsarPerfil.Name = "chkUsarPerfil";
             chkUsarPerfil.Size = new Size(186, 21);
             chkUsarPerfil.TabIndex = 17;
@@ -296,11 +318,22 @@ namespace Retorno360Tacna.FORMS
             lblTotalPartes.AutoSize = true;
             lblTotalPartes.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblTotalPartes.ForeColor = Color.FromArgb(41, 128, 185);
-            lblTotalPartes.Location = new Point(528, 122);
+            lblTotalPartes.Location = new Point(504, 125);
             lblTotalPartes.Name = "lblTotalPartes";
             lblTotalPartes.Size = new Size(125, 19);
             lblTotalPartes.TabIndex = 10;
             lblTotalPartes.Text = "Total de partes: 0";
+            // 
+            // chkCargarTodasRazonesEmpresas
+            // 
+            chkCargarTodasRazonesEmpresas.AutoSize = true;
+            chkCargarTodasRazonesEmpresas.Font = new Font("Segoe UI", 9F);
+            chkCargarTodasRazonesEmpresas.Location = new Point(1027, 68);
+            chkCargarTodasRazonesEmpresas.Name = "chkCargarTodasRazonesEmpresas";
+            chkCargarTodasRazonesEmpresas.Size = new Size(257, 19);
+            chkCargarTodasRazonesEmpresas.TabIndex = 16;
+            chkCargarTodasRazonesEmpresas.Text = "Cargar inventario: todas razones y empresas";
+            chkCargarTodasRazonesEmpresas.UseVisualStyleBackColor = true;
             // 
             // panelContenido
             // 
@@ -346,39 +379,39 @@ namespace Retorno360Tacna.FORMS
             chartEstatus.AutoUpdateEnabled = true;
             chartEstatus.ChartTheme = null;
             chartEstatus.Dock = DockStyle.Fill;
-            skDefaultLegend1.AnimationsSpeed = TimeSpan.Parse("00:00:00.1500000");
-            skDefaultLegend1.Content = null;
-            skDefaultLegend1.IsValid = false;
-            skDefaultLegend1.Opacity = 1F;
-            padding1.Bottom = 0F;
-            padding1.Left = 0F;
-            padding1.Right = 0F;
-            padding1.Top = 0F;
-            skDefaultLegend1.Padding = padding1;
-            skDefaultLegend1.RemoveOnCompleted = false;
-            skDefaultLegend1.RotateTransform = 0F;
-            skDefaultLegend1.X = 0F;
-            skDefaultLegend1.Y = 0F;
-            chartEstatus.Legend = skDefaultLegend1;
+            skDefaultLegend2.AnimationsSpeed = TimeSpan.Parse("00:00:00.1500000");
+            skDefaultLegend2.Content = null;
+            skDefaultLegend2.IsValid = false;
+            skDefaultLegend2.Opacity = 1F;
+            padding3.Bottom = 0F;
+            padding3.Left = 0F;
+            padding3.Right = 0F;
+            padding3.Top = 0F;
+            skDefaultLegend2.Padding = padding3;
+            skDefaultLegend2.RemoveOnCompleted = false;
+            skDefaultLegend2.RotateTransform = 0F;
+            skDefaultLegend2.X = 0F;
+            skDefaultLegend2.Y = 0F;
+            chartEstatus.Legend = skDefaultLegend2;
             chartEstatus.Location = new Point(10, 59);
             chartEstatus.Name = "chartEstatus";
             chartEstatus.Size = new Size(707, 443);
             chartEstatus.TabIndex = 0;
-            skDefaultTooltip1.AnimationsSpeed = TimeSpan.Parse("00:00:00.1500000");
-            skDefaultTooltip1.Content = null;
-            skDefaultTooltip1.IsValid = false;
-            skDefaultTooltip1.Opacity = 1F;
-            padding2.Bottom = 0F;
-            padding2.Left = 0F;
-            padding2.Right = 0F;
-            padding2.Top = 0F;
-            skDefaultTooltip1.Padding = padding2;
-            skDefaultTooltip1.RemoveOnCompleted = false;
-            skDefaultTooltip1.RotateTransform = 0F;
-            skDefaultTooltip1.Wedge = 10;
-            skDefaultTooltip1.X = 0F;
-            skDefaultTooltip1.Y = 0F;
-            chartEstatus.Tooltip = skDefaultTooltip1;
+            skDefaultTooltip2.AnimationsSpeed = TimeSpan.Parse("00:00:00.1500000");
+            skDefaultTooltip2.Content = null;
+            skDefaultTooltip2.IsValid = false;
+            skDefaultTooltip2.Opacity = 1F;
+            padding4.Bottom = 0F;
+            padding4.Left = 0F;
+            padding4.Right = 0F;
+            padding4.Top = 0F;
+            skDefaultTooltip2.Padding = padding4;
+            skDefaultTooltip2.RemoveOnCompleted = false;
+            skDefaultTooltip2.RotateTransform = 0F;
+            skDefaultTooltip2.Wedge = 10;
+            skDefaultTooltip2.X = 0F;
+            skDefaultTooltip2.Y = 0F;
+            chartEstatus.Tooltip = skDefaultTooltip2;
             chartEstatus.UpdaterThrottler = TimeSpan.Parse("00:00:00.0500000");
             // 
             // panelBotonesGrafica
@@ -543,5 +576,7 @@ namespace Retorno360Tacna.FORMS
         private Panel panelCargando;
         private Label lblCargando;
         private ProgressBar progressBarCargando;
+        private Button btnCargarInventario;
+        private CheckBox chkCargarTodasRazonesEmpresas;
     }
 }

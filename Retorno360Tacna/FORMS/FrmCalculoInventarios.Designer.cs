@@ -48,16 +48,18 @@
             cmbRazonSocial = new ComboBox();
             lblLblEmpresa = new Label();
             cmbEmpresa = new ComboBox();
-            chkCargarTodasRazonesEmpresas = new CheckBox();        
             lblPlantillaInfo = new Label();
             dgvRelsultados = new DataGridView();
-            btnCargarInventario = new Button();
             btnAnalizarExcel = new Button();
             pnlChart = new Panel();
+            panelCargando = new Panel();
+            lblCargando = new Label();
+            progressBarCargando = new ProgressBar();
             ((System.ComponentModel.ISupportInitialize)splitCentral).BeginInit();
             splitCentral.SuspendLayout();
             panelConfigCuerpo.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvRelsultados).BeginInit();
+            panelCargando.SuspendLayout();
             SuspendLayout();
             // 
             // lblConfigSubtitulo
@@ -133,10 +135,8 @@
             panelConfigCuerpo.Controls.Add(cmbRazonSocial);
             panelConfigCuerpo.Controls.Add(lblLblEmpresa);
             panelConfigCuerpo.Controls.Add(cmbEmpresa);
-            panelConfigCuerpo.Controls.Add(chkCargarTodasRazonesEmpresas);
             panelConfigCuerpo.Controls.Add(lblPlantillaInfo);
             panelConfigCuerpo.Controls.Add(dgvRelsultados);
-            panelConfigCuerpo.Controls.Add(btnCargarInventario);
             panelConfigCuerpo.Controls.Add(btnAnalizarExcel);
             panelConfigCuerpo.Controls.Add(pnlChart);
             panelConfigCuerpo.Dock = DockStyle.Fill;
@@ -263,18 +263,6 @@
             cmbEmpresa.TabIndex = 1;
             cmbEmpresa.SelectedIndexChanged += cmbEmpresa_SelectedIndexChanged;
             // 
-            // chkCargarTodasRazonesEmpresas
-            // 
-            chkCargarTodasRazonesEmpresas.AutoSize = true;
-            chkCargarTodasRazonesEmpresas.Font = new Font("Segoe UI", 9F);
-            chkCargarTodasRazonesEmpresas.Location = new Point(775, 69);
-            chkCargarTodasRazonesEmpresas.Name = "chkCargarTodasRazonesEmpresas";
-            chkCargarTodasRazonesEmpresas.Size = new Size(274, 19);
-            chkCargarTodasRazonesEmpresas.TabIndex = 3;
-            chkCargarTodasRazonesEmpresas.Text = "Cargar inventario: todas las razones y empresas";
-            chkCargarTodasRazonesEmpresas.UseVisualStyleBackColor = true;
-            chkCargarTodasRazonesEmpresas.CheckedChanged += chkCargarTodasRazonesEmpresas_CheckedChanged_1;
-            // 
             // lblPlantillaInfo
             // 
             lblPlantillaInfo.AutoSize = true;
@@ -294,15 +282,6 @@
             dgvRelsultados.Size = new Size(731, 413);
             dgvRelsultados.TabIndex = 22;
             // 
-            // btnCargarInventario
-            // 
-            btnCargarInventario.Location = new Point(768, 21);
-            btnCargarInventario.Name = "btnCargarInventario";
-            btnCargarInventario.Size = new Size(120, 30);
-            btnCargarInventario.TabIndex = 5;
-            btnCargarInventario.Text = "Cargar inventario";
-            btnCargarInventario.Click += btnCargarInventario_Click;
-            // 
             // btnAnalizarExcel
             // 
             btnAnalizarExcel.Location = new Point(138, 21);
@@ -318,12 +297,6 @@
             pnlChart.Name = "pnlChart";
             pnlChart.Size = new Size(670, 413);
             pnlChart.TabIndex = 24;
-
-            // panelCargando
-            panelCargando = new Panel();
-            lblCargando = new Label();
-            progressBarCargando = new ProgressBar();
-            panelCargando.SuspendLayout();
             // 
             // panelCargando
             // 
@@ -343,18 +316,18 @@
             lblCargando.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblCargando.Location = new Point(20, 18);
             lblCargando.Name = "lblCargando";
-            lblCargando.Size = new Size(200, 23);
+            lblCargando.Size = new Size(208, 19);
+            lblCargando.TabIndex = 0;
             lblCargando.Text = "Cargando, por favor espera...";
             // 
             // progressBarCargando
             // 
             progressBarCargando.Location = new Point(20, 52);
+            progressBarCargando.MarqueeAnimationSpeed = 30;
             progressBarCargando.Name = "progressBarCargando";
             progressBarCargando.Size = new Size(360, 20);
             progressBarCargando.Style = ProgressBarStyle.Marquee;
-            progressBarCargando.MarqueeAnimationSpeed = 30;
-            panelCargando.ResumeLayout(false);
-            panelCargando.PerformLayout();
+            progressBarCargando.TabIndex = 1;
             // 
             // FrmCalculoInventarios
             // 
@@ -370,6 +343,8 @@
             panelConfigCuerpo.ResumeLayout(false);
             panelConfigCuerpo.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dgvRelsultados).EndInit();
+            panelCargando.ResumeLayout(false);
+            panelCargando.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -399,11 +374,9 @@
         private ComboBox cmbRazonSocial;
         private Label lblLblEmpresa;
         private ComboBox cmbEmpresa;
-        private CheckBox chkCargarTodasRazonesEmpresas;
         private Label lblPlantillaInfo;
         private DataGridView dgvRelsultados;
         private Panel pnlChart;
-        private Button btnCargarInventario;
         private Button btnAnalizarExcel;
         private Label lblMesAno;
         private Label label1;

@@ -53,8 +53,10 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
-                // Si el checkbox de cargar todas las razones y empresas está marcado, recorrer todas las razones y empresas desde NOM_TABLARAZON/RAZONXTABLA
-                if (chkCargarTodasRazonesEmpresas != null && chkCargarTodasRazonesEmpresas.Checked)
+                // Nota: el checkbox chkCargarTodasRazonesEmpresas se ha movido a FrmCatalogoPartes.
+                // En este formulario no se considera marcado por defecto (no recorrerá todas las razones/empresas).
+                // Si se necesita la funcionalidad global, usar FrmCatalogoPartes; aquí mantenemos el comportamiento local.
+                if (false)
                 {
                     DataTable dtRazones = new DataTable();
                     try
@@ -740,7 +742,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
 
                 try { cmbRazonSocial.DropDownStyle = ComboBoxStyle.DropDownList; cmbEmpresa.DropDownStyle = ComboBoxStyle.DropDownList; } catch { }
                 // chkExportarTodasEmpresas fue retirado; no suscribir eventos inexistentes.
-                try { chkCargarTodasRazonesEmpresas.CheckedChanged += chkCargarTodasRazonesEmpresas_CheckedChanged; } catch { }
+                try { /* chkCargarTodasRazonesEmpresas movido a FrmCatalogoPartes; evento suscrito allí si aplica */ } catch { }
             }
             catch { }
         }

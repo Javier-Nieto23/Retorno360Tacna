@@ -5,6 +5,9 @@ using Retorno360Tacna.SERVICES;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Text;
+using Microsoft.Data.SqlClient;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -520,10 +523,19 @@ namespace Retorno360Tacna.FORMS
                 using var workbook = new XLWorkbook();
                 ExportarHojaMateriaPrima(workbook);
                 ExportarHojaGeneral(workbook);
-                workbook.SaveAs(saveDialog.FileName);
-
-                MessageBox.Show("Archivo exportado exitosamente.",
-                    "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Reusar la lógica de guardado con fallback y logging
+                var sbLog = new StringBuilder();
+                var saved = SaveWorkbookWithFallback(workbook, saveDialog.FileName, sbLog);
+                if (saved != null)
+                {
+                    MessageBox.Show("Archivo exportado exitosamente.",
+                        "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("No se pudo guardar el archivo exportado.",
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
             catch (Exception ex)
             {
@@ -553,6 +565,304 @@ namespace Retorno360Tacna.FORMS
             }
 
             worksheet.Columns().AdjustToContents();
+        }
+
+        // --- Migrated from FrmCalculoInventarios: botón y lógica de exportación masiva por razones/empresas ---
+        private async void btnCargarInventario_Click(object? sender, EventArgs e)
+        {
+            string logPath = Path.Combine(Path.GetTempPath(), $"Retorno360_InventarioLog_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+            var sbLog = new StringBuilder();
+            try
+            {
+                sbLog.AppendLine($"Inicio exportación inventarios: {DateTime.Now:O}");
+
+                // Obtener razones. Si el checkbox NO está marcado, usar solo la razón seleccionada en el combo
+                DataTable dtRazones = new DataTable();
+                if (chkCargarTodasRazonesEmpresas != null && !chkCargarTodasRazonesEmpresas.Checked)
+                {
+                    // Usar sólo la razón social seleccionada
+                    if (cboRazonSocial == null || cboRazonSocial.SelectedValue == null || !int.TryParse(cboRazonSocial.SelectedValue.ToString(), out int selRazon) || selRazon == 0)
+                    {
+                        MessageBox.Show("Selecciona razón social antes de cargar inventario.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    dtRazones.Columns.Add("IdRazon");
+                    dtRazones.Columns.Add("NOMBRE_RAZON");
+                    var newRow = dtRazones.NewRow();
+                    newRow[0] = selRazon;
+                    newRow[1] = cboRazonSocial.Text ?? string.Empty;
+                    dtRazones.Rows.Add(newRow);
+                }
+                else
+                {
+                    try
+                    {
+                        Conexion conexion = new Conexion();
+                        string sqlRaz = "SELECT DISTINCT r.IdRazon, r.NOMBRE_RAZON FROM RAZONXTABLA r JOIN NOM_TABLARAZON n ON n.IdRazon = r.IdRazon";
+                        using (SqlConnection connection = new SqlConnection(conexion.GetConnectionString()))
+                        using (SqlCommand cmdRaz = new SqlCommand(sqlRaz, connection))
+                        using (SqlDataAdapter daRaz = new SqlDataAdapter(cmdRaz))
+                        {
+                            daRaz.Fill(dtRazones);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        sbLog.AppendLine($"Error al listar razones: {ex}");
+                        MessageBox.Show($"Error al listar razones: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        try { File.WriteAllText(logPath, sbLog.ToString()); } catch { }
+                        return;
+                    }
+                }
+
+                if (dtRazones.Rows.Count == 0)
+                {
+                    MessageBox.Show("No se encontraron razones ni empresas.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                using var sfdAll = new SaveFileDialog() { Filter = "Excel Workbook|*.xlsx", FileName = $"Inventario_TodasRazonesEmpresas_{DateTime.Now:yyyyMMdd}.xlsx" };
+                if (sfdAll.ShowDialog(this) != DialogResult.OK) return;
+
+                // Mostrar panel de carga del propio formulario CatalogoPartes
+                try { MostrarPanelCargando(true); } catch { }
+                try { EstablecerEstadoBotonesDuranteCarga(true); } catch { }
+
+                using var wbAll = new XLWorkbook();
+
+                foreach (DataRow rowR in dtRazones.Rows)
+                {
+                    if (rowR == null) continue;
+                    int idR = 0; int.TryParse(rowR[0].ToString(), out idR);
+
+                    // Obtener empresas asociadas a la razón
+                    DataTable dtEmpresasForRazon = new DataTable();
+                    try
+                    {
+                        Conexion conexion2 = new Conexion();
+                        string sqlEmp = "SELECT IdTabla, NOMBRE_TABLA FROM NOM_TABLARAZON WHERE IdRazon = @IdRazon ORDER BY NOMBRE_TABLA";
+                        using (SqlConnection connection2 = new SqlConnection(conexion2.GetConnectionString()))
+                        using (SqlCommand cmdEmpList = new SqlCommand(sqlEmp, connection2))
+                        using (SqlDataAdapter daEmp = new SqlDataAdapter(cmdEmpList))
+                        {
+                            cmdEmpList.Parameters.AddWithValue("@IdRazon", idR);
+                            daEmp.Fill(dtEmpresasForRazon);
+                        }
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
+                    if (dtEmpresasForRazon.Rows.Count == 0) continue;
+
+                    // Si el checkbox NO está marcado y el usuario seleccionó una base en cboBaseDatos,
+                    // filtrar las empresas para procesar sólo la seleccionada.
+                    if (chkCargarTodasRazonesEmpresas != null && !chkCargarTodasRazonesEmpresas.Checked)
+                    {
+                        if (cboBaseDatos != null && !string.IsNullOrWhiteSpace(cboBaseDatos.Text))
+                        {
+                            var selBase = cboBaseDatos.Text.Trim();
+                            var filasMatch = dtEmpresasForRazon.Select($"NOMBRE_TABLA = '{selBase.Replace("'","''")}'");
+                            if (filasMatch != null && filasMatch.Length > 0)
+                            {
+                                var dtFiltered = dtEmpresasForRazon.Clone();
+                                foreach (var fr in filasMatch) dtFiltered.ImportRow(fr);
+                                dtEmpresasForRazon = dtFiltered;
+                            }
+                            else
+                            {
+                                // Intentar comparar con el valor SelectedValue si existe
+                                var selVal = cboBaseDatos.SelectedValue?.ToString() ?? string.Empty;
+                                if (!string.IsNullOrWhiteSpace(selVal))
+                                {
+                                    var filas2 = dtEmpresasForRazon.Select($"NOMBRE_TABLA = '{selVal.Replace("'","''")}'");
+                                    if (filas2 != null && filas2.Length > 0)
+                                    {
+                                        var dtFiltered2 = dtEmpresasForRazon.Clone();
+                                        foreach (var fr in filas2) dtFiltered2.ImportRow(fr);
+                                        dtEmpresasForRazon = dtFiltered2;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    foreach (DataRow row in dtEmpresasForRazon.Rows)
+                    {
+                        if (row == null) continue;
+                        int idEmp = 0; int.TryParse(row[0].ToString(), out idEmp);
+                        string nombreEmpresa = row[1]?.ToString() ?? string.Empty;
+
+                        sbLog.AppendLine($"[{DateTime.Now:O}] Procesando empresa IdEmpresa={idEmp} Nombre='{nombreEmpresa}'");
+
+                        // Preparar hoja(s) para esta empresa
+                        try
+                        {
+                            var svcEmp = new VerificacionPartesService();
+                            string connStrEmp = await svcEmp.ObtenerCadenaConexionPublicAsync(idR, idEmp);
+                            sbLog.AppendLine($"  CadenaConexion: {connStrEmp}");
+
+                            using (var connEmp = new SqlConnection(connStrEmp))
+                            {
+                                connEmp.Open();
+                                string sql = @"select  cp.Par_NoParte, cp.Par_DescripcionIng, cp.Par_DescripcionEsp, fa.Fra_FraccionMex, cp.Med_Clave, cpc.Pac_Costo, cpc.Pac_FechaFin, cp.Par_PesoUnit, cp.Par_UMPeso, cp.Tim_Clave, cp.Pai_Origen, cpc.Tco_Clave, cp.Par_Activo
+from Ca_Parte cp
+inner join Ca_ParteCosto cpc on cp.Par_Consecutivo = cpc.Par_Consecutivo
+inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
+
+                                using var cmdEmp = new SqlCommand(sql, connEmp);
+                                using var rdrEmp = cmdEmp.ExecuteReader();
+
+                                // Lógica de particionado por hojas para esta empresa
+                                const int MAX_ROWS_XLS = 1048576;
+                                int sheetPart = 1;
+                                string baseCompanyName = string.IsNullOrWhiteSpace(nombreEmpresa) ? $"Empresa_{idEmp}" : nombreEmpresa;
+
+                                string MakeUniqueSheetName(string desired)
+                                {
+                                    var nm = desired;
+                                    int idx = 1;
+                                    while (wbAll.Worksheets.Any(w => string.Equals(w.Name, nm, StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        idx++;
+                                        nm = desired + "_" + idx;
+                                    }
+                                    return nm;
+                                }
+
+                                string currentSheetName = MakeUniqueSheetName(baseCompanyName);
+                                var wsCurrent = wbAll.Worksheets.Add(currentSheetName);
+                                // encabezados
+                                var columnas = new[] { "Par_NoParte", "Par_DescripcionIng", "Par_DescripcionEsp", "Fra_FraccionMex", "Med_Clave", "Pac_Costo", "Pac_FechaFin", "Par_PesoUnit", "Par_UMPeso", "Tim_Clave", "Pai_Origen", "Tco_Clave", "Par_Activo" };
+                                for (int c = 0; c < columnas.Length; c++) wsCurrent.Cell(1, c + 1).Value = columnas[c];
+
+                                int currentRow = 2;
+                                int filas = 0;
+                                while (rdrEmp.Read())
+                                {
+                                    if (currentRow < 1)
+                                    {
+                                        sbLog.AppendLine($"  SALTANDO escritura: currentRow ({currentRow}) < 1 para IdEmpresa={idEmp}");
+                                        currentRow++;
+                                        continue;
+                                    }
+
+                                    if (currentRow > MAX_ROWS_XLS)
+                                    {
+                                        sheetPart++;
+                                        currentSheetName = MakeUniqueSheetName(baseCompanyName + "_part" + sheetPart);
+                                        wsCurrent = wbAll.Worksheets.Add(currentSheetName);
+                                        for (int c = 0; c < columnas.Length; c++) wsCurrent.Cell(1, c + 1).Value = columnas[c];
+                                        currentRow = 2;
+                                    }
+
+                                    for (int c = 0; c < columnas.Length; c++)
+                                    {
+                                        try
+                                        {
+                                            object val = rdrEmp.IsDBNull(c) ? string.Empty : rdrEmp.GetValue(c);
+                                            try { wsCurrent.Cell(currentRow, c + 1).SetValue(val?.ToString() ?? string.Empty); } catch { wsCurrent.Cell(currentRow, c + 1).Value = val?.ToString() ?? string.Empty; }
+                                        }
+                                        catch { }
+                                    }
+                                    currentRow++; filas++;
+                                }
+                                sbLog.AppendLine($"  Filas escritas en hojas para '{baseCompanyName}': {filas}");
+                                foreach (var sh in wbAll.Worksheets.Where(w => w.Name.StartsWith(baseCompanyName, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    try { sh.Columns().AdjustToContents(); } catch { }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            sbLog.AppendLine($"  ERROR empresa IdEmpresa={idEmp} ('{nombreEmpresa}'): {ex}");
+                            continue;
+                        }
+                    }
+                }
+
+                try
+                {
+                    if (wbAll.Worksheets == null || wbAll.Worksheets.Count == 0)
+                    {
+                        MessageBox.Show("No se encontraron inventarios para exportar. Ninguna hoja fue creada.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        var savedAll = SaveWorkbookWithFallback(wbAll, sfdAll.FileName, sbLog);
+                        if (savedAll != null)
+                        {
+                            var ask2 = MessageBox.Show("Inventarios exportados a Excel. ¿Deseas abrir el archivo ahora?", "Exportado", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                            if (ask2 == DialogResult.Yes)
+                            {
+                                try { Process.Start(new ProcessStartInfo(savedAll) { UseShellExecute = true }); } catch { }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al guardar inventarios: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    // Ocultar panel de carga y restaurar UI
+                    try { MostrarPanelCargando(false); } catch { }
+                    try { EstablecerEstadoBotonesDuranteCarga(false); } catch { }
+                    try { File.WriteAllText(logPath, sbLog.ToString()); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                try { File.WriteAllText(logPath, sbLog.ToString()); } catch { }
+                MostrarPanelCargando(false);
+                EstablecerEstadoBotonesDuranteCarga(false);
+                MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Intenta guardar el workbook en la ruta indicada. Si está bloqueado, intentará guardar con sufijo numerado hasta 10 intentos.
+        /// Retorna la ruta final guardada o null si falló.
+        /// </summary>
+        private string? SaveWorkbookWithFallback(XLWorkbook workbook, string desiredPath, StringBuilder sbLog)
+        {
+            try
+            {
+                workbook.SaveAs(desiredPath);
+                sbLog.AppendLine($"Archivo guardado: {desiredPath}");
+                return desiredPath;
+            }
+            catch (Exception ex)
+            {
+                sbLog.AppendLine($"Fallo al guardar en ruta solicitada: {ex.Message}");
+                // Intentar con sufijos numerados
+                var dir = Path.GetDirectoryName(desiredPath) ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                var name = Path.GetFileNameWithoutExtension(desiredPath);
+                var ext = Path.GetExtension(desiredPath);
+                for (int i = 1; i <= 10; i++)
+                {
+                    var tryPath = Path.Combine(dir, $"{name}({i}){ext}");
+                    try
+                    {
+                        workbook.SaveAs(tryPath);
+                        sbLog.AppendLine($"Archivo guardado en ruta alternativa: {tryPath}");
+                        return tryPath;
+                    }
+                    catch (Exception ex2)
+                    {
+                        sbLog.AppendLine($"Intento {i} falló guardando en {tryPath}: {ex2.Message}");
+                        continue;
+                    }
+                }
+
+                sbLog.AppendLine("No fue posible guardar el archivo tras varios intentos.");
+                MessageBox.Show("No fue posible guardar el archivo de Excel. Verifica si el archivo está abierto por otro programa o prueba otra carpeta.", "Error al guardar", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
         }
 
         private void ExportarHojaGeneral(XLWorkbook workbook)
