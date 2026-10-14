@@ -4,6 +4,7 @@ using Retorno360Tacna.MODELS;
 using Retorno360Tacna.SERVICES;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Text;
 using Microsoft.Data.SqlClient;
@@ -29,6 +30,66 @@ namespace Retorno360Tacna.FORMS
         {
             public string NombreReal { get; set; } = string.Empty;
             public string NombreVisible { get; set; } = string.Empty;
+        }
+
+        // Lista enlazable y ordenable para usar como DataSource en DataGridView
+        private class SortableBindingList<T> : BindingList<T>
+        {
+            private bool _isSorted;
+            private ListSortDirection _sortDirection;
+            private PropertyDescriptor? _sortProperty;
+
+            public SortableBindingList() : base() { }
+
+            public SortableBindingList(IEnumerable<T> items) : base(new List<T>(items)) { }
+
+            protected override bool SupportsSortingCore => true;
+            protected override bool IsSortedCore => _isSorted;
+            protected override PropertyDescriptor? SortPropertyCore => _sortProperty;
+            protected override ListSortDirection SortDirectionCore => _sortDirection;
+
+            protected override void ApplySortCore(PropertyDescriptor prop, ListSortDirection direction)
+            {
+                var itemsList = (List<T>)Items;
+                var comparer = new PropertyComparer<T>(prop, direction);
+                itemsList.Sort(comparer);
+                _isSorted = true;
+                _sortProperty = prop;
+                _sortDirection = direction;
+                OnListChanged(new ListChangedEventArgs(ListChangedType.Reset, -1));
+            }
+
+            protected override void RemoveSortCore()
+            {
+                _isSorted = false;
+                _sortProperty = null;
+            }
+        }
+
+        private class PropertyComparer<TItem> : IComparer<TItem>
+        {
+            private readonly PropertyDescriptor _prop;
+            private readonly ListSortDirection _direction;
+
+            public PropertyComparer(PropertyDescriptor prop, ListSortDirection direction)
+            {
+                _prop = prop;
+                _direction = direction;
+            }
+
+            public int Compare(TItem? x, TItem? y)
+            {
+                object? vx = _prop.GetValue(x!);
+                object? vy = _prop.GetValue(y!);
+                int r;
+                if (vx == null && vy == null) r = 0;
+                else if (vx == null) r = -1;
+                else if (vy == null) r = 1;
+                else if (vx is IComparable cx) r = cx.CompareTo(vy);
+                else r = string.Compare(vx.ToString(), vy.ToString(), StringComparison.OrdinalIgnoreCase);
+
+                return _direction == ListSortDirection.Ascending ? r : -r;
+            }
         }
 
         private sealed class ResumenTipoParte
@@ -411,8 +472,14 @@ namespace Retorno360Tacna.FORMS
             int idRazon = consultarTodasLasRazones ? 0 : Convert.ToInt32(cboRazonSocial.SelectedValue);
             string baseDatos = cboBaseDatos.SelectedValue?.ToString() ?? string.Empty;
             string nombreRazonSeleccionada = cboRazonSocial.Text?.Trim() ?? string.Empty;
-            DateTime fechaInicio = dtpFechaInicio.Value;
-            DateTime fechaFin = dtpFechaFin.Value;
+            DateTime fechaInicio = dtpFechaInicio.Value.Date;
+            DateTime fechaFin = dtpFechaFin.Value.Date.AddDays(1).AddTicks(-1);
+
+            // Guardar estados de botones antes de deshabilitar la UI durante la carga
+            bool estadoExportarExcel = btnExportarExcel.Enabled;
+            bool estadoExportarPdf = btnExportarPdf.Enabled;
+            bool estadoGraficaIndividual = btnGraficaIndividual.Enabled;
+            bool estadoGraficaTodos = btnGraficaTodos.Enabled;
 
             if (fechaInicio > fechaFin)
             {
@@ -475,18 +542,14 @@ namespace Retorno360Tacna.FORMS
             }
             finally
             {
-                bool estadoExportarExcel = btnExportarExcel.Enabled;
-                bool estadoExportarPdf = btnExportarPdf.Enabled;
-                bool estadoGraficaIndividual = btnGraficaIndividual.Enabled;
-                bool estadoGraficaTodos = btnGraficaTodos.Enabled;
-
                 MostrarPanelCargando(false);
                 EstablecerEstadoBotonesDuranteCarga(false);
 
-                btnExportarExcel.Enabled = estadoExportarExcel;
-                btnExportarPdf.Enabled = estadoExportarPdf;
-                btnGraficaIndividual.Enabled = estadoGraficaIndividual;
-                btnGraficaTodos.Enabled = estadoGraficaTodos;
+                // Restaurar estados previos a la consulta
+                try { btnExportarExcel.Enabled = estadoExportarExcel; } catch { }
+                try { btnExportarPdf.Enabled = estadoExportarPdf; } catch { }
+                try { btnGraficaIndividual.Enabled = estadoGraficaIndividual; } catch { }
+                try { btnGraficaTodos.Enabled = estadoGraficaTodos; } catch { }
 
                 if (consultaExitosa)
                 {
@@ -520,6 +583,9 @@ namespace Retorno360Tacna.FORMS
 
             try
             {
+
+
+
                 using var workbook = new XLWorkbook();
                 ExportarHojaMateriaPrima(workbook);
                 ExportarHojaGeneral(workbook);
@@ -530,11 +596,7 @@ namespace Retorno360Tacna.FORMS
                 {
                     MessageBox.Show("Archivo exportado exitosamente.",
                         "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    MessageBox.Show("No se pudo guardar el archivo exportado.",
-                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    try { Process.Start(new ProcessStartInfo(saved) { UseShellExecute = true }); } catch { }
                 }
             }
             catch (Exception ex)
@@ -622,194 +684,176 @@ namespace Retorno360Tacna.FORMS
                     return;
                 }
 
-                using var sfdAll = new SaveFileDialog() { Filter = "Excel Workbook|*.xlsx", FileName = $"Inventario_TodasRazonesEmpresas_{DateTime.Now:yyyyMMdd}.xlsx" };
-                if (sfdAll.ShowDialog(this) != DialogResult.OK) return;
-
                 // Mostrar panel de carga del propio formulario CatalogoPartes
                 try { MostrarPanelCargando(true); } catch { }
                 try { EstablecerEstadoBotonesDuranteCarga(true); } catch { }
 
-                using var wbAll = new XLWorkbook();
-
-                foreach (DataRow rowR in dtRazones.Rows)
+                try
                 {
-                    if (rowR == null) continue;
-                    int idR = 0; int.TryParse(rowR[0].ToString(), out idR);
+                    var empresas = new List<(int IdRazon, int IdEmpresa, string NombreEmpresa)>();
 
-                    // Obtener empresas asociadas a la razón
-                    DataTable dtEmpresasForRazon = new DataTable();
-                    try
+                    foreach (DataRow rowR in dtRazones.Rows)
                     {
-                        Conexion conexion2 = new Conexion();
-                        string sqlEmp = "SELECT IdTabla, NOMBRE_TABLA FROM NOM_TABLARAZON WHERE IdRazon = @IdRazon ORDER BY NOMBRE_TABLA";
-                        using (SqlConnection connection2 = new SqlConnection(conexion2.GetConnectionString()))
-                        using (SqlCommand cmdEmpList = new SqlCommand(sqlEmp, connection2))
-                        using (SqlDataAdapter daEmp = new SqlDataAdapter(cmdEmpList))
+                        if (rowR == null) continue;
+                        int idR = 0; int.TryParse(rowR[0].ToString(), out idR);
+
+                        // Obtener empresas asociadas a la razón
+                        DataTable dtEmpresasForRazon = new DataTable();
+                        try
                         {
-                            cmdEmpList.Parameters.AddWithValue("@IdRazon", idR);
-                            daEmp.Fill(dtEmpresasForRazon);
+                            Conexion conexion2 = new Conexion();
+                            string sqlEmp = "SELECT IdTabla, NOMBRE_TABLA FROM NOM_TABLARAZON WHERE IdRazon = @IdRazon ORDER BY NOMBRE_TABLA";
+                            // Usar API asíncrona para no bloquear UI
+                            using (SqlConnection connection2 = new SqlConnection(conexion2.GetConnectionString()))
+                            using (SqlCommand cmdEmpList = new SqlCommand(sqlEmp, connection2))
+                            {
+                                await connection2.OpenAsync();
+                                cmdEmpList.Parameters.AddWithValue("@IdRazon", idR);
+                                using (var reader = await cmdEmpList.ExecuteReaderAsync())
+                                {
+                                    dtEmpresasForRazon.Load(reader);
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+
+                        if (dtEmpresasForRazon.Rows.Count == 0) continue;
+
+                        // Si el checkbox NO está marcado y el usuario seleccionó una base en cboBaseDatos,
+                        // filtrar las empresas para procesar sólo la seleccionada.
+                        if (chkCargarTodasRazonesEmpresas != null && !chkCargarTodasRazonesEmpresas.Checked)
+                        {
+                            if (cboBaseDatos != null && !string.IsNullOrWhiteSpace(cboBaseDatos.Text))
+                            {
+                                var selBase = cboBaseDatos.Text.Trim();
+                                var filasMatch = dtEmpresasForRazon.Select($"NOMBRE_TABLA = '{selBase.Replace("'","''")}'");
+                                if (filasMatch != null && filasMatch.Length > 0)
+                                {
+                                    var dtFiltered = dtEmpresasForRazon.Clone();
+                                    foreach (var fr in filasMatch) dtFiltered.ImportRow(fr);
+                                    dtEmpresasForRazon = dtFiltered;
+                                }
+                                else
+                                {
+                                    // Intentar comparar con el valor SelectedValue si existe
+                                    var selVal = cboBaseDatos.SelectedValue?.ToString() ?? string.Empty;
+                                    if (!string.IsNullOrWhiteSpace(selVal))
+                                    {
+                                        var filas2 = dtEmpresasForRazon.Select($"NOMBRE_TABLA = '{selVal.Replace("'","''")}'");
+                                        if (filas2 != null && filas2.Length > 0)
+                                        {
+                                            var dtFiltered2 = dtEmpresasForRazon.Clone();
+                                            foreach (var fr in filas2) dtFiltered2.ImportRow(fr);
+                                            dtEmpresasForRazon = dtFiltered2;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        foreach (DataRow row in dtEmpresasForRazon.Rows)
+                        {
+                            if (row == null) continue;
+                            int idEmp = 0; int.TryParse(row[0].ToString(), out idEmp);
+                            string nombreEmpresa = row[1]?.ToString() ?? string.Empty;
+                            empresas.Add((idR, idEmp, nombreEmpresa));
                         }
                     }
-                    catch
+
+                    if (empresas.Count == 0)
                     {
-                        continue;
+                        MessageBox.Show("No se encontraron empresas para consultar.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        return;
                     }
 
-                    if (dtEmpresasForRazon.Rows.Count == 0) continue;
-
-                    // Si el checkbox NO está marcado y el usuario seleccionó una base en cboBaseDatos,
-                    // filtrar las empresas para procesar sólo la seleccionada.
-                    if (chkCargarTodasRazonesEmpresas != null && !chkCargarTodasRazonesEmpresas.Checked)
+                    var invSvc = new InventarioQueryService();
+                    // Generar identificador de trabajo para esta ejecución y asegurar tabla
+                    var jobId = Guid.NewGuid().ToString("N");
+                    try
                     {
-                        if (cboBaseDatos != null && !string.IsNullOrWhiteSpace(cboBaseDatos.Text))
+                        await invSvc.CrearTablaCatalogoIfNotExistsAsync(System.Threading.CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        sbLog.AppendLine($"Advertencia: no se pudo asegurar tabla Catalogo_Partes: {ex.Message}");
+                    }
+
+                    var resultados = await invSvc.ConsultarInventariosPorEmpresasAsync(empresas, System.Threading.CancellationToken.None);
+
+                    // Volcar resultados a tabla staging para exportación/consulta posterior
+                    try
+                    {
+                        await invSvc.VolcarResultadosATablaCatalogoAsync(resultados, jobId, System.Threading.CancellationToken.None).ConfigureAwait(false);
+                        sbLog.AppendLine($"Resultados volcados en Catalogo_Partes con JobId={jobId}");
+
+                        // Intentar leer desde la tabla staging por JobId y usar esos resultados en el preview.
+                        try
                         {
-                            var selBase = cboBaseDatos.Text.Trim();
-                            var filasMatch = dtEmpresasForRazon.Select($"NOMBRE_TABLA = '{selBase.Replace("'","''")}'");
-                            if (filasMatch != null && filasMatch.Length > 0)
+                            var staged = await invSvc.ObtenerResultadosDesdeCatalogoPorJobIdAsync(jobId, System.Threading.CancellationToken.None).ConfigureAwait(false);
+                            if (staged != null && staged.Count > 0)
                             {
-                                var dtFiltered = dtEmpresasForRazon.Clone();
-                                foreach (var fr in filasMatch) dtFiltered.ImportRow(fr);
-                                dtEmpresasForRazon = dtFiltered;
+                                resultados = staged;
+                                sbLog.AppendLine($"Se usarán resultados leídos desde dbo.Catalogo_Partes (JobId={jobId}) para el preview.");
                             }
                             else
                             {
-                                // Intentar comparar con el valor SelectedValue si existe
-                                var selVal = cboBaseDatos.SelectedValue?.ToString() ?? string.Empty;
-                                if (!string.IsNullOrWhiteSpace(selVal))
-                                {
-                                    var filas2 = dtEmpresasForRazon.Select($"NOMBRE_TABLA = '{selVal.Replace("'","''")}'");
-                                    if (filas2 != null && filas2.Length > 0)
-                                    {
-                                        var dtFiltered2 = dtEmpresasForRazon.Clone();
-                                        foreach (var fr in filas2) dtFiltered2.ImportRow(fr);
-                                        dtEmpresasForRazon = dtFiltered2;
-                                    }
-                                }
+                                sbLog.AppendLine($"Advertencia: no se encontraron filas en dbo.Catalogo_Partes para JobId={jobId}; se usará la lista en memoria.");
                             }
                         }
+                        catch (Exception ex2)
+                        {
+                            sbLog.AppendLine($"Error al leer desde dbo.Catalogo_Partes para JobId={jobId}: {ex2.Message}; se usará la lista en memoria.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        sbLog.AppendLine($"Error al volcar resultados en Catalogo_Partes: {ex}");
                     }
 
-                    foreach (DataRow row in dtEmpresasForRazon.Rows)
+                    Action showPreview = () =>
                     {
-                        if (row == null) continue;
-                        int idEmp = 0; int.TryParse(row[0].ToString(), out idEmp);
-                        string nombreEmpresa = row[1]?.ToString() ?? string.Empty;
-
-                        sbLog.AppendLine($"[{DateTime.Now:O}] Procesando empresa IdEmpresa={idEmp} Nombre='{nombreEmpresa}'");
-
-                        // Preparar hoja(s) para esta empresa
+                        using var frmPreview = new FrmInventarioPreview(resultados, jobId);
                         try
                         {
-                            var svcEmp = new VerificacionPartesService();
-                            string connStrEmp = await svcEmp.ObtenerCadenaConexionPublicAsync(idR, idEmp);
-                            sbLog.AppendLine($"  CadenaConexion: {connStrEmp}");
+                            // Habilitar el botón de agregar todos a Excel según el checkbox del formulario llamador
+                            bool enableAgregar = false;
+                            try { enableAgregar = chkCargarTodasRazonesEmpresas != null && chkCargarTodasRazonesEmpresas.Checked; } catch { }
+                            try { frmPreview.SetEnableAgregarTodas(enableAgregar); } catch { }
 
-                            using (var connEmp = new SqlConnection(connStrEmp))
-                            {
-                                connEmp.Open();
-                                string sql = @"select  cp.Par_NoParte, cp.Par_DescripcionIng, cp.Par_DescripcionEsp, fa.Fra_FraccionMex, cp.Med_Clave, cpc.Pac_Costo, cpc.Pac_FechaFin, cp.Par_PesoUnit, cp.Par_UMPeso, cp.Tim_Clave, cp.Pai_Origen, cpc.Tco_Clave, cp.Par_Activo
-from Ca_Parte cp
-inner join Ca_ParteCosto cpc on cp.Par_Consecutivo = cpc.Par_Consecutivo
-inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
-
-                                using var cmdEmp = new SqlCommand(sql, connEmp);
-                                using var rdrEmp = cmdEmp.ExecuteReader();
-
-                                // Lógica de particionado por hojas para esta empresa
-                                const int MAX_ROWS_XLS = 1048576;
-                                int sheetPart = 1;
-                                string baseCompanyName = string.IsNullOrWhiteSpace(nombreEmpresa) ? $"Empresa_{idEmp}" : nombreEmpresa;
-
-                                string MakeUniqueSheetName(string desired)
-                                {
-                                    var nm = desired;
-                                    int idx = 1;
-                                    while (wbAll.Worksheets.Any(w => string.Equals(w.Name, nm, StringComparison.OrdinalIgnoreCase)))
-                                    {
-                                        idx++;
-                                        nm = desired + "_" + idx;
-                                    }
-                                    return nm;
-                                }
-
-                                string currentSheetName = MakeUniqueSheetName(baseCompanyName);
-                                var wsCurrent = wbAll.Worksheets.Add(currentSheetName);
-                                // encabezados
-                                var columnas = new[] { "Par_NoParte", "Par_DescripcionIng", "Par_DescripcionEsp", "Fra_FraccionMex", "Med_Clave", "Pac_Costo", "Pac_FechaFin", "Par_PesoUnit", "Par_UMPeso", "Tim_Clave", "Pai_Origen", "Tco_Clave", "Par_Activo" };
-                                for (int c = 0; c < columnas.Length; c++) wsCurrent.Cell(1, c + 1).Value = columnas[c];
-
-                                int currentRow = 2;
-                                int filas = 0;
-                                while (rdrEmp.Read())
-                                {
-                                    if (currentRow < 1)
-                                    {
-                                        sbLog.AppendLine($"  SALTANDO escritura: currentRow ({currentRow}) < 1 para IdEmpresa={idEmp}");
-                                        currentRow++;
-                                        continue;
-                                    }
-
-                                    if (currentRow > MAX_ROWS_XLS)
-                                    {
-                                        sheetPart++;
-                                        currentSheetName = MakeUniqueSheetName(baseCompanyName + "_part" + sheetPart);
-                                        wsCurrent = wbAll.Worksheets.Add(currentSheetName);
-                                        for (int c = 0; c < columnas.Length; c++) wsCurrent.Cell(1, c + 1).Value = columnas[c];
-                                        currentRow = 2;
-                                    }
-
-                                    for (int c = 0; c < columnas.Length; c++)
-                                    {
-                                        try
-                                        {
-                                            object val = rdrEmp.IsDBNull(c) ? string.Empty : rdrEmp.GetValue(c);
-                                            try { wsCurrent.Cell(currentRow, c + 1).SetValue(val?.ToString() ?? string.Empty); } catch { wsCurrent.Cell(currentRow, c + 1).Value = val?.ToString() ?? string.Empty; }
-                                        }
-                                        catch { }
-                                    }
-                                    currentRow++; filas++;
-                                }
-                                sbLog.AppendLine($"  Filas escritas en hojas para '{baseCompanyName}': {filas}");
-                                foreach (var sh in wbAll.Worksheets.Where(w => w.Name.StartsWith(baseCompanyName, StringComparison.OrdinalIgnoreCase)))
-                                {
-                                    try { sh.Columns().AdjustToContents(); } catch { }
-                                }
-                            }
+                            // Evitar pasar un owner ya disposed que provoca ObjectDisposedException
+                            if (!this.IsDisposed && !this.Disposing && this.IsHandleCreated)
+                                frmPreview.ShowDialog(this);
+                            else
+                                frmPreview.ShowDialog();
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            sbLog.AppendLine($"  ERROR empresa IdEmpresa={idEmp} ('{nombreEmpresa}'): {ex}");
-                            continue;
+                            // Fallback simple: intentar mostrar sin owner si algo falla
+                            try { frmPreview.ShowDialog(); } catch { }
                         }
-                    }
-                }
+                    };
 
-                try
-                {
-                    if (wbAll.Worksheets == null || wbAll.Worksheets.Count == 0)
+                    if (InvokeRequired)
                     {
-                        MessageBox.Show("No se encontraron inventarios para exportar. Ninguna hoja fue creada.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        Invoke(showPreview);
                     }
                     else
                     {
-                        var savedAll = SaveWorkbookWithFallback(wbAll, sfdAll.FileName, sbLog);
-                        if (savedAll != null)
-                        {
-                            var ask2 = MessageBox.Show("Inventarios exportados a Excel. ¿Deseas abrir el archivo ahora?", "Exportado", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                            if (ask2 == DialogResult.Yes)
-                            {
-                                try { Process.Start(new ProcessStartInfo(savedAll) { UseShellExecute = true }); } catch { }
-                            }
-                        }
+                        showPreview();
                     }
+                    return;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al guardar inventarios: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    sbLog.AppendLine($"Error al consultar inventarios para preview: {ex}");
+                    MessageBox.Show($"Error al consultar inventarios: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
                 }
                 finally
                 {
-                    // Ocultar panel de carga y restaurar UI
                     try { MostrarPanelCargando(false); } catch { }
                     try { EstablecerEstadoBotonesDuranteCarga(false); } catch { }
                     try { File.WriteAllText(logPath, sbLog.ToString()); } catch { }
@@ -860,6 +904,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                 }
 
                 sbLog.AppendLine("No fue posible guardar el archivo tras varios intentos.");
+                // Mostrar mensaje de error solo aquí y limitar reintentos a errores de IO para evitar bucles innecesarios
                 MessageBox.Show("No fue posible guardar el archivo de Excel. Verifica si el archivo está abierto por otro programa o prueba otra carpeta.", "Error al guardar", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return null;
             }
@@ -939,7 +984,8 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
             cboTipoParte.Enabled = false;
 
             // Actualizar grid
-            dgvMateriaPrima.DataSource = datosConsultadosMP;
+            // Usar lista enlazable y ordenable para permitir ordenar columnas
+            dgvMateriaPrima.DataSource = new SortableBindingList<MateriaPrimaBOM>(datosConsultadosMP);
             ConfigurarColumnasMateriaPrima(false, true, consultarTodasRazonesSociales);
 
             if (consultarTodasRazonesSociales)
@@ -948,8 +994,10 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
             }
             else
             {
-                MostrarControlGrafico(chartEstatus);
+                // Primero actualizar los datos de la gráfica y después mostrar el control
+                // para evitar que se muestre una instancia previa/incorrecta del control
                 ActualizarGrafico(datosConsultadosMP);
+                MostrarControlGrafico(chartEstatus);
             }
 
             ResumenCumplimiento resumenActual = CrearResumenCumplimiento("MP", datosConsultadosMP);
@@ -961,12 +1009,14 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
         {
             vistaActual = 2;
             cboTipoParte.Enabled = false;
-            MostrarControlGrafico(chartPedimentosMP);
+            // Actualizar primero la serie y luego mostrar el control para asegurar
+            // que la instancia mostrada contiene la serie correcta.
+            ActualizarGraficoPedimentosMP(datosConsultadosMP);
 
             dgvMateriaPrima.DataSource = datosConsultadosMP;
             ConfigurarColumnasMateriaPrima(false, true, consultarTodasRazonesSociales);
 
-            ActualizarGraficoPedimentosMP(datosConsultadosMP);
+            MostrarControlGrafico(chartPedimentosMP);
             ResumenCumplimiento resumenActual = CrearResumenCumplimiento("MP", datosConsultadosMP);
             lblTotalPartes.Text = $"Total de partes MP: {resumenActual.TotalSubidos:N0} | En pedimento: {resumenActual.EnPedimento:N0}";
         }
@@ -1001,7 +1051,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
 
             // Actualizar grid
             dgvMateriaPrima.DataSource = null;
-            dgvMateriaPrima.DataSource = datosOtrosFiltrados;
+            dgvMateriaPrima.DataSource = new SortableBindingList<MateriaPrimaBOM>(datosOtrosFiltrados);
             ConfigurarColumnasMateriaPrima(true, false, consultarTodasRazonesSociales);
 
             // Actualizar gráfico de barras
@@ -1015,14 +1065,14 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
 
         private void ActualizarGrafico(List<MateriaPrimaBOM> datos)
         {
-            ResumenCumplimiento resumen = CrearResumenCumplimiento("MP", datos);
+            // Calcular directamente sobre los datos recibidos para evitar discrepancias
+            // y asegurar que este gráfico muestra EN BOM vs NO EN BOM.
+            int enBom = datos == null ? 0 : datos.Count(d => EstaEnBom(d));
+            int noEnBom = datos == null ? 0 : datos.Count(d => !EstaEnBom(d));
 
-            // El gráfico principal debe mostrar estado respecto a BOM (En BOM / No en BOM).
-            int enBom = resumen.EnBom;
-            int noEnBom = Math.Max(0, resumen.TotalSubidos - resumen.EnBom);
-
-            double porcentajeEnBom = resumen.TotalSubidos == 0 ? 0D : Math.Round((double)enBom * 100D / resumen.TotalSubidos, 2);
-            double porcentajeNoEnBom = Math.Max(0D, Math.Round(100D - porcentajeEnBom, 2));
+            int total = enBom + noEnBom;
+            double porcentajeEnBom = total == 0 ? 0D : Math.Round((double)enBom * 100D / total, 2);
+            double porcentajeNoEnBom = total == 0 ? 0D : Math.Round((double)noEnBom * 100D / total, 2);
 
             var serieEnBom = new PieSeries<int>
             {
@@ -1032,7 +1082,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                 DataLabelsPaint = new SolidColorPaint(SKColors.White),
                 DataLabelsSize = 16,
                 DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                DataLabelsFormatter = point => $"{enBom:N0}"
+                DataLabelsFormatter = _ => $"{enBom:N0}"
             };
 
             var serieNoEnBom = new PieSeries<int>
@@ -1043,14 +1093,14 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                 DataLabelsPaint = new SolidColorPaint(SKColors.White),
                 DataLabelsSize = 16,
                 DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                DataLabelsFormatter = point => $"{noEnBom:N0}"
+                DataLabelsFormatter = _ => $"{noEnBom:N0}"
             };
 
             chartEstatus.Series = new ISeries[] { serieEnBom, serieNoEnBom };
 
             chartEstatus.Title = new LiveChartsCore.SkiaSharpView.VisualElements.LabelVisual
             {
-                Text = $"Cumplimiento MP\nTotal: {resumen.TotalSubidos:N0} | BOM: {resumen.EnBom:N0} | Pedimento: {resumen.EnPedimento:N0}",
+                Text = $"Cumplimiento MP\nTotal: {total:N0} | En BOM: {enBom:N0} | No en BOM: {noEnBom:N0}",
                 TextSize = 16,
                 Padding = new LiveChartsCore.Drawing.Padding(15),
                 Paint = new SolidColorPaint(SKColor.Parse("#2c3e50"))
@@ -1178,18 +1228,27 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                                 .OrderBy(x => x.Tipo)
                                 .ToList();
 
-            // Remover el chart actual si existe
-            if (chartControl != null)
+            // Reutilizar un único control cartesianChart: si chartControl ya es un CartesianChart, reutilizarlo
+            LiveChartsCore.SkiaSharpView.WinForms.CartesianChart cartesianChart = null;
+            if (chartControl is LiveChartsCore.SkiaSharpView.WinForms.CartesianChart existingCartesian)
             {
-                panelGrafico.Controls.Remove(chartControl);
+                cartesianChart = existingCartesian;
             }
-
-            // Crear nuevo CartesianChart para gráfica de barras
-            var cartesianChart = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart
+            else
             {
-                Dock = DockStyle.Fill,
-                Name = "chartEstatus"
-            };
+                // Remover control anterior y crear uno nuevo
+                if (chartControl != null)
+                {
+                    try { panelGrafico.Controls.Remove(chartControl); } catch { }
+                    try { chartControl.Dispose(); } catch { }
+                }
+                cartesianChart = new LiveChartsCore.SkiaSharpView.WinForms.CartesianChart
+                {
+                    Dock = DockStyle.Fill,
+                    Name = "chartEstatus"
+                };
+                MostrarControlGrafico(cartesianChart);
+            }
 
             // Crear series de barras con colores diferentes para cada tipo
             var colors = new[] { "#9b59b6", "#e74c3c", "#3498db", "#2ecc71", "#f39c12" }; // Morado, Rojo, Azul, Verde, Naranja
@@ -1250,8 +1309,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
             cartesianChart.TooltipPosition = LiveChartsCore.Measure.TooltipPosition.Hidden;
 
             // Agregar al panel
-            panelGrafico.Controls.Add(cartesianChart);
-            panelGrafico.Controls.SetChildIndex(cartesianChart, 0);
+            // Asegurarse de que chartControl referencia al cartesianChart y se muestre
             chartControl = cartesianChart;
         }
 
@@ -1313,8 +1371,11 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
 
             string nombreBaseDatos = ObtenerNombreBaseDatosSeleccionada();
             string nombreRazonSocial = ObtenerNombreRazonSocialSeleccionada();
+            // Capturar valores que serán usados por el Task.Run para evitar acceso a controles desde otros hilos
             List<MateriaPrimaBOM> datosMpPdf = datosConsultadosMP;
             List<MateriaPrimaBOM> datosOtrosPdf = datosConsultadosOtros;
+            DateTime fechaInicioHeader = dtpFechaInicio.Value.Date;
+            DateTime fechaFinHeader = dtpFechaFin.Value.Date.AddDays(1).AddTicks(-1);
 
             if (consultarTodasRazonesSociales)
             {
@@ -1361,6 +1422,8 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
             byte[] imagenGraficoBarras = GenerarImagenGraficoBarras(datosOtrosPdf);
             byte[] imagenGraficoCumplimientoRazones = GenerarImagenGraficoCumplimientoPorRazon(resumenesCumplimiento);
 
+            string rangoFechas = $"{fechaInicioHeader:dd/MM/yyyy} - {fechaFinHeader:dd/MM/yyyy}";
+
             List<ResumenTipoParte> agrupado = datosOtrosPdf.GroupBy(d => d.Clave)
                 .Select(g => new ResumenTipoParte { Tipo = g.Key, Total = g.Count() })
                 .OrderBy(x => x.Tipo)
@@ -1395,7 +1458,8 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                     nombreBaseDatos,
                     basesConsultadas,
                     imagenGraficoMP,
-                    resumenMp);
+                    resumenMp,
+                    rangoFechas);
 
                 AgregarPaginaGraficoResumen(
                     container,
@@ -1404,7 +1468,8 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                     nombreBaseDatos,
                     basesConsultadas,
                     imagenGraficoPedimentosMP,
-                    resumenPedimentos);
+                    resumenPedimentos,
+                    rangoFechas);
 
                 if (consultarTodasRazonesSociales)
                 {
@@ -1429,7 +1494,8 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                             $"Menor cumplimiento: {(menor == null ? "N/D" : $"{menor.Etiqueta} ({menor.PorcentajeCumplimiento:N2}%)")}",
                             $"Total de partes MP consideradas: {resumenGeneral.TotalSubidos:N0}"
                         },
-                        resumenesCumplimiento);
+                        resumenesCumplimiento,
+                        rangoFechas);
                 }
                 else if (datosOtrosOrdenados.Count > 0)
                 {
@@ -1442,12 +1508,13 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                         imagenGraficoBarras,
                         new List<string> { $"Total general: {datosOtrosOrdenados.Count:N0}" }
                             .Concat(agrupado.Select(x => $"{x.Tipo}: {x.Total:N0}"))
-                            .ToList());
+                            .ToList(),
+                        rangoFechas);
                 }
             }).GeneratePdf(rutaArchivo);
         }
 
-        private void AgregarPaginaGraficoResumen(IDocumentContainer container, string titulo, string razonSocial, string nombreBaseDatos, List<string> basesConsultadas, byte[] imagen, List<string> resumenes)
+        private void AgregarPaginaGraficoResumen(IDocumentContainer container, string titulo, string razonSocial, string nombreBaseDatos, List<string> basesConsultadas, byte[] imagen, List<string> resumenes, string rangoFechas)
         {
             container.Page(page =>
             {
@@ -1490,7 +1557,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                         row.RelativeItem().Text(txt =>
                         {
                             txt.Span("Rango de Fechas: ").Bold();
-                            txt.Span($"{dtpFechaInicio.Value:dd/MM/yyyy} - {dtpFechaFin.Value:dd/MM/yyyy}");
+                            txt.Span(rangoFechas);
                         });
 
                         row.RelativeItem().AlignRight().Text(txt =>
@@ -1528,7 +1595,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
             });
         }
 
-        private void AgregarPaginaGraficoCumplimientoPorRazon(IDocumentContainer container, string titulo, string razonSocial, string nombreBaseDatos, List<string> basesConsultadas, byte[] imagen, List<string> resumenes, List<ResumenCumplimiento> detalles)
+        private void AgregarPaginaGraficoCumplimientoPorRazon(IDocumentContainer container, string titulo, string razonSocial, string nombreBaseDatos, List<string> basesConsultadas, byte[] imagen, List<string> resumenes, List<ResumenCumplimiento> detalles, string rangoFechas)
         {
             container.Page(page =>
             {
@@ -1571,7 +1638,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                         row.RelativeItem().Text(txt =>
                         {
                             txt.Span("Rango de Fechas: ").Bold();
-                            txt.Span($"{dtpFechaInicio.Value:dd/MM/yyyy} - {dtpFechaFin.Value:dd/MM/yyyy}");
+                            txt.Span(rangoFechas);
                         });
 
                         row.RelativeItem().AlignRight().Text(txt =>
@@ -1634,191 +1701,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
             });
         }
 
-        private void AgregarPaginaDetalleMp(IDocumentContainer container, string titulo, string razonSocial, List<string> basesConsultadas, List<MateriaPrimaBOM> datos)
-        {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.A4.Landscape());
-                page.Margin(1.5f, Unit.Centimetre);
-                page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Segoe UI"));
 
-                page.Header().Column(column =>
-                {
-                    column.Item().Text(titulo)
-                        .FontSize(16)
-                        .Bold()
-                        .FontColor(Colors.Blue.Darken3);
-
-                    column.Item().Text(txt =>
-                    {
-                        txt.Span("Razón Social: ").Bold();
-                        txt.Span(razonSocial);
-                    });
-
-                    column.Item().Text(txt =>
-                    {
-                        txt.DefaultTextStyle(x => x.FontSize(8));
-                        txt.Span("Bases consultadas: ").Bold();
-                        txt.Span(string.Join(", ", basesConsultadas));
-                    });
-
-                    column.Item().Text(txt =>
-                    {
-                        txt.Span("Total: ").Bold();
-                        txt.Span($"{datos.Count:N0}");
-                    });
-
-                    column.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-                });
-
-                page.Content().PaddingTop(10).Table(table =>
-                {
-                    table.ColumnsDefinition(columns =>
-                    {
-                        columns.RelativeColumn(2.5f);
-                        columns.RelativeColumn(4);
-                        columns.RelativeColumn(1.5f);
-                        columns.RelativeColumn(2);
-                        columns.RelativeColumn(1.5f);
-                    });
-
-                    table.Header(header =>
-                    {
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte / Empresa").FontColor(Colors.White).Bold();
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("En Pedimento").FontColor(Colors.White).Bold();
-                    });
-
-                    foreach (var item in datos)
-                    {
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(FormatearNumeroPartePdf(item)).FontSize(8);
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp).FontSize(8);
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A").FontSize(8);
-
-                        var estatusColor = string.Equals(item.EstatusComponente, "VIGENTE EN BOM", StringComparison.OrdinalIgnoreCase)
-                            ? Colors.Green.Darken2
-                            : Colors.Red.Darken2;
-
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                            .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                            .Text(item.DetallePedimentosGlosa).FontSize(8);
-                    }
-                });
-
-                page.Footer().AlignCenter().Text(txt =>
-                {
-                    txt.Span("Página ");
-                    txt.CurrentPageNumber();
-                    txt.Span(" de ");
-                    txt.TotalPages();
-                });
-            });
-        }
-
-        private void AgregarPaginaDetalleGeneral(IDocumentContainer container, string razonSocial, List<string> basesConsultadas, List<MateriaPrimaBOM> datos, List<ResumenTipoParte> agrupado)
-        {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.A4.Landscape());
-                page.Margin(1.5f, Unit.Centimetre);
-                page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Segoe UI"));
-
-                page.Header().Column(column =>
-                {
-                    column.Item().Text("GENERAL DE NÚMEROS DE PARTE Y OTROS TIPOS")
-                        .FontSize(16)
-                        .Bold()
-                        .FontColor(Colors.Blue.Darken3);
-
-                    column.Item().Text(txt =>
-                    {
-                        txt.Span("Razón Social: ").Bold();
-                        txt.Span(razonSocial);
-                    });
-
-                    column.Item().Text(txt =>
-                    {
-                        txt.DefaultTextStyle(x => x.FontSize(8));
-                        txt.Span("Bases consultadas: ").Bold();
-                        txt.Span(string.Join(", ", basesConsultadas));
-                    });
-
-                    column.Item().Row(row =>
-                    {
-                        row.RelativeItem().Text(txt =>
-                        {
-                            txt.Span("Total general: ").Bold();
-                            txt.Span($"{datos.Count:N0}");
-                        });
-
-                        foreach (var grupo in agrupado)
-                        {
-                            row.RelativeItem().Text(txt =>
-                            {
-                                txt.DefaultTextStyle(x => x.FontSize(8));
-                                txt.Span($"{grupo.Tipo}: ").Bold().FontColor(Colors.Blue.Darken1);
-                                txt.Span($"{grupo.Total:N0}");
-                            });
-                        }
-                    });
-
-                    column.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-                });
-
-                page.Content().PaddingTop(10).Table(table =>
-                {
-                    table.ColumnsDefinition(columns =>
-                    {
-                        columns.RelativeColumn(1.3f);
-                        columns.RelativeColumn(2.2f);
-                        columns.RelativeColumn(3.5f);
-                        columns.RelativeColumn(1.4f);
-                        columns.RelativeColumn(1.8f);
-                        columns.RelativeColumn(1.2f);
-                    });
-
-                    table.Header(header =>
-                    {
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Tipo").FontColor(Colors.White).Bold();
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Número de Parte / Empresa").FontColor(Colors.White).Bold();
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Descripción").FontColor(Colors.White).Bold();
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Fecha Inserción").FontColor(Colors.White).Bold();
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Estatus en BOM").FontColor(Colors.White).Bold();
-                        header.Cell().Background(Colors.Blue.Darken2).Padding(5).Text("Pedimento").FontColor(Colors.White).Bold();
-                    });
-
-                    foreach (var item in datos)
-                    {
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Clave).Bold().FontSize(8);
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(FormatearNumeroPartePdf(item)).FontSize(8);
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_DescripcionEsp).FontSize(8);
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(item.Par_InsercionFecha?.ToString("dd/MM/yyyy") ?? "N/A").FontSize(8);
-
-                        var estatusColor = string.Equals(item.EstatusComponente, "VIGENTE EN BOM", StringComparison.OrdinalIgnoreCase)
-                            ? Colors.Green.Darken2
-                            : Colors.Red.Darken2;
-
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                            .Text(item.EstatusComponente).FontColor(estatusColor).Bold().FontSize(8);
-                        table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
-                            .Text(item.DetallePedimentosGlosa).FontSize(8);
-                    }
-                });
-
-                page.Footer().AlignCenter().Text(txt =>
-                {
-                    txt.Span("Página ");
-                    txt.CurrentPageNumber();
-                    txt.Span(" de ");
-                    txt.TotalPages();
-                });
-            });
-        }
 
         private List<string> ObtenerBasesConsultadasPdf(List<MateriaPrimaBOM> datosMpPdf, List<MateriaPrimaBOM> datosOtrosPdf, string nombreBaseDatosFallback)
         {
@@ -2091,8 +1974,9 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
                 int steps = 5;
                 for (int i = 0; i <= steps; i++)
                 {
-                    int value = (maxValue / steps) * i;
-                    float y = marginTop + chartHeight - (chartHeight / steps * i);
+                    // usar división en punto flotante para evitar truncamiento al calcular etiquetas
+                    int value = (int)Math.Round(maxValue * i / (double)steps);
+                    float y = marginTop + chartHeight - (chartHeight / (float)steps * i);
                     PdfGeneradorService.DrawTextBlob(canvas, value.ToString(), marginLeft - 10, y + 4, 10, SKColors.Black, SKTextAlign.Right);
                 }
             }
