@@ -126,10 +126,10 @@ namespace Retorno360Tacna.FORMS
 
                 ConexionInfo conexionPrincipal = (ConexionInfo)comboBox1.SelectedItem;
 
-                // ✅ Calcular hash SHA256 de la contraseña
+                //  Calcular hash SHA256 de la contraseña
                 string passwordHash = CalcularHashSHA256(textBox2.Text);
 
-                // ✅ Validar usuario contra RetornoMaster (servidor principal)
+                //  Validar usuario contra RetornoMaster (servidor principal)
                 LoginService loginService = new LoginService();
                 Usuario? usuario = loginService.ValidarUsuario(textBox1.Text, passwordHash);
 
@@ -147,7 +147,7 @@ namespace Retorno360Tacna.FORMS
                         Properties.Settings.Default.Save();
                     }
 
-                    // ✅ Probar conexión al servidor principal
+                    //  Probar conexión al servidor principal
                     Conexion conexionPrueba = new Conexion(
                         conexionPrincipal.Servidor!,
                         conexionPrincipal.UsuarioSQL!,
@@ -167,7 +167,7 @@ namespace Retorno360Tacna.FORMS
                         return;
                     }
 
-                    // ℹ️ NOTA: Los servidores externos se configuran automáticamente
+                    //  NOTA: Los servidores externos se configuran automáticamente
                     //    en RetornoService leyendo RAZONXTABLA.ConnExterna
 
                     // Mostrar pantalla de carga antes de abrir MainMenu

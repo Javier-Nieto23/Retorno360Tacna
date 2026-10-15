@@ -112,11 +112,17 @@
             // 
             // btnGuardarCalculos
             // 
-            btnGuardarCalculos.Location = new Point(642, 21);
+            btnGuardarCalculos.BackColor = Color.Turquoise;
+            btnGuardarCalculos.FlatAppearance.BorderSize = 0;
+            btnGuardarCalculos.FlatStyle = FlatStyle.Flat;
+            btnGuardarCalculos.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnGuardarCalculos.ForeColor = Color.White;
+            btnGuardarCalculos.Location = new Point(554, 207);
             btnGuardarCalculos.Name = "btnGuardarCalculos";
-            btnGuardarCalculos.Size = new Size(120, 30);
+            btnGuardarCalculos.Size = new Size(120, 40);
             btnGuardarCalculos.TabIndex = 0;
             btnGuardarCalculos.Text = "Guardar";
+            btnGuardarCalculos.UseVisualStyleBackColor = false;
             btnGuardarCalculos.Click += btnGuardarCalculos_Click_1;
             // 
             // panelConfigCuerpo
@@ -150,7 +156,7 @@
             // 
             label1.AutoSize = true;
             label1.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            label1.Location = new Point(775, 222);
+            label1.Location = new Point(876, 18);
             label1.Name = "label1";
             label1.Size = new Size(118, 19);
             label1.TabIndex = 25;
@@ -159,7 +165,7 @@
             // lblMesAno
             // 
             lblMesAno.AutoSize = true;
-            lblMesAno.Location = new Point(430, 222);
+            lblMesAno.Location = new Point(442, 295);
             lblMesAno.Name = "lblMesAno";
             lblMesAno.Size = new Size(35, 15);
             lblMesAno.TabIndex = 23;
@@ -168,7 +174,7 @@
             // lblTotalGeneral
             // 
             lblTotalGeneral.AutoSize = true;
-            lblTotalGeneral.Location = new Point(63, 222);
+            lblTotalGeneral.Location = new Point(75, 295);
             lblTotalGeneral.Name = "lblTotalGeneral";
             lblTotalGeneral.Size = new Size(87, 15);
             lblTotalGeneral.TabIndex = 4;
@@ -176,43 +182,67 @@
             // 
             // btnHistorialVerificacion
             // 
-            btnHistorialVerificacion.Location = new Point(390, 21);
+            btnHistorialVerificacion.BackColor = Color.FromArgb(39, 156, 245);
+            btnHistorialVerificacion.FlatAppearance.BorderSize = 0;
+            btnHistorialVerificacion.FlatStyle = FlatStyle.Flat;
+            btnHistorialVerificacion.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnHistorialVerificacion.ForeColor = Color.White;
+            btnHistorialVerificacion.Location = new Point(276, 207);
             btnHistorialVerificacion.Name = "btnHistorialVerificacion";
-            btnHistorialVerificacion.Size = new Size(120, 30);
+            btnHistorialVerificacion.Size = new Size(120, 40);
             btnHistorialVerificacion.TabIndex = 3;
             btnHistorialVerificacion.Text = "Historial";
+            btnHistorialVerificacion.UseVisualStyleBackColor = false;
             // 
             // btnExportarExcel
             // 
-            btnExportarExcel.Location = new Point(516, 21);
+            btnExportarExcel.BackColor = Color.FromArgb(39, 245, 73);
+            btnExportarExcel.FlatAppearance.BorderSize = 0;
+            btnExportarExcel.FlatStyle = FlatStyle.Flat;
+            btnExportarExcel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnExportarExcel.ForeColor = Color.White;
+            btnExportarExcel.Location = new Point(680, 207);
             btnExportarExcel.Name = "btnExportarExcel";
-            btnExportarExcel.Size = new Size(120, 30);
+            btnExportarExcel.Size = new Size(120, 40);
             btnExportarExcel.TabIndex = 2;
             btnExportarExcel.Text = "Exportar";
+            btnExportarExcel.UseVisualStyleBackColor = false;
             btnExportarExcel.Click += btnExportarExcel_Click_1;
             // 
             // btnRecalcular
             // 
-            btnRecalcular.Location = new Point(264, 21);
+            btnRecalcular.BackColor = Color.FromArgb(209, 209, 209);
+            btnRecalcular.FlatAppearance.BorderSize = 0;
+            btnRecalcular.FlatStyle = FlatStyle.Flat;
+            btnRecalcular.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnRecalcular.ForeColor = Color.White;
+            btnRecalcular.Location = new Point(402, 207);
             btnRecalcular.Name = "btnRecalcular";
-            btnRecalcular.Size = new Size(120, 30);
+            btnRecalcular.Size = new Size(120, 40);
             btnRecalcular.TabIndex = 1;
             btnRecalcular.Text = "Recalcular";
+            btnRecalcular.UseVisualStyleBackColor = false;
             // 
             // btnVerificarPartes
             // 
-            btnVerificarPartes.Location = new Point(12, 21);
+            btnVerificarPartes.BackColor = Color.FromArgb(39, 156, 245);
+            btnVerificarPartes.FlatAppearance.BorderSize = 0;
+            btnVerificarPartes.FlatStyle = FlatStyle.Flat;
+            btnVerificarPartes.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnVerificarPartes.ForeColor = Color.White;
+            btnVerificarPartes.Location = new Point(24, 207);
             btnVerificarPartes.Name = "btnVerificarPartes";
-            btnVerificarPartes.Size = new Size(120, 30);
+            btnVerificarPartes.Size = new Size(120, 40);
             btnVerificarPartes.TabIndex = 0;
             btnVerificarPartes.Text = "Verificar partes";
+            btnVerificarPartes.UseVisualStyleBackColor = false;
             btnVerificarPartes.Click += btnVerificarPartes_Click;
             // 
             // chkUsarPerfil
             // 
             chkUsarPerfil.AutoSize = true;
             chkUsarPerfil.Font = new Font("Segoe UI", 9.5F);
-            chkUsarPerfil.Location = new Point(31, 149);
+            chkUsarPerfil.Location = new Point(511, 43);
             chkUsarPerfil.Name = "chkUsarPerfil";
             chkUsarPerfil.Size = new Size(186, 21);
             chkUsarPerfil.TabIndex = 10;
@@ -225,7 +255,7 @@
             lblLblRazon.AutoSize = true;
             lblLblRazon.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblLblRazon.ForeColor = Color.FromArgb(50, 60, 70);
-            lblLblRazon.Location = new Point(31, 83);
+            lblLblRazon.Location = new Point(21, 19);
             lblLblRazon.Name = "lblLblRazon";
             lblLblRazon.Size = new Size(94, 19);
             lblLblRazon.TabIndex = 0;
@@ -236,7 +266,7 @@
             cmbRazonSocial.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbRazonSocial.Font = new Font("Segoe UI", 10F);
             cmbRazonSocial.FormattingEnabled = true;
-            cmbRazonSocial.Location = new Point(31, 107);
+            cmbRazonSocial.Location = new Point(21, 43);
             cmbRazonSocial.Name = "cmbRazonSocial";
             cmbRazonSocial.Size = new Size(237, 25);
             cmbRazonSocial.TabIndex = 0;
@@ -246,7 +276,7 @@
             lblLblEmpresa.AutoSize = true;
             lblLblEmpresa.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblLblEmpresa.ForeColor = Color.FromArgb(50, 60, 70);
-            lblLblEmpresa.Location = new Point(290, 82);
+            lblLblEmpresa.Location = new Point(273, 18);
             lblLblEmpresa.Name = "lblLblEmpresa";
             lblLblEmpresa.Size = new Size(66, 19);
             lblLblEmpresa.TabIndex = 1;
@@ -257,7 +287,7 @@
             cmbEmpresa.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbEmpresa.Font = new Font("Segoe UI", 10F);
             cmbEmpresa.FormattingEnabled = true;
-            cmbEmpresa.Location = new Point(290, 107);
+            cmbEmpresa.Location = new Point(273, 43);
             cmbEmpresa.Name = "cmbEmpresa";
             cmbEmpresa.Size = new Size(217, 25);
             cmbEmpresa.TabIndex = 1;
@@ -268,7 +298,7 @@
             lblPlantillaInfo.AutoSize = true;
             lblPlantillaInfo.Font = new Font("Segoe UI", 9F);
             lblPlantillaInfo.ForeColor = Color.FromArgb(50, 80, 130);
-            lblPlantillaInfo.Location = new Point(43, 185);
+            lblPlantillaInfo.Location = new Point(24, 87);
             lblPlantillaInfo.Name = "lblPlantillaInfo";
             lblPlantillaInfo.Size = new Size(153, 15);
             lblPlantillaInfo.TabIndex = 20;
@@ -277,25 +307,31 @@
             // dgvRelsultados
             // 
             dgvRelsultados.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvRelsultados.Location = new Point(12, 256);
+            dgvRelsultados.Location = new Point(24, 329);
             dgvRelsultados.Name = "dgvRelsultados";
             dgvRelsultados.Size = new Size(731, 413);
             dgvRelsultados.TabIndex = 22;
             // 
             // btnAnalizarExcel
             // 
-            btnAnalizarExcel.Location = new Point(138, 21);
+            btnAnalizarExcel.BackColor = Color.FromArgb(39, 156, 245);
+            btnAnalizarExcel.FlatAppearance.BorderSize = 0;
+            btnAnalizarExcel.FlatStyle = FlatStyle.Flat;
+            btnAnalizarExcel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnAnalizarExcel.ForeColor = Color.White;
+            btnAnalizarExcel.Location = new Point(150, 207);
             btnAnalizarExcel.Name = "btnAnalizarExcel";
-            btnAnalizarExcel.Size = new Size(120, 30);
+            btnAnalizarExcel.Size = new Size(120, 40);
             btnAnalizarExcel.TabIndex = 4;
             btnAnalizarExcel.Text = "Analizar Excel";
+            btnAnalizarExcel.UseVisualStyleBackColor = false;
             btnAnalizarExcel.Click += btnAnalizarExcel_Click;
             // 
             // pnlChart
             // 
-            pnlChart.Location = new Point(775, 256);
+            pnlChart.Location = new Point(876, 43);
             pnlChart.Name = "pnlChart";
-            pnlChart.Size = new Size(670, 413);
+            pnlChart.Size = new Size(636, 136);
             pnlChart.TabIndex = 24;
             // 
             // panelCargando

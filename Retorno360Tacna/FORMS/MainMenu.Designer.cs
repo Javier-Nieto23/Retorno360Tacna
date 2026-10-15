@@ -359,7 +359,7 @@ namespace Retorno360Tacna.FORMS
             btnSubMenuContabilidad.Padding = new Padding(35, 0, 0, 0);
             btnSubMenuContabilidad.Size = new Size(250, 60);
             btnSubMenuContabilidad.TabIndex = 2;
-            btnSubMenuContabilidad.Text = "Contabilidad";
+            btnSubMenuContabilidad.Text = "Costos Unitarios";
             btnSubMenuContabilidad.TextAlign = ContentAlignment.MiddleLeft;
             btnSubMenuContabilidad.UseVisualStyleBackColor = true;
             btnSubMenuContabilidad.Click += btnSubMenuContabilidad_Click;
@@ -403,7 +403,7 @@ namespace Retorno360Tacna.FORMS
             btnSubMenuPorcentaje.Padding = new Padding(35, 0, 0, 0);
             btnSubMenuPorcentaje.Size = new Size(250, 60);
             btnSubMenuPorcentaje.TabIndex = 0;
-            btnSubMenuPorcentaje.Text = "% Retorno";
+            btnSubMenuPorcentaje.Text = "Porcentaje Retorno";
             btnSubMenuPorcentaje.TextAlign = ContentAlignment.MiddleLeft;
             btnSubMenuPorcentaje.UseVisualStyleBackColor = true;
             btnSubMenuPorcentaje.Click += btnRetorno_Click;
@@ -718,7 +718,7 @@ namespace Retorno360Tacna.FORMS
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainMenu";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto    |  Version: 3.5.4";
+            Text = "Retorno 360 Tacna - Sistema de Gestión - Sistema Desarrollado por Javier Nieto    |  Version: 3.5.5";
             WindowState = FormWindowState.Maximized;
             Load += MainMenu_Load;
             panelSidebar.ResumeLayout(false);

@@ -58,180 +58,7 @@ namespace Retorno360Tacna.FORMS
                 // Si se necesita la funcionalidad global, usar FrmCatalogoPartes; aquí mantenemos el comportamiento local.
                 if (false)
                 {
-                    DataTable dtRazones = new DataTable();
-                    try
-                    {
-                        Conexion conexion = new Conexion();
-                        // Obtener IdRazon y nombre de la razón para crear una hoja por razón
-                        string sqlRaz = "SELECT DISTINCT r.IdRazon, r.NOMBRE_RAZON FROM RAZONXTABLA r JOIN NOM_TABLARAZON n ON n.IdRazon = r.IdRazon";
-                        using (SqlConnection connection = new SqlConnection(conexion.GetConnectionString()))
-                        using (SqlCommand cmdRaz = new SqlCommand(sqlRaz, connection))
-                        using (SqlDataAdapter daRaz = new SqlDataAdapter(cmdRaz))
-                        {
-                            daRaz.Fill(dtRazones);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        sbLog.AppendLine($"Error al listar razones: {ex}");
-                        MessageBox.Show($"Error al listar razones: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        // escribir log y salir
-                        try { File.WriteAllText(logPath, sbLog.ToString()); } catch { }
-                        return;
-                    }
-
-                    if (dtRazones.Rows.Count == 0)
-                    {
-                        MessageBox.Show("No se encontraron razones ni empresas.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        return;
-                    }
-
-                    using var sfdAll = new SaveFileDialog() { Filter = "Excel Workbook|*.xlsx", FileName = $"Inventario_TodasRazonesEmpresas_{DateTime.Now:yyyyMMdd}.xlsx" };
-                    if (sfdAll.ShowDialog(this) != DialogResult.OK) return;
-
-                    // El usuario seleccionó carpeta/archivo: mostrar panel de carga antes de iniciar consultas largas
-                    try { MostrarPanelCargando(true); } catch { }
-                    try { EstablecerEstadoBotonesDuranteCarga(true); } catch { }
-
-                    using var wbAll = new XLWorkbook();
-
-                    foreach (DataRow rowR in dtRazones.Rows)
-                    {
-                        if (rowR == null) continue;
-                        int idR = 0; int.TryParse(rowR[0].ToString(), out idR);
-
-                        // Obtener empresas asociadas a la razón (desde NOM_TABLARAZON)
-                        DataTable dtEmpresasForRazon = new DataTable();
-                        try
-                        {
-                            Conexion conexion2 = new Conexion();
-                            string sqlEmp = "SELECT IdTabla, NOMBRE_TABLA FROM NOM_TABLARAZON WHERE IdRazon = @IdRazon ORDER BY NOMBRE_TABLA";
-                            using (SqlConnection connection2 = new SqlConnection(conexion2.GetConnectionString()))
-                            using (SqlCommand cmdEmpList = new SqlCommand(sqlEmp, connection2))
-                            using (SqlDataAdapter daEmp = new SqlDataAdapter(cmdEmpList))
-                            {
-                                cmdEmpList.Parameters.AddWithValue("@IdRazon", idR);
-                                daEmp.Fill(dtEmpresasForRazon);
-                            }
-                        }
-                        catch
-                        {
-                            continue;
-                        }
-
-                        if (dtEmpresasForRazon.Rows.Count == 0) continue;
-
-                        foreach (DataRow row in dtEmpresasForRazon.Rows)
-                        {
-                            if (row == null) continue;
-                            int idEmp = 0; int.TryParse(row[0].ToString(), out idEmp);
-                            string nombreEmpresa = row[1]?.ToString() ?? string.Empty;
-
-                            // Reutilizar lógica de consulta para una empresa (como antes) y agregar hoja por empresa
-                            var dtEmpresa = new DataTable();
-                            dtEmpresa.Columns.Add("Par_NoParte"); dtEmpresa.Columns.Add("Par_DescripcionIng"); dtEmpresa.Columns.Add("Par_DescripcionEsp"); dtEmpresa.Columns.Add("Fra_FraccionMex"); dtEmpresa.Columns.Add("Med_Clave"); dtEmpresa.Columns.Add("Pac_Costo"); dtEmpresa.Columns.Add("Pac_FechaFin"); dtEmpresa.Columns.Add("Par_PesoUnit"); dtEmpresa.Columns.Add("Par_UMPeso"); dtEmpresa.Columns.Add("Tim_Clave"); dtEmpresa.Columns.Add("Pai_Origen"); dtEmpresa.Columns.Add("Tco_Clave"); dtEmpresa.Columns.Add("Par_Activo");
-
-                            try
-                            {
-                                var svcEmp = new VerificacionPartesService();
-                                string connStrEmp = await svcEmp.ObtenerCadenaConexionPublicAsync(idR, idEmp);
-
-                                using (var connEmp = new SqlConnection(connStrEmp))
-                                {
-                                    connEmp.Open();
-                                    string sql = @"select  cp.Par_NoParte, cp.Par_DescripcionIng, cp.Par_DescripcionEsp, fa.Fra_FraccionMex, cp.Med_Clave, cpc.Pac_Costo, cpc.Pac_FechaFin, cp.Par_PesoUnit, cp.Par_UMPeso, cp.Tim_Clave, cp.Pai_Origen, cpc.Tco_Clave, cp.Par_Activo
-                                                        from Ca_Parte cp
-                                                        inner join Ca_ParteCosto cpc on cp.Par_Consecutivo = cpc.Par_Consecutivo
-                                                        inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
-
-                                    using var cmdEmp = new SqlCommand(sql, connEmp);
-                                    using var rdrEmp = cmdEmp.ExecuteReader();
-                                    while (rdrEmp.Read())
-                                    {
-                                        var rowEmpresa = dtEmpresa.NewRow();
-                                        rowEmpresa[0] = rdrEmp.IsDBNull(0) ? string.Empty : rdrEmp.GetString(0);
-                                        rowEmpresa[1] = rdrEmp.IsDBNull(1) ? string.Empty : rdrEmp.GetString(1);
-                                        rowEmpresa[2] = rdrEmp.IsDBNull(2) ? string.Empty : rdrEmp.GetString(2);
-                                        rowEmpresa[3] = rdrEmp.IsDBNull(3) ? string.Empty : rdrEmp.GetString(3);
-                                        rowEmpresa[4] = rdrEmp.IsDBNull(4) ? string.Empty : rdrEmp.GetString(4);
-                                        rowEmpresa[5] = rdrEmp.IsDBNull(5) ? (object)0m : rdrEmp.GetDecimal(5);
-                                        rowEmpresa[6] = rdrEmp.IsDBNull(6) ? string.Empty : rdrEmp.GetDateTime(6).ToString("yyyy-MM-dd");
-                                        rowEmpresa[7] = rdrEmp.IsDBNull(7) ? (object)0m : rdrEmp.GetDecimal(7);
-                                        rowEmpresa[8] = rdrEmp.IsDBNull(8) ? string.Empty : rdrEmp.GetString(8);
-                                        rowEmpresa[9] = rdrEmp.IsDBNull(9) ? string.Empty : rdrEmp.GetString(9);
-                                        rowEmpresa[10] = rdrEmp.IsDBNull(10) ? string.Empty : rdrEmp.GetString(10);
-                                        rowEmpresa[11] = rdrEmp.IsDBNull(11) ? string.Empty : rdrEmp.GetString(11);
-                                        rowEmpresa[12] = rdrEmp.IsDBNull(12) ? string.Empty : rdrEmp.GetString(12);
-                                        dtEmpresa.Rows.Add(rowEmpresa);
-                                    }
-                                }
-                            }
-                            catch
-                            {
-                                continue;
-                            }
-
-                            string sheetName = string.IsNullOrWhiteSpace(nombreEmpresa) ? $"Empresa_{idEmp}" : nombreEmpresa;
-                            if (wbAll.Worksheets.Any(w => string.Equals(w.Name, sheetName, StringComparison.OrdinalIgnoreCase)))
-                                sheetName = sheetName + "_" + idEmp;
-
-                            var wsEmpresa = wbAll.Worksheets.Add(sheetName);
-                            for (int c = 0; c < dtEmpresa.Columns.Count; c++) wsEmpresa.Cell(1, c + 1).Value = dtEmpresa.Columns[c].ColumnName;
-                            for (int r = 0; r < dtEmpresa.Rows.Count; r++)
-                            {
-                                int targetRow = r + 2;
-                                if (targetRow < 1)
-                                {
-                                    sbLog.AppendLine($"SALTANDO escritura: targetRow ({targetRow}) < 1 para IdEmpresa={idEmp}, Hoja={sheetName}");
-                                    continue;
-                                }
-                                if (targetRow > 1048576)
-                                {
-                                    sbLog.AppendLine($"SALTANDO escritura: targetRow ({targetRow}) > 1048576 para IdEmpresa={idEmp}, Hoja={sheetName}");
-                                    break;
-                                }
-                                for (int c = 0; c < dtEmpresa.Columns.Count; c++)
-                                {
-                                    var val = dtEmpresa.Rows[r][c];
-                                    try { wsEmpresa.Cell(targetRow, c + 1).SetValue(val == null ? string.Empty : val.ToString()); } catch { wsEmpresa.Cell(targetRow, c + 1).Value = val?.ToString() ?? string.Empty; }
-                                }
-                            }
-                            wsEmpresa.Columns().AdjustToContents();
-                        }
-                    }
-
-                    try
-                    {
-                        if (wbAll.Worksheets == null || wbAll.Worksheets.Count == 0)
-                        {
-                            MessageBox.Show("No se encontraron inventarios para exportar. Ninguna hoja fue creada.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-                        else
-                        {
-                            // Intentar guardar con manejo de archivo bloqueado
-                            var savedAllPath = SaveWorkbookWithFallback(wbAll, sfdAll.FileName, sbLog);
-                            if (savedAllPath != null)
-                            {
-                                var ask2 = MessageBox.Show("Inventarios exportados a Excel. ¿Deseas abrir el archivo ahora?", "Exportado", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                                if (ask2 == DialogResult.Yes)
-                                {
-                                    try { Process.Start(new ProcessStartInfo(savedAllPath) { UseShellExecute = true }); } catch { }
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Error al guardar inventarios: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                    finally
-                    {
-                        // Ocultar panel de carga y restaurar UI
-                        try { MostrarPanelCargando(false); } catch { }
-                        try { EstablecerEstadoBotonesDuranteCarga(false); } catch { }
-                    }
-
-                    return;
+                   
                 }
 
                 if (idEmpresa == 0) { MessageBox.Show("Selecciona empresa antes de cargar inventario.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
@@ -248,9 +75,9 @@ namespace Retorno360Tacna.FORMS
                 {
                     conn.Open();
                     string sql = @"select  cp.Par_NoParte, cp.Par_DescripcionIng, cp.Par_DescripcionEsp, fa.Fra_FraccionMex, cp.Med_Clave, cpc.Pac_Costo, cpc.Pac_FechaFin, cp.Par_PesoUnit, cp.Par_UMPeso, cp.Tim_Clave, cp.Pai_Origen, cpc.Tco_Clave, cp.Par_Activo
-from Ca_Parte cp
-inner join Ca_ParteCosto cpc on cp.Par_Consecutivo = cpc.Par_Consecutivo
-inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
+                                from Ca_Parte cp
+                                inner join Ca_ParteCosto cpc on cp.Par_Consecutivo = cpc.Par_Consecutivo
+                                inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
 
                     using var cmd = new SqlCommand(sql, conn);
                     using var rdr = cmd.ExecuteReader();
@@ -1163,90 +990,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
             catch { }
         }
 
-        // Intenta mapear columnas del archivo subido usando la plantilla configurada.
-        // Devuelve true si se pudo obtener hoja y nombres de columnas (parte, cantidad, um).
-        private bool TryAutoMapUsingTemplate(string plantillaPath, string plantillaHoja, XLWorkbook uploadedWorkbook, out string sheetNombre, out string colParte, out string colCant, out string colUm)
-        {
-            sheetNombre = string.Empty; colParte = string.Empty; colCant = string.Empty; colUm = string.Empty;
-            try
-            {
-                if (!File.Exists(plantillaPath)) return false;
-                using var tplWb = new XLWorkbook(plantillaPath);
-
-                var tplWs = tplWb.Worksheets.FirstOrDefault(w => string.Equals(w.Name, plantillaHoja, StringComparison.OrdinalIgnoreCase))
-                    ?? tplWb.Worksheets.FirstOrDefault();
-                if (tplWs == null) return false;
-
-                // Detectar fila de encabezado en plantilla
-                int tplLastRow = tplWs.LastRowUsed()?.RowNumber() ?? 0;
-                int tplHeaderRow = 1;
-                for (int r = 1; r <= Math.Min(tplLastRow, 20); r++)
-                {
-                    var row = tplWs.Row(r);
-                    if (row.CellsUsed().Any()) { tplHeaderRow = r; break; }
-                }
-
-                var headersTpl = new List<string>();
-                int tplLastCol = tplWs.Row(tplHeaderRow).LastCellUsed()?.Address.ColumnNumber ?? 0;
-                for (int c = 1; c <= tplLastCol; c++) headersTpl.Add(tplWs.Cell(tplHeaderRow, c).GetString().Trim());
-
-                // Revisar cada hoja del archivo subido y buscar coincidencias de nombres de columnas
-                foreach (var upWs in uploadedWorkbook.Worksheets)
-                {
-                    int upLastRow = upWs.LastRowUsed()?.RowNumber() ?? 0;
-                    int upHeaderRow = 1;
-                    for (int r = 1; r <= Math.Min(upLastRow, 20); r++) { if (upWs.Row(r).CellsUsed().Any()) { upHeaderRow = r; break; } }
-                    int upLastCol = upWs.Row(upHeaderRow).LastCellUsed()?.Address.ColumnNumber ?? 0;
-
-                    var headersUp = new List<string>();
-                    for (int c = 1; c <= upLastCol; c++) headersUp.Add(upWs.Cell(upHeaderRow, c).GetString().Trim());
-
-                    // Intentar encontrar columna de parte comparando nombres exactos o contención
-                    string foundParte = string.Empty, foundCant = string.Empty, foundUm = string.Empty;
-                    foreach (var h in headersTpl)
-                    {
-                        if (string.IsNullOrWhiteSpace(h)) continue;
-                        // Heurística: buscar campos conocidos en plantilla como 'Parte','NoParte','Cantidad','UM','Unidad'
-                        if (RegexMatchAny(h, new[] { "parte", "no parte", "no_parte", "no_parte", "noParte", "noParte" }))
-                        {
-                            // buscar coincidencia en headersUp
-                            var match = headersUp.FirstOrDefault(x => x.Equals(h, StringComparison.OrdinalIgnoreCase) || x.IndexOf(h, StringComparison.OrdinalIgnoreCase) >= 0);
-                            if (match != null) foundParte = match;
-                        }
-                        if (string.IsNullOrWhiteSpace(foundCant) && RegexMatchAny(h, new[] { "cantidad", "cant", "qty", "quantity" }))
-                        {
-                            var match = headersUp.FirstOrDefault(x => x.Equals(h, StringComparison.OrdinalIgnoreCase) || x.IndexOf(h, StringComparison.OrdinalIgnoreCase) >= 0);
-                            if (match != null) foundCant = match;
-                        }
-                        if (string.IsNullOrWhiteSpace(foundUm) && RegexMatchAny(h, new[] { "um", "unidad", "unidad_medida", "uom" }))
-                        {
-                            var match = headersUp.FirstOrDefault(x => x.Equals(h, StringComparison.OrdinalIgnoreCase) || x.IndexOf(h, StringComparison.OrdinalIgnoreCase) >= 0);
-                            if (match != null) foundUm = match;
-                        }
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(foundParte))
-                    {
-                        sheetNombre = upWs.Name;
-                        colParte = foundParte;
-                        colCant = foundCant;
-                        colUm = foundUm;
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            catch { return false; }
-        }
-
-        private bool RegexMatchAny(string input, string[] terms)
-        {
-            if (string.IsNullOrWhiteSpace(input)) return false;
-            var low = input.ToLowerInvariant();
-            foreach (var t in terms) if (low.Contains(t.ToLowerInvariant())) return true;
-            return false;
-        }
+      
 
         // Genera una lista de claves yyyy-MM para los n meses anteriores (incluye mes actual)
         private System.Collections.Generic.IEnumerable<string> GenerarMesesRecientes(int meses)
@@ -1836,5 +1580,7 @@ inner join vFracciones fa on fa.Par_Consecutivo = cp.Par_Consecutivo";
         {
             // Evento reservado por el diseñador.
         }
+
+
     }
 }

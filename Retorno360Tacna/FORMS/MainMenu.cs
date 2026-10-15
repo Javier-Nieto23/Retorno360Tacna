@@ -605,7 +605,7 @@ namespace Retorno360Tacna.FORMS
             }
 
             ActivarBoton(btnSubMenuContabilidad);
-            lblTitulo.Text = "Contabilidad";
+            lblTitulo.Text = "Costo Unitario";
             LimpiarPanel();
 
             if (!sidebarColapsado)
@@ -862,7 +862,7 @@ namespace Retorno360Tacna.FORMS
         private void btnRetorno_Click(object sender, EventArgs e)
         {
             ActivarBoton(btnSubMenuPorcentaje);
-            lblTitulo.Text = "Gestión de Retorno";
+            lblTitulo.Text = "Porcentaje Retorno";
             LimpiarPanel();
 
             // Colapsar sidebar automáticamente al seleccionar una opción del submenú
@@ -886,7 +886,7 @@ namespace Retorno360Tacna.FORMS
         private void btnReportes_Click(object sender, EventArgs e)
         {
             ActivarBoton(btnReporteAd);
-            lblTitulo.Text = "Reporte IGI Pagado";
+            lblTitulo.Text = "Reporte IGI";
             LimpiarPanel();
 
 

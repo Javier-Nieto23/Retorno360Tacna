@@ -1,22 +1,17 @@
+using ClosedXML.Excel;
 using Microsoft.Data.SqlClient;
 using Retorno360Tacna.CNX;
 using System;
+using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
 
 namespace Retorno360Tacna.FORMS
 {
-    public class FrmHistorialExplorer : Form
+    public partial class FrmHistorialExplorer : Form
     {
-        private ComboBox cmbRazon;
-        private ComboBox cmbEmpresa;
-        private NumericUpDown nudYear;
-        private Button btnBuscar;
-        private DataGridView dgvSummary;
-        private DataGridView dgvDetails;
-        private Label lblTotal;
-
         private int initialRazonId;
         private int initialEmpresaId;
 
@@ -24,57 +19,15 @@ namespace Retorno360Tacna.FORMS
         {
             initialRazonId = selectedRazonId;
             initialEmpresaId = selectedEmpresaId;
-            InitializeComponents();
+            InitializeComponent();
             Load += FrmHistorialExplorer_Load;
         }
 
-        private void InitializeComponents()
+
+
+        private void btnClose_Click(object? sender, EventArgs e)
         {
-            Text = "Explorador de Historial";
-            Size = new Size(900, 600);
-            StartPosition = FormStartPosition.CenterParent;
-            // Quitar barra de título y controles para que la ventana no sea movible ni muestre minimizar/maximizar/cerrar
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.ControlBox = false;
-            this.ShowInTaskbar = false;
-
-            // Header panel (cohesive look con el resto del sistema)
-            var header = new Panel() { Dock = DockStyle.Top, Height = 56, BackColor = Color.FromArgb(30, 80, 50) };
-            var title = new Label() { Text = "Explorador de Historial", ForeColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold), AutoSize = false, TextAlign = ContentAlignment.MiddleLeft, Dock = DockStyle.Left, Width = 400, Padding = new Padding(12, 0, 0, 0) };
-            header.Controls.Add(title);
-            // Botón de cerrar personalizado (visible aun sin barra de título)
-            var btnClose = new Button()
-            {
-                Text = "✕",
-                Dock = DockStyle.Right,
-                Width = 40,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(30, 80, 50),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            btnClose.FlatAppearance.BorderSize = 0;
-            btnClose.Click += (s, e) => this.Close();
-            header.Controls.Add(btnClose);
-
-            // Filters strip
-            var filterPanel = new Panel() { Left = 8, Top = 64, Width = 880, Height = 36, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-            cmbRazon = new ComboBox() { Left = 0, Top = 6, Width = 240, DropDownStyle = ComboBoxStyle.DropDownList }; 
-            cmbEmpresa = new ComboBox() { Left = 252, Top = 6, Width = 240, DropDownStyle = ComboBoxStyle.DropDownList };
-            nudYear = new NumericUpDown() { Left = 504, Top = 6, Width = 80, Minimum = 2000, Maximum = 2100, Value = DateTime.Now.Year };
-            btnBuscar = new Button() { Left = 596, Top = 4, Width = 90, Text = "Buscar", BackColor = Color.FromArgb(52, 152, 219), ForeColor = Color.White, FlatStyle = FlatStyle.Flat }; btnBuscar.FlatAppearance.BorderSize = 0;
-            btnBuscar.Click += BtnBuscar_Click;
-            lblTotal = new Label() { Left = 700, Top = 10, AutoSize = true, Text = "Total: 0", Anchor = AnchorStyles.Top | AnchorStyles.Right };
-            filterPanel.Controls.AddRange(new Control[] { cmbRazon, cmbEmpresa, nudYear, btnBuscar, lblTotal });
-
-            dgvSummary = new DataGridView() { Left = 12, Top = 108, Width = 860, Height = 120, ReadOnly = true, AllowUserToAddRows = false, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right }; 
-            dgvSummary.SelectionMode = DataGridViewSelectionMode.FullRowSelect; dgvSummary.CellDoubleClick += DgvSummary_CellDoubleClick; dgvSummary.BackgroundColor = Color.WhiteSmoke; dgvSummary.BorderStyle = BorderStyle.FixedSingle;
-
-            dgvDetails = new DataGridView() { Left = 12, Top = 240, Width = 860, Height = 300, ReadOnly = true, AllowUserToAddRows = false, Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
-            dgvDetails.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill; dgvDetails.BackgroundColor = Color.WhiteSmoke; dgvDetails.BorderStyle = BorderStyle.FixedSingle;
-
-            Controls.AddRange(new Control[] { header, filterPanel, dgvSummary, dgvDetails });
+            this.Close();
         }
 
         private void FrmHistorialExplorer_Load(object? sender, EventArgs e)
@@ -161,10 +114,19 @@ namespace Retorno360Tacna.FORMS
         {
             int idRazon = GetSelectedValue(cmbRazon);
             int idEmpresa = GetSelectedValue(cmbEmpresa);
-            int year = (int)nudYear.Value;
+            if (idRazon == 0 && idEmpresa == 0)
+            {
+                MessageBox.Show("Elija una razon social y/o un cliente", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else
+            {
 
-            LoadSummary(idRazon, idEmpresa, year);
-            LoadDetails(idRazon, idEmpresa, year, month: 0);
+
+                int year = (int)nudYear.Value;
+
+                LoadSummary(idRazon, idEmpresa, year);
+                LoadDetails(idRazon, idEmpresa, year, month: 0);
+            }
         }
 
         private int GetSelectedValue(ComboBox cb)
@@ -304,11 +266,106 @@ namespace Retorno360Tacna.FORMS
         }
 
         private class ComboBoxItem
+
+
         {
             public string Text { get; }
             public int Value { get; }
             public ComboBoxItem(string text, int value) { Text = text; Value = value; }
             public override string ToString() => Text;
+        }
+
+        private void btnExportarExcel_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                int idRazon = GetSelectedValue(cmbRazon);
+                int idEmpresa = GetSelectedValue(cmbEmpresa);
+
+                if (idEmpresa == 0 && idRazon == 0) 
+                {
+                    MessageBox.Show("No se puede generar un excel sin razon social y/o cliente", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                else 
+                {
+
+                    using var sfd = new SaveFileDialog
+                    {
+                        Filter = "Excel Workbook|*.xlsx",
+                        FileName = $"Historial_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
+                    };
+
+
+                    if (Retorno360Tacna.HELPERS.WinFormsHelper.ShowSaveFileDialog(this, sfd) != DialogResult.OK)
+                        return;
+
+                    using var wb = new XLWorkbook();
+
+                    // Resumen (dgvSummary)
+                    var dtResumen = new DataTable("Resumen");
+                    foreach (DataGridViewColumn col in dgvSummary.Columns)
+                    {
+                        var colName = string.IsNullOrWhiteSpace(col.HeaderText) ? col.Name : col.HeaderText;
+                        dtResumen.Columns.Add(colName);
+                    }
+                    foreach (DataGridViewRow row in dgvSummary.Rows)
+                    {
+                        if (row.IsNewRow) continue;
+                        var dr = dtResumen.NewRow();
+                        for (int i = 0; i < dgvSummary.Columns.Count; i++) dr[i] = row.Cells[i].Value ?? string.Empty;
+                        dtResumen.Rows.Add(dr);
+                    }
+                    wb.Worksheets.Add(dtResumen, "Resumen");
+
+                    // Detalles (dgvDetails)
+                    var dtDetalles = new DataTable("Detalles");
+                    foreach (DataGridViewColumn col in dgvDetails.Columns)
+                    {
+                        var colName = string.IsNullOrWhiteSpace(col.HeaderText) ? col.Name : col.HeaderText;
+                        dtDetalles.Columns.Add(colName);
+                    }
+                    foreach (DataGridViewRow row in dgvDetails.Rows)
+                    {
+                        if (row.IsNewRow) continue;
+                        var dr = dtDetalles.NewRow();
+                        for (int i = 0; i < dgvDetails.Columns.Count; i++) dr[i] = row.Cells[i].Value ?? string.Empty;
+                        dtDetalles.Rows.Add(dr);
+                    }
+                    wb.Worksheets.Add(dtDetalles, "Detalles");
+
+                    wb.SaveAs(sfd.FileName);
+                    //Abrir archivo
+                    try
+                    {
+                        var ask = MessageBox.Show("Excel generado. ¿Deseas abrir el archivo ahora?", "Exportado", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        if (ask == DialogResult.Yes)
+                        {
+                            try
+                            {
+                                var psi = new ProcessStartInfo(sfd.FileName) { UseShellExecute = true };
+                                Process.Start(psi);
+                            }
+                            catch { /* no crítico */ }
+                        }
+                    }
+                    catch
+                    {
+                        try { MessageBox.Show("Excel generado.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information); } catch { }
+                    }
+                }
+                    
+                
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al exportar a Excel: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnCerrar_Click(object sender, EventArgs e)
+        {
+            this.Close();
         }
     }
 }
